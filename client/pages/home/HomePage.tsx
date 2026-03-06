@@ -37,27 +37,29 @@ const HomePage = () => {
         }
       `}</style>
       
-      <ImageSlider />
+      <div className="container mx-auto px-4">
+        <ImageSlider />
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-800 mb-4">
-            Our Categories
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Explore our wide range of premium kitchen equipment and solutions for every culinary need
-          </p>
-        </div>
+        <div className="py-12">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">
+              Our Categories
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Explore our wide range of premium kitchen equipment and solutions for every culinary need
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {categories.map((category, index) => (
-            <CategoryCard
-              key={index}
-              title={category.name}
-              image={category.image}
-              onSeeMore={() => handleSeeMore(category.name)}
-            />
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {categories.map((category, index) => (
+              <CategoryCard
+                key={index}
+                title={category.name}
+                image={category.image}
+                onSeeMore={() => handleSeeMore(category.name)}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
