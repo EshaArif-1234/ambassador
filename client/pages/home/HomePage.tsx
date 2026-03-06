@@ -5,19 +5,19 @@ import CategoryCard from '../../../components/home page/CategoryCard';
 
 const HomePage = () => {
   const categories = [
-    'Stainless Steel Kitchen',
-    'Hotel',
-    'Restaurant',
-    'Fast Food',
-    'Bakery',
-    'Cafes',
-    'Banquets',
-    'Super Markets',
-    'Hospital Kitchen',
-    'Mess Kitchen',
-    'University Kitchen',
-    'Ambassador Engineering Products',
-    'Imported Items'
+    { name: 'Stainless Steel Kitchen', image: '/Images/home/stainless-steal.webp' },
+    { name: 'Hotel', image: '/Images/home/hotel.avif' },
+    { name: 'Restaurant', image: '/Images/home/restaurent.jpg' },
+    { name: 'Fast Food', image: '/Images/home/fast food.avif' },
+    { name: 'Bakery', image: '/Images/home/bakeries.webp' },
+    { name: 'Cafes', image: '/Images/home/cafes.png' },
+    { name: 'Banquets', image: '/Images/home/Banquets.jpg' },
+    { name: 'Super Markets', image: '/Images/home/Super Markets.jpg' },
+    { name: 'Hospital Kitchen', image: '/Images/home/Hospital Kitchen.jpg' },
+    { name: 'Mess Kitchen', image: '/Images/home/mess kitchen.jfif' },
+    { name: 'University Kitchen', image: '/Images/home/university kitchen.jpg' },
+    { name: 'Ambassador Engineering Products', image: '/Images/home/engeniering products.jfif' },
+    { name: 'Imported Items', image: '/Images/home/Imported Items.jfif' }
   ];
 
   const handleSeeMore = (category: string) => {
@@ -53,9 +53,9 @@ const HomePage = () => {
           {categories.map((category, index) => (
             <CategoryCard
               key={index}
-              title={category}
-              image={`/api/placeholder/300/200`}
-              onSeeMore={() => handleSeeMore(category)}
+              title={category.name}
+              image={category.image}
+              onSeeMore={() => handleSeeMore(category.name)}
             />
           ))}
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 const ImageSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -8,17 +9,17 @@ const ImageSlider = () => {
   const slides = [
     {
       id: 1,
-      image: '/api/placeholder/1200/400',
+      image: '/images/home/slider 1.jpg',
       alt: 'Premium Kitchen Equipment'
     },
     {
       id: 2,
-      image: '/api/placeholder/1200/400',
+      image: '/images/home/slider 2.jpg',
       alt: 'Professional Restaurant Solutions'
     },
     {
       id: 3,
-      image: '/api/placeholder/1200/400',
+      image: '/images/home/slider 3.jpg',
       alt: 'Hotel Kitchen Equipment'
     }
   ];
@@ -52,9 +53,15 @@ const ImageSlider = () => {
               index === currentSlide ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-600 text-lg">{slide.alt}</span>
-            </div>
+            <Image
+              src={slide.image}
+              alt={slide.alt}
+              width={1920}
+              height={900}
+              className="w-full h-full object-cover"
+              priority={index === 0}
+              quality={100}
+            />
           </div>
         ))}
       </div>

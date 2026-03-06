@@ -1,3 +1,6 @@
+'use client';
+import Image from 'next/image';
+
 interface CategoryCardProps {
   title: string;
   image: string;
@@ -7,8 +10,13 @@ interface CategoryCardProps {
 const CategoryCard = ({ title, image, onSeeMore }: CategoryCardProps) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
-      <div className="h-48 bg-gray-200 flex items-center justify-center">
-        <span className="text-gray-600">{title}</span>
+      <div className="h-48 relative">
+        <Image
+          src={image}
+          alt={title}
+          fill
+          className="object-cover"
+        />
       </div>
       <div className="p-4">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>
