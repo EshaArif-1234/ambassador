@@ -5,19 +5,19 @@ import CategoryCard from '../../../components/home page/CategoryCard';
 
 const HomePage = () => {
   const categories = [
-    { name: 'Stainless Steel Kitchen', image: '/Images/home/stainless-steal.webp' },
-    { name: 'Hotel', image: '/Images/home/hotel.avif' },
-    { name: 'Restaurant', image: '/Images/home/restaurent.jpg' },
-    { name: 'Fast Food', image: '/Images/home/fast food.avif' },
-    { name: 'Bakery', image: '/Images/home/bakeries.webp' },
-    { name: 'Cafes', image: '/Images/home/cafes.png' },
-    { name: 'Banquets', image: '/Images/home/Banquets.jpg' },
-    { name: 'Super Markets', image: '/Images/home/Super Markets.jpg' },
-    { name: 'Hospital Kitchen', image: '/Images/home/Hospital Kitchen.jpg' },
-    { name: 'Mess Kitchen', image: '/Images/home/mess kitchen.jfif' },
-    { name: 'University Kitchen', image: '/Images/home/university kitchen.jpg' },
-    { name: 'Ambassador Engineering Products', image: '/Images/home/engeniering products.jfif' },
-    { name: 'Imported Items', image: '/Images/home/Imported Items.jfif' }
+    { name: 'Stainless Steel Kitchen', image: '/Images/home/stainless-steal.webp', category: 'Stainless Steel Kitchen' },
+    { name: 'Hotel', image: '/Images/home/hotel.avif', category: 'Hotel Kitchen Equipment' },
+    { name: 'Restaurant', image: '/Images/home/restaurent.jpg', category: 'Restaurant Equipment' },
+    { name: 'Fast Food', image: '/Images/home/fast food.avif', category: 'Fast Food Equipment' },
+    { name: 'Bakery', image: '/Images/home/bakeries.webp', category: 'Bakery Equipment' },
+    { name: 'Cafes', image: '/Images/home/cafes.png', category: 'Café Equipment' },
+    { name: 'Banquets', image: '/Images/home/Banquets.jpg', category: 'Banquet Equipment' },
+    { name: 'Super Markets', image: '/Images/home/Super Markets.jpg', category: 'Supermarket Equipment' },
+    { name: 'Hospital Kitchen', image: '/Images/home/Hospital Kitchen.jpg', category: 'Hospital Kitchen' },
+    { name: 'Mess Kitchen', image: '/Images/home/mess kitchen.jfif', category: 'Mess Kitchen (Large Catering)' },
+    { name: 'University Kitchen', image: '/Images/home/university kitchen.jpg', category: 'University / Institutional Kitchen' },
+    { name: 'Ambassador Engineering Products', image: '/Images/home/engeniering products.jfif', category: 'Ambassador Engineering Products' },
+    { name: 'Imported Items', image: '/Images/home/Imported Items.jfif', category: 'Imported Items' }
   ];
 
   const handleSeeMore = (category: string) => {
@@ -56,7 +56,7 @@ const HomePage = () => {
                 key={index}
                 title={category.name}
                 image={category.image}
-                onSeeMore={() => handleSeeMore(category.name)}
+                category={category.category}
               />
             ))}
           </div>

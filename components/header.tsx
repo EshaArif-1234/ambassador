@@ -23,8 +23,10 @@ const Header = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Searching for:', searchQuery);
-    // Implement search functionality here
+    if (searchQuery.trim()) {
+      // Redirect to products page with search query
+      window.location.href = `/products?search=${encodeURIComponent(searchQuery.trim())}`;
+    }
   };
 
   return (

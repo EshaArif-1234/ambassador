@@ -7,6 +7,7 @@ const NavigationHeader = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
+    { name: 'Products', href: '/products' },
     { name: 'About', href: '/about' },
     { name: 'Our Custom Kitchen', href: '/custom-kitchen' },
     { name: 'Gallery', href: '/gallery' },
