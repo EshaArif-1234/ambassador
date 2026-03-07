@@ -11,7 +11,7 @@ const HomePage = () => {
     { name: 'Fast Food', image: '/Images/home/fast food.avif', category: 'Fast Food Equipment' },
     { name: 'Bakery', image: '/Images/home/bakeries.webp', category: 'Bakery Equipment' },
     { name: 'Cafes', image: '/Images/home/cafes.png', category: 'Café Equipment' },
-    { name: 'Banquets', image: '/Images/home/banquets.jpg', category: 'Banquet Equipment' },
+    { name: 'Banquets', image: '/Images/home/Banquets.jpg', category: 'Banquet Equipment' },
     { name: 'Super Markets', image: '/Images/home/Super Markets.jpg', category: 'Supermarket Equipment' },
     { name: 'Hospital Kitchen', image: '/Images/home/Hospital Kitchen.jpg', category: 'Hospital Kitchen' },
     { name: 'Mess Kitchen', image: '/Images/home/mess kitchen.jfif', category: 'Mess Kitchen (Large Catering)' },

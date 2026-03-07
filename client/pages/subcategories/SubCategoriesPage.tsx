@@ -98,14 +98,14 @@ const SubCategoriesPage = () => {
     {
       name: 'Banquet Equipment',
       subCategories: [
-        { name: 'Buffet Stations', image: '/Images/home/banquets.jpg', productCount: 12 },
-        { name: 'Chafing Dishes', image: '/Images/home/banquets.jpg', productCount: 25 },
-        { name: 'Food Warmers', image: '/Images/home/banquets.jpg', productCount: 18 },
-        { name: 'Banquet Serving Trolleys', image: '/Images/home/banquets.jpg', productCount: 10 },
-        { name: 'Plate Warmers', image: '/Images/home/banquets.jpg', productCount: 8 },
-        { name: 'Catering Equipment', image: '/Images/home/banquets.jpg', productCount: 20 },
-        { name: 'Beverage Dispensers', image: '/Images/home/banquets.jpg', productCount: 15 },
-        { name: 'Portable Cooking Stations', image: '/Images/home/banquets.jpg', productCount: 6 }
+        { name: 'Buffet Stations', image: '/Images/home/Banquets.jpg', productCount: 12 },
+        { name: 'Chafing Dishes', image: '/Images/home/Banquets.jpg', productCount: 25 },
+        { name: 'Food Warmers', image: '/Images/home/Banquets.jpg', productCount: 18 },
+        { name: 'Banquet Serving Trolleys', image: '/Images/home/Banquets.jpg', productCount: 10 },
+        { name: 'Plate Warmers', image: '/Images/home/Banquets.jpg', productCount: 8 },
+        { name: 'Catering Equipment', image: '/Images/home/Banquets.jpg', productCount: 20 },
+        { name: 'Beverage Dispensers', image: '/Images/home/Banquets.jpg', productCount: 15 },
+        { name: 'Portable Cooking Stations', image: '/Images/home/Banquets.jpg', productCount: 6 }
       ]
     },
     {
