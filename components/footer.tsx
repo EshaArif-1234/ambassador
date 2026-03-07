@@ -17,7 +17,6 @@ const Footer = () => {
                 alt="Logo"
                 width={150}
                 height={50}
-                className="h-12 w-auto"
               />
             </Link>
             <p className="text-gray-400 text-sm">

@@ -18,12 +18,12 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
     category: 'Fast Food Equipment',
     subCategory: 'Deep Fryers',
     images: [
-      'https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=Deep+Fryer+1',
-      'https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=Deep+Fryer+2',
-      'https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=Deep+Fryer+3',
-      'https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=Deep+Fryer+4'
+      '/Images/home/fast food.avif',
+      '/Images/home/hotel.avif', 
+      '/Images/home/restaurent.jpg',
+      '/Images/home/bakeries.webp'
     ],
-    video: 'https://via.placeholder.com/400x300/000000/FFFFFF?text=Product+Video', // placeholder for video
+    video: '/Images/home/fast food.avif', // placeholder for video
     about: 'Professional-grade deep fryer perfect for commercial kitchens. Features durable stainless steel construction, precise temperature control, and large capacity for high-volume frying. Ideal for restaurants, fast food chains, and food service establishments.',
     specifications: {
       'Model Name': 'FDM2201BR',
@@ -117,7 +117,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                   />
                 )}
               </div>
-
+ 
               {/* Thumbnail Gallery */}
               <div className="grid grid-cols-4 gap-2">
                 <button

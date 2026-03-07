@@ -98,72 +98,78 @@ const SubCategoriesPage = () => {
     {
       name: 'Banquet Equipment',
       subCategories: [
-        { name: 'Buffet Stations', image: '/Images/home/Banquets.jpg', productCount: 12 },
-        { name: 'Chafing Dishes', image: '/Images/home/Banquets.jpg', productCount: 25 },
-        { name: 'Food Warmers', image: '/Images/home/Banquets.jpg', productCount: 18 },
-        { name: 'Banquet Serving Trolleys', image: '/Images/home/Banquets.jpg', productCount: 10 },
-        { name: 'Plate Warmers', image: '/Images/home/Banquets.jpg', productCount: 8 },
-        { name: 'Catering Equipment', image: '/Images/home/Banquets.jpg', productCount: 20 },
-        { name: 'Beverage Dispensers', image: '/Images/home/Banquets.jpg', productCount: 15 },
-        { name: 'Portable Cooking Stations', image: '/Images/home/Banquets.jpg', productCount: 6 }
+        { name: 'Buffet Stations', image: '/Images/home/banquets.jpg', productCount: 12 },
+        { name: 'Chafing Dishes', image: '/Images/home/banquets.jpg', productCount: 25 },
+        { name: 'Food Warmers', image: '/Images/home/banquets.jpg', productCount: 18 },
+        { name: 'Banquet Serving Trolleys', image: '/Images/home/banquets.jpg', productCount: 10 },
+        { name: 'Plate Warmers', image: '/Images/home/banquets.jpg', productCount: 8 },
+        { name: 'Catering Equipment', image: '/Images/home/banquets.jpg', productCount: 20 },
+        { name: 'Beverage Dispensers', image: '/Images/home/banquets.jpg', productCount: 15 },
+        { name: 'Portable Cooking Stations', image: '/Images/home/banquets.jpg', productCount: 6 }
       ]
     },
     {
       name: 'Supermarket Equipment',
       subCategories: [
-        { name: 'Display Refrigerators', image: '/Images/home/Super Markets.jpg', productCount: 28 },
-        { name: 'Freezer Cabinets', image: '/Images/home/Super Markets.jpg', productCount: 22 },
-        { name: 'Deli Display Counters', image: '/Images/home/Super Markets.jpg', productCount: 15 },
-        { name: 'Meat Display Units', image: '/Images/home/Super Markets.jpg', productCount: 12 },
-        { name: 'Vegetable Display Racks', image: '/Images/home/Super Markets.jpg', productCount: 18 },
-        { name: 'Shopping Trolleys', image: '/Images/home/Super Markets.jpg', productCount: 25 },
-        { name: 'Checkout Counters', image: '/Images/home/Super Markets.jpg', productCount: 8 },
-        { name: 'Storage Shelving', image: '/Images/home/Super Markets.jpg', productCount: 20 }
+        { name: 'Display Refrigerators', image: '/Images/home/supermarkets.jpg', productCount: 28 },
+        { name: 'Freezer Cabinets', image: '/Images/home/supermarkets.jpg', productCount: 22 },
+        { name: 'Deli Display Counters', image: '/Images/home/supermarkets.jpg', productCount: 15 },
+        { name: 'Meat Display Units', image: '/Images/home/supermarkets.jpg', productCount: 12 },
+        { name: 'Vegetable Display Racks', image: '/Images/home/supermarkets.jpg', productCount: 18 },
+        { name: 'Shopping Trolleys', image: '/Images/home/supermarkets.jpg', productCount: 25 },
+        { name: 'Checkout Counters', image: '/Images/home/supermarkets.jpg', productCount: 8 },
+        { name: 'Storage Shelving', image: '/Images/home/supermarkets.jpg', productCount: 20 }
       ]
     },
     {
       name: 'Hospital Kitchen',
       subCategories: [
-        { name: 'Food Preparation Tables', image: '/Images/home/Hospital Kitchen.jpg', productCount: 14 },
-        { name: 'Steam Cooking Equipment', image: '/Images/home/Hospital Kitchen.jpg', productCount: 10 },
-        { name: 'Food Distribution Trolleys', image: '/Images/home/Hospital Kitchen.jpg', productCount: 16 },
-        { name: 'Tray Delivery Systems', image: '/Images/home/Hospital Kitchen.jpg', productCount: 8 },
-        { name: 'Industrial Dishwashers', image: '/Images/home/Hospital Kitchen.jpg', productCount: 12 },
-        { name: 'Storage Cabinets', image: '/Images/home/Hospital Kitchen.jpg', productCount: 18 },
-        { name: 'Refrigeration Units', image: '/Images/home/Hospital Kitchen.jpg', productCount: 20 },
-        { name: 'Hygiene Stations', image: '/Images/home/Hospital Kitchen.jpg', productCount: 6 }
+        { name: 'Food Preparation Tables', image: '/Images/home/hospital-kitchen.jpg', productCount: 14 },
+        { name: 'Steam Cooking Equipment', image: '/Images/home/hospital-kitchen.jpg', productCount: 10 },
+        { name: 'Food Distribution Trolleys', image: '/Images/home/hospital-kitchen.jpg', productCount: 16 },
+        { name: 'Tray Delivery Systems', image: '/Images/home/hospital-kitchen.jpg', productCount: 8 },
+        { name: 'Industrial Dishwashers', image: '/Images/home/hospital-kitchen.jpg', productCount: 12 },
+        { name: 'Storage Cabinets', image: '/Images/home/hospital-kitchen.jpg', productCount: 18 },
+        { name: 'Refrigeration Units', image: '/Images/home/hospital-kitchen.jpg', productCount: 20 },
+        { name: 'Hygiene Stations', image: '/Images/home/hospital-kitchen.jpg', productCount: 6 }
       ]
     },
     {
       name: 'Mess Kitchen (Large Catering)',
       subCategories: [
-        { name: 'Bulk Cooking Pots', image: '/Images/home/mess kitchen.jfif', productCount: 15 },
-        { name: 'Industrial Gas Burners', image: '/Images/home/mess kitchen.jfif', productCount: 12 },
-        { name: 'Rice Boilers', image: '/Images/home/mess kitchen.jfif', productCount: 18 },
-        { name: 'Chapati Machines', image: '/Images/home/mess kitchen.jfif', productCount: 8 },
-        { name: 'Food Storage Containers', image: '/Images/home/mess kitchen.jfif', productCount: 25 },
-        { name: 'Serving Counters', image: '/Images/home/mess kitchen.jfif', productCount: 10 },
-        { name: 'Food Transport Trolleys', image: '/Images/home/mess kitchen.jfif', productCount: 14 },
-        { name: 'Washing Stations', image: '/Images/home/mess kitchen.jfif', productCount: 9 }
+        { name: 'Bulk Cooking Pots', image: '/Images/home/mess-kitchen.jfif', productCount: 15 },
+        { name: 'Industrial Gas Burners', image: '/Images/home/mess-kitchen.jfif', productCount: 12 },
+        { name: 'Rice Boilers', image: '/Images/home/mess-kitchen.jfif', productCount: 18 },
+        { name: 'Chapati Machines', image: '/Images/home/mess-kitchen.jfif', productCount: 8 },
+        { name: 'Food Storage Containers', image: '/Images/home/mess-kitchen.jfif', productCount: 25 },
+        { name: 'Serving Counters', image: '/Images/home/mess-kitchen.jfif', productCount: 10 },
+        { name: 'Food Transport Trolleys', image: '/Images/home/mess-kitchen.jfif', productCount: 14 },
+        { name: 'Washing Stations', image: '/Images/home/mess-kitchen.jfif', productCount: 9 }
       ]
     },
     {
       name: 'University / Institutional Kitchen',
       subCategories: [
-        { name: 'Bulk Cooking Equipment', image: '/Images/home/university kitchen.jpg', productCount: 20 },
-        { name: 'Industrial Dishwashers', image: '/Images/home/university kitchen.jpg', productCount: 15 },
-        { name: 'Food Serving Lines', image: '/Images/home/university kitchen.jpg', productCount: 12 },
-        { name: 'Storage Racks', image: '/Images/home/university kitchen.jpg', productCount: 18 },
-        { name: 'Refrigeration Systems', image: '/Images/home/university kitchen.jpg', productCount: 22 },
-        { name: 'Tray Conveyors', image: '/Images/home/university kitchen.jpg', productCount: 8 },
-        { name: 'Cooking Ranges', image: '/Images/home/university kitchen.jpg', productCount: 16 },
-        { name: 'Food Distribution Trolleys', image: '/Images/home/university kitchen.jpg', productCount: 10 }
+        { name: 'Bulk Cooking Equipment', image: '/Images/home/university-kitchen.jpg', productCount: 20 },
+        { name: 'Industrial Dishwashers', image: '/Images/home/university-kitchen.jpg', productCount: 15 },
+        { name: 'Food Serving Lines', image: '/Images/home/university-kitchen.jpg', productCount: 12 },
+        { name: 'Storage Racks', image: '/Images/home/university-kitchen.jpg', productCount: 18 },
+        { name: 'Refrigeration Systems', image: '/Images/home/university-kitchen.jpg', productCount: 22 },
+        { name: 'Tray Conveyors', image: '/Images/home/university-kitchen.jpg', productCount: 8 },
+        { name: 'Cooking Ranges', image: '/Images/home/university-kitchen.jpg', productCount: 16 },
+        { name: 'Food Distribution Trolleys', image: '/Images/home/university-kitchen.jpg', productCount: 10 }
       ]
     },
     {
       name: 'Ambassador Engineering Products',
       subCategories: [
-        { name: 'Custom Stainless Steel Fabrication', image: '/Images/home/engeniering products.jfif', productCount: 25 },
+        { name: 'Custom Stainless Steel Fabrication', image: '/Images/home/engineering-products.jfif', productCount: 25 },
+        { name: 'Industrial Kitchen Equipment', image: '/Images/home/engineering-products.jfif', productCount: 30 },
+        { name: 'Commercial Cooking Equipment', image: '/Images/home/engineering-products.jfif', productCount: 28 },
+        { name: 'Exhaust & Ventilation Systems', image: '/Images/home/engineering-products.jfif', productCount: 15 },
+        { name: 'Food Preparation Stations', image: '/Images/home/engineering-products.jfif', productCount: 20 },
+        { name: 'Storage Systems', image: '/Images/home/engineering-products.jfif', productCount: 18 },
+        { name: 'Custom Kitchen Solutions', image: '/Images/home/engineering-products.jfif', productCount: 12 },
         { name: 'Industrial Kitchen Equipment', image: '/Images/home/engeniering products.jfif', productCount: 30 },
         { name: 'Commercial Cooking Equipment', image: '/Images/home/engeniering products.jfif', productCount: 28 },
         { name: 'Exhaust & Ventilation Systems', image: '/Images/home/engeniering products.jfif', productCount: 15 },

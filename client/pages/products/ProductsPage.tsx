@@ -46,34 +46,34 @@ const ProductsPage = () => {
   // Sample products data
   const allProducts: Product[] = [
     // Stainless Steel Kitchen Products
-    { id: 1, name: 'Stainless Steel Work Table 6ft', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Work Tables', price: 15000, image: 'https://via.placeholder.com/400x300/C0C0C0/FFFFFF?text=Work+Table', featured: true },
-    { id: 2, name: 'Stainless Steel Cabinet 4 Door', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Cabinets', price: 25000, image: 'https://via.placeholder.com/400x300/C0C0C0/FFFFFF?text=Cabinet', },
-    { id: 3, name: 'Stainless Steel Wall Shelf', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Wall Shelves', price: 8000, image: 'https://via.placeholder.com/400x300/C0C0C0/FFFFFF?text=Wall+Shelf', },
-    { id: 4, name: 'Stainless Steel Sink 2 Compartment', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Sinks', price: 12000, image: 'https://via.placeholder.com/400x300/C0C0C0/FFFFFF?text=Sink', },
+    { id: 1, name: 'Stainless Steel Work Table 6ft', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Work Tables', price: 15000, image: '/Images/home/stainless-steal.webp', featured: true },
+    { id: 2, name: 'Stainless Steel Cabinet 4 Door', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Cabinets', price: 25000, image: '/Images/home/stainless-steal.webp' },
+    { id: 3, name: 'Stainless Steel Wall Shelf', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Wall Shelves', price: 8000, image: '/Images/home/stainless-steal.webp' },
+    { id: 4, name: 'Stainless Steel Sink 2 Compartment', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Sinks', price: 12000, image: '/Images/home/stainless-steal.webp' },
     
     // Hotel Kitchen Equipment Products
-    { id: 5, name: 'Commercial Cooking Range 6 Burner', category: 'Hotel Kitchen Equipment', subCategory: 'Commercial Cooking Ranges', price: 35000, image: 'https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=Cooking+Range', featured: true },
-    { id: 6, name: 'Industrial Convection Oven', category: 'Hotel Kitchen Equipment', subCategory: 'Industrial Ovens', price: 45000, image: 'https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=Convection+Oven', },
-    { id: 7, name: 'Food Preparation Table', category: 'Hotel Kitchen Equipment', subCategory: 'Food Preparation Tables', price: 18000, image: 'https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=Prep+Table', },
-    { id: 8, name: 'Hot Holding Equipment', category: 'Hotel Kitchen Equipment', subCategory: 'Hot Holding Equipment', price: 22000, image: 'https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=Holding+Equipment', },
+    { id: 5, name: 'Commercial Cooking Range 6 Burner', category: 'Hotel Kitchen Equipment', subCategory: 'Commercial Cooking Ranges', price: 35000, image: '/Images/home/hotel.avif', featured: true },
+    { id: 6, name: 'Industrial Convection Oven', category: 'Hotel Kitchen Equipment', subCategory: 'Industrial Ovens', price: 45000, image: '/Images/home/hotel.avif' },
+    { id: 7, name: 'Food Preparation Table', category: 'Hotel Kitchen Equipment', subCategory: 'Food Preparation Tables', price: 18000, image: '/Images/home/hotel.avif' },
+    { id: 8, name: 'Hot Holding Equipment', category: 'Hotel Kitchen Equipment', subCategory: 'Hot Holding Equipment', price: 22000, image: '/Images/home/hotel.avif' },
     
     // Restaurant Equipment Products
-    { id: 9, name: 'Gas Range 4 Burner', category: 'Restaurant Equipment', subCategory: 'Gas Ranges', price: 28000, image: 'https://via.placeholder.com/400x300/4169E1/FFFFFF?text=Gas+Range', featured: true },
-    { id: 10, name: 'Griddle Plate 24 inch', category: 'Restaurant Equipment', subCategory: 'Griddles & Charbroilers', price: 15000, image: 'https://via.placeholder.com/400x300/4169E1/FFFFFF?text=Griddle+Plate', },
-    { id: 11, name: 'Deep Fryer 10L', category: 'Restaurant Equipment', subCategory: 'Deep Fryers', price: 32000, image: 'https://via.placeholder.com/400x300/4169E1/FFFFFF?text=Deep+Fryer', },
-    { id: 12, name: 'Pizza Oven Deck', category: 'Restaurant Equipment', subCategory: 'Pizza Ovens', price: 38000, image: 'https://via.placeholder.com/400x300/4169E1/FFFFFF?text=Pizza+Oven', },
+    { id: 9, name: 'Gas Range 4 Burner', category: 'Restaurant Equipment', subCategory: 'Gas Ranges', price: 28000, image: '/Images/home/restaurent.jpg', featured: true },
+    { id: 10, name: 'Griddle Plate 24 inch', category: 'Restaurant Equipment', subCategory: 'Griddles & Charbroilers', price: 15000, image: '/Images/home/restaurent.jpg' },
+    { id: 11, name: 'Deep Fryer 10L', category: 'Restaurant Equipment', subCategory: 'Deep Fryers', price: 32000, image: '/Images/home/restaurent.jpg' },
+    { id: 12, name: 'Pizza Oven Deck', category: 'Restaurant Equipment', subCategory: 'Pizza Ovens', price: 38000, image: '/Images/home/restaurent.jpg' },
     
     // Bakery Equipment Products
-    { id: 13, name: 'Deck Oven 4 Tray', category: 'Bakery Equipment', subCategory: 'Deck Ovens', price: 42000, image: 'https://via.placeholder.com/400x300/D2691E/FFFFFF?text=Deck+Oven', featured: true },
-    { id: 14, name: 'Dough Mixer 30L', category: 'Bakery Equipment', subCategory: 'Dough Mixers', price: 35000, image: 'https://via.placeholder.com/400x300/D2691E/FFFFFF?text=Dough+Mixer', },
-    { id: 15, name: 'Proofing Cabinet', category: 'Bakery Equipment', subCategory: 'Proofing Cabinets', price: 25000, image: 'https://via.placeholder.com/400x300/D2691E/FFFFFF?text=Proofing+Cabinet', },
-    { id: 16, name: 'Bread Slicer', category: 'Bakery Equipment', subCategory: 'Bread Slicers', price: 18000, image: 'https://via.placeholder.com/400x300/D2691E/FFFFFF?text=Bread+Slicer', },
+    { id: 13, name: 'Deck Oven 4 Tray', category: 'Bakery Equipment', subCategory: 'Deck Ovens', price: 42000, image: '/Images/home/bakeries.webp', featured: true },
+    { id: 14, name: 'Dough Mixer 30L', category: 'Bakery Equipment', subCategory: 'Dough Mixers', price: 35000, image: '/Images/home/bakeries.webp' },
+    { id: 15, name: 'Proofing Cabinet', category: 'Bakery Equipment', subCategory: 'Proofing Cabinets', price: 25000, image: '/Images/home/bakeries.webp' },
+    { id: 16, name: 'Bread Slicer', category: 'Bakery Equipment', subCategory: 'Bread Slicers', price: 18000, image: '/Images/home/bakeries.webp' },
     
     // Fast Food Equipment Products
-    { id: 17, name: 'Burger Grill', category: 'Fast Food Equipment', subCategory: 'Burger Grills', price: 22000, image: 'https://via.placeholder.com/400x300/FF9800/FFFFFF?text=Burger+Grill', featured: true },
-    { id: 18, name: 'Shawarma Machine', category: 'Fast Food Equipment', subCategory: 'Shawarma Machines', price: 28000, image: 'https://via.placeholder.com/400x300/FF9800/FFFFFF?text=Shawarma+Machine', },
-    { id: 19, name: 'French Fries Warmer', category: 'Fast Food Equipment', subCategory: 'French Fries Warmers', price: 12000, image: 'https://via.placeholder.com/400x300/FF9800/FFFFFF?text=Fries+Warmer', },
-    { id: 20, name: 'Beverage Dispenser', category: 'Fast Food Equipment', subCategory: 'Beverage Dispensers', price: 15000, image: 'https://via.placeholder.com/400x300/FF9800/FFFFFF?text=Beverage+Dispenser' }
+    { id: 17, name: 'Burger Grill', category: 'Fast Food Equipment', subCategory: 'Burger Grills', price: 22000, image: '/Images/home/fast food.avif', featured: true },
+    { id: 18, name: 'Shawarma Machine', category: 'Fast Food Equipment', subCategory: 'Shawarma Machines', price: 28000, image: '/Images/home/fast food.avif' },
+    { id: 19, name: 'French Fries Warmer', category: 'Fast Food Equipment', subCategory: 'French Fries Warmers', price: 12000, image: '/Images/home/fast food.avif' },
+    { id: 20, name: 'Beverage Dispenser', category: 'Fast Food Equipment', subCategory: 'Beverage Dispensers', price: 15000, image: '/Images/home/fast food.avif' }
   ];
 
   const categories = [
@@ -487,6 +487,7 @@ const ProductsPage = () => {
                             fill
                             className="object-cover hover:scale-105 transition-transform duration-300"
                             sizes="(max-width: 640px) 100vw, 256px"
+                            unoptimized
                           />
                         </Link>
                         {product.featured && (

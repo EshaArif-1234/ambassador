@@ -4,24 +4,28 @@ import Link from 'next/link';
 
 interface CategoryCardProps {
   title: string;
-  image: string;
+  image?: string;
   category?: string;
   onSeeMore?: () => void;
+  children?: React.ReactNode;
 }
 
-const CategoryCard = ({ title, image, category }: CategoryCardProps) => {
+const CategoryCard = ({ title, image, category, children }: CategoryCardProps) => {
   const href = category ? `/subcategories?category=${encodeURIComponent(category)}` : '/subcategories';
   
   return (
     <Link href={href} className="block">
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
         <div className="h-48 relative">
-          <Image
-            src={image}
-            alt={title}
-            fill
-            className="object-cover"
-          />
+          {image ? (
+            <img
+              src={image}
+              alt={title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            children
+          )}
         </div>
         <div className="p-4">
           <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>

@@ -9,17 +9,17 @@ const ImageSlider = () => {
   const slides = [
     {
       id: 1,
-      image: '/images/home/slider 1.jpg',
+      image: '/Images/home/slider 1.jpg',
       alt: 'Premium Kitchen Equipment'
     },
     {
       id: 2,
-      image: '/images/home/slider 2.jpg',
+      image: '/Images/home/slider 2.jpg',
       alt: 'Professional Restaurant Solutions'
     },
     {
       id: 3,
-      image: '/images/home/slider 3.jpg',
+      image: '/Images/home/slider 3.jpg',
       alt: 'Hotel Kitchen Equipment'
     }
   ];
@@ -53,15 +53,11 @@ const ImageSlider = () => {
               index === currentSlide ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <Image
-              src={slide.image}
-              alt={slide.alt}
-              width={1920}
-              height={900}
-              className="w-full h-full object-cover"
-              priority={index === 0}
-              quality={100}
-            />
+            <img
+                src={slide.image}
+                alt={slide.alt}
+                className="w-full h-full object-cover"
+              />
           </div>
         ))}
       </div>
