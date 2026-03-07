@@ -36,7 +36,7 @@ const Header = () => {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/Images/home/logo.webp"
+              src="https://via.placeholder.com/120x40/FF6B35/FFFFFF?text=AMBASSADORS"
               alt="Logo"
               width={120}
               height={40}
