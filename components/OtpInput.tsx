@@ -75,7 +75,7 @@ export default function OtpInput({
           onPaste={index === 0 ? handlePaste : undefined}
           disabled={disabled}
           placeholder={index === 0 ? placeholder : ''}
-          className={`w-12 h-12 text-center text-lg font-semibold border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+          className={`w-12 h-12 text-center text-lg font-semibold border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-black placeholder:text-gray-400 ${
             disabled 
               ? 'border-gray-200 bg-gray-50 text-gray-400' 
               : 'border-gray-300 hover:border-gray-400'
