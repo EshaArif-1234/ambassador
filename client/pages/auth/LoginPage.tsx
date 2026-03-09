@@ -8,6 +8,7 @@ import { useUser } from '@/contexts/UserContext';
 interface FormData {
   email: string;
   password: string;
+  rememberMe: boolean;
 }
 
 interface Errors {
@@ -22,7 +23,8 @@ export default function LoginPage() {
   const { login } = useUser();
   const [formData, setFormData] = useState<FormData>({
     email: '',
-    password: ''
+    password: '',
+    rememberMe: false
   });
   const [errors, setErrors] = useState<Errors>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -280,25 +282,20 @@ export default function LoginPage() {
                   )}
                 </div>
 
-                {/* Forgot Password */}
+                {/* Remember Me and Forgot Password */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center">
+                  <label className="flex items-center">
                     <input
-                      id="remember-me"
-                      name="remember-me"
                       type="checkbox"
+                      checked={formData.rememberMe}
+                      onChange={(e) => setFormData(prev => ({ ...prev, rememberMe: e.target.checked }))}
                       className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded"
                     />
-                    <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                      Remember me
-                    </label>
-                  </div>
-
-                  <div className="text-sm">
-                    <a href="#" className="text-orange-500 hover:text-orange-600 font-medium transition-colors">
-                      Forgot password?
-                    </a>
-                  </div>
+                    <span className="ml-2 text-sm text-gray-700">Remember me</span>
+                  </label>
+                  <a href="/forgot-password" className="text-sm text-orange-500 hover:text-orange-600 font-medium transition-colors">
+                    Forgot password?
+                  </a>
                 </div>
 
                 {/* Submit Error */}
