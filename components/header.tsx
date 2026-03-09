@@ -105,12 +105,12 @@ const Header = () => {
 
             {/* Login and Signup Buttons */}
             <div className="flex items-center space-x-2">
-              <button className="px-4 py-2 text-gray-700 hover:text-orange-500 transition-colors font-medium">
+              <Link href="/login" className="px-4 py-2 text-gray-700 hover:text-orange-500 transition-colors font-medium">
                 Login
-              </button>
-              <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium">
+              </Link>
+              <Link href="/signup" className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium">
                 Sign Up
-              </button>
+              </Link>
             </div>
           </div>
         </div>
