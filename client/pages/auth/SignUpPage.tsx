@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useUser } from '@/contexts/UserContext';
 
 const SignUpPage = () => {
   const router = useRouter();
+  const { login } = useUser();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -224,11 +226,11 @@ const SignUpPage = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Here you would normally send the data to your backend
+      // Here you would normally send data to your backend
       console.log('Sign up data:', formData);
       
-      // Redirect to login or dashboard
-      router.push('/login');
+      // Redirect to OTP verification page (don't auto-login yet)
+      router.push(`/otp-verification?email=${encodeURIComponent(formData.email)}`);
     } catch (error) {
       console.error('Sign up error:', error);
       setErrors(prev => ({

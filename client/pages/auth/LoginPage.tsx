@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import { useUser } from '@/contexts/UserContext';
 
 interface FormData {
   email: string;
@@ -17,6 +18,8 @@ interface Errors {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login } = useUser();
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: ''
@@ -24,6 +27,18 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Check if user is verified from OTP
+  useEffect(() => {
+    if (searchParams.get('verified') === 'true') {
+      // Show success message
+      const timer = setTimeout(() => {
+        // Clear the URL parameter
+        router.replace('/login');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [router, searchParams]);
 
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
@@ -75,10 +90,22 @@ export default function LoginPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Here you would normally send the data to your backend
+      // Here you would normally send data to your backend
       console.log('Login data:', formData);
       
-      // Redirect to dashboard or home
+      // Create user object (in real app, get from API)
+      const user = {
+        id: '1',
+        name: formData.email.split('@')[0], // Use email prefix as name
+        email: formData.email,
+        profileImage: '', // Will be set during registration
+        initials: formData.email.substring(0, 2).toUpperCase()
+      };
+      
+      // Login user
+      login(user);
+      
+      // Redirect to home page
       router.push('/');
     } catch (error) {
       console.error('Login error:', error);
