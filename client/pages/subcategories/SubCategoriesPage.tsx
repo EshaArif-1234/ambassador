@@ -285,9 +285,9 @@ const SubCategoriesPage = () => {
 
               {/* Sub Categories Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {category.subCategories.map((subCategory) => (
+                {category.subCategories.map((subCategory, index) => (
                   <SubCategoryCard
-                    key={subCategory.name}
+                    key={`${subCategory.name}-${index}`}
                     title={subCategory.name}
                     image={subCategory.image}
                     productCount={subCategory.productCount}

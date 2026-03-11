@@ -47,24 +47,21 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       name: 'John Smith',
       rating: 5,
       date: '2024-01-15',
-      comment: 'Excellent deep fryer! Perfect for our restaurant. Heats up quickly and maintains temperature consistently.',
-      avatar: 'https://via.placeholder.com/48x48/4A90E2/FFFFFF?text=JS'
+      comment: 'Excellent deep fryer! Perfect for our restaurant. Heats up quickly and maintains temperature consistently.'
     },
     {
       id: 2,
       name: 'Sarah Johnson',
       rating: 4,
       date: '2024-01-10',
-      comment: 'Great quality and easy to clean. The only minor issue is it takes a bit longer to heat up than expected.',
-      avatar: 'https://via.placeholder.com/48x48/E94B3C/FFFFFF?text=SJ'
+      comment: 'Great quality and easy to clean. The only minor issue is it takes a bit longer to heat up than expected.'
     },
     {
       id: 3,
       name: 'Mike Wilson',
       rating: 5,
       date: '2024-01-05',
-      comment: 'Best investment for our fast food business. Very durable and reliable.',
-      avatar: 'https://via.placeholder.com/48x48/50C878/FFFFFF?text=MW'
+      comment: 'Best investment for our fast food business. Very durable and reliable.'
     }
   ];
 
@@ -236,15 +233,13 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
             {reviews.map((review) => (
               <div key={review.id} className="border-b border-gray-200 pb-6 last:border-b-0">
                 <div className="flex items-start gap-4">
-                  {/* User Avatar */}
-                  <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
-                    <Image
-                      src={review.avatar}
-                      alt={review.name}
-                      fill
-                      className="object-cover"
-                      sizes="48px"
-                    />
+                  {/* User Avatar with Initials */}
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#101827]">
+                      <span className="text-white font-bold text-lg">
+                        {review.name.split(' ').map(word => word[0]).join('').toUpperCase()}
+                      </span>
+                    </div>
                   </div>
                   
                   {/* Review Content */}
@@ -254,8 +249,21 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                         <h4 className="font-semibold text-gray-800">{review.name}</h4>
                         <p className="text-sm text-gray-500">{review.date}</p>
                       </div>
-                      <div className="text-sm">
-                        {renderStars(review.rating)}
+                      {/* Star Rating - Same as Product Page */}
+                      <div className="flex items-center gap-2">
+                        {[...Array(5)].map((_, i) => (
+                          <svg 
+                            key={i} 
+                            className={`w-5 h-5 ${
+                              i < Math.floor(review.rating) 
+                                ? 'text-orange-500 fill-current' 
+                                : 'text-gray-300 fill-current'
+                            }`} 
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                          </svg>
+                        ))}
                       </div>
                     </div>
                     <p className="text-gray-600 leading-relaxed">{review.comment}</p>
