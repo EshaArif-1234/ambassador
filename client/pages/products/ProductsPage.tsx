@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import ProductRatings from '@/components/ProductRatings';
+import ProductRatingDropdown from '@/components/ProductRatingDropdown';
 
 interface Product {
   id: number;
@@ -505,20 +507,13 @@ const ProductsPage = () => {
                             <h3 className="text-lg font-semibold text-gray-800 mb-2">{product.name}</h3>
                             <p className="text-sm text-gray-600 mb-3">{product.category}</p>
                             
-                            {/* Rating Dropdown */}
+                            {/* Product Ratings */}
                             <div className="mb-4">
-                              <select 
-                                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white cursor-pointer"
-                                defaultValue="⭐⭐⭐⭐⭐ 72%"
-                                onChange={(e) => e.target.value = "⭐⭐⭐⭐⭐ 72%"}
-                              >
-                                <option>⭐⭐⭐⭐⭐ 72%</option>
-                                <option>⭐⭐⭐⭐ 18%</option>
-                                <option>⭐⭐⭐ 7%</option>
-                                <option>⭐⭐ 2%</option>
-                                <option>⭐ 1%</option>
-                              </select>
-                              <p className="text-xs text-gray-500 mt-1">Based on 245 reviews</p>
+                              <ProductRatingDropdown 
+                                averageRating={4.5}
+                                totalReviews={245}
+                                productName={product.name}
+                              />
                             </div>
                             
                             <div className="flex items-center gap-4 mb-4">

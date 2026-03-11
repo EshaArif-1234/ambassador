@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import ProductRatingDropdown from '@/components/ProductRatingDropdown';
 
 const ProductDetailPage = ({ productId }: { productId: string }) => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [selectedRating, setSelectedRating] = useState('⭐⭐⭐⭐⭐ 72%');
 
   // Sample product data
   const product = {
@@ -158,18 +159,11 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
               
               {/* Rating */}
               <div className="mb-4">
-                <select 
-                  value={selectedRating}
-                  onChange={(e) => setSelectedRating(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white cursor-pointer"
-                >
-                  <option value="⭐⭐⭐⭐⭐ 72%">⭐⭐⭐⭐⭐ 72%</option>
-                  <option value="⭐⭐⭐⭐ 18%">⭐⭐⭐⭐ 18%</option>
-                  <option value="⭐⭐⭐ 7%">⭐⭐⭐ 7%</option>
-                  <option value="⭐⭐ 2%">⭐⭐ 2%</option>
-                  <option value="⭐ 1%">⭐ 1%</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">Based on 245 reviews</p>
+                <ProductRatingDropdown 
+                  averageRating={4.5}
+                  totalReviews={245}
+                  productName={product.title}
+                />
               </div>
 
               {/* Price */}
@@ -235,7 +229,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
         </div>
 
         {/* Reviews Section */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div id="customer-reviews" className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Customer Reviews</h2>
           
           <div className="space-y-6">
