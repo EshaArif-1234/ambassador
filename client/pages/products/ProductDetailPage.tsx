@@ -7,8 +7,9 @@ import Link from 'next/link';
 import ProductRatingDropdown from '@/components/ProductRatingDropdown';
 
 const ProductDetailPage = ({ productId }: { productId: string }) => {
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedImage, setSelectedImage] = useState(1); // Start with first image
   const [quantity, setQuantity] = useState(1);
+  const [showCartPopup, setShowCartPopup] = useState(false);
 
   // Sample product data
   const product = {
@@ -24,19 +25,19 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       '/Images/home/restaurent.jpg',
       '/Images/home/bakeries.webp'
     ],
-    video: '/Images/home/fast food.avif', // placeholder for video
+    videos: [
+      'https://www.youtube.com/embed/nOlZuJ7icD0?si=LpjR4x7fn2psmAcz',
+      'https://www.youtube.com/embed/dQw4w9WgXcQ?si=LpjR4x7fn2psmAcz'
+    ],
     about: 'Professional-grade deep fryer perfect for commercial kitchens. Features durable stainless steel construction, precise temperature control, and large capacity for high-volume frying. Ideal for restaurants, fast food chains, and food service establishments.',
     specifications: {
-      'Model Name': 'FDM2201BR',
-      'Brand': 'OVENTE',
-      'Material': 'Stainless Steel',
-      'Color': 'FDM2201BR - Silver',
-      'Product Dimensions': '13.75"D x 8.25"W x 8.25"H',
-      'Wattage': '1500 watts',
-      'Oil Capacity': '2 Liters',
-      'Global Trade Identification Number': '00814667021915',
-      'Manufacturer': 'OVENTE',
-      'UPC': '814667021915'
+      'Product Code': 'FDM2201BR-001',
+      'Burners': '2',
+      'Energy Type': 'Electric',
+      'BTU (Power)': '1500W',
+      'Size': '13.75"D x 8.25"W x 8.25"H',
+      'Capacity (Ltr)': '2 Liters',
+      'Material': 'Stainless Steel'
     }
   };
 
@@ -67,6 +68,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
 
   const handleAddToCart = () => {
     console.log(`Added ${quantity} of ${product.title} to cart`);
+    setShowCartPopup(true);
   };
 
   const renderStars = (rating: number) => {
@@ -105,7 +107,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                       <p className="text-gray-600">Product Video</p>
                     </div>
                   </div>
-                ) : (
+                ) : selectedImage <= 3 ? (
                   <Image
                     src={product.images[selectedImage - 1]}
                     alt={product.title}
@@ -113,26 +115,27 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                     className="object-cover"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />
+                ) : (
+                  <iframe
+                    src={product.videos[selectedImage - 4]}
+                    width="560"
+                    height="315"
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
                 )}
               </div>
  
               {/* Thumbnail Gallery */}
-              <div className="grid grid-cols-4 gap-2">
-                <button
-                  onClick={() => setSelectedImage(0)}
-                  className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                    selectedImage === 0 ? 'border-orange-500' : 'border-gray-200'
-                  }`}
-                >
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  </div>
-                </button>
-                {product.images.map((image, index) => (
+              <div className="grid grid-cols-5 gap-2">
+                {/* First 3 Images */}
+                {product.images.slice(0, 3).map((image, index) => (
                   <button
-                    key={index}
+                    key={`image-${index}`}
                     onClick={() => setSelectedImage(index + 1)}
                     className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
                       selectedImage === index + 1 ? 'border-orange-500' : 'border-gray-200'
@@ -145,6 +148,26 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                       className="object-cover hover:scale-105 transition-transform"
                       sizes="80px"
                     />
+                  </button>
+                ))}
+                
+                {/* 2 Videos */}
+                {product.videos.map((video, index) => (
+                  <button
+                    key={`video-${index}`}
+                    onClick={() => setSelectedImage(index + 4)}
+                    className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedImage === index + 4 ? 'border-orange-500' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                    <div className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                      Video {index + 1}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -191,7 +214,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                     type="number"
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-16 text-center border-none focus:outline-none"
+                    className="w-16 text-center border-none focus:outline-none text-gray-800 font-semibold"
                     min="1"
                   />
                   <button
@@ -274,6 +297,57 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
           </div>
         </div>
       </div>
+
+      {/* Cart Popup */}
+      {/* {showCartPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Added to Cart!</h3>
+              <button
+                onClick={() => setShowCartPopup(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                <div className="absolute inset-0 flex items-center justify-center bg-blue-600">
+                  <span className="text-white font-bold text-lg">
+                    {product.title.split(' ').map(word => word[0]).join('').toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex-1">
+                <h4 className="font-semibold text-gray-800">{product.title}</h4>
+                <p className="text-sm text-gray-600 mb-2">
+                  Product Code: {product.specifications['Product Code']}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Quantity: {quantity}
+                </p>
+                <p className="text-sm text-green-600 font-medium">
+                  Price: ₹{product.price.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setShowCartPopup(false)}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Continue Shopping
+              </button>
+            </div>
+          </div>
+        </div>
+      )} */}
     </div>
   );
 };
