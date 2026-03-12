@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import ProductRatingDropdown from '@/components/ProductRatingDropdown';
+import { useCart } from '@/contexts/CartContext';
 
 const ProductDetailPage = ({ productId }: { productId: string }) => {
   const [selectedImage, setSelectedImage] = useState(1); // Start with first image
   const [quantity, setQuantity] = useState(1);
   const [showCartPopup, setShowCartPopup] = useState(false);
+  const { addToCart } = useCart();
 
   // Sample product data
   const product = {
@@ -23,11 +25,13 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       '/Images/home/fast food.avif',
       '/Images/home/hotel.avif', 
       '/Images/home/restaurent.jpg',
-      '/Images/home/bakeries.webp'
+      '/Images/home/bakeries.webp',
+      '/Images/home/fast food.avif',
+      '/Images/home/hotel.avif'
     ],
     videos: [
-      'https://www.youtube.com/embed/nOlZuJ7icD0?si=LpjR4x7fn2psmAcz',
-      'https://www.youtube.com/embed/dQw4w9WgXcQ?si=LpjR4x7fn2psmAcz'
+      '/images/3054022 how to setup a commercial kitchen.mp4',
+      '/images/1456609 That\'s How A Cake Video Is Shoot 😻 .mp4'
     ],
     about: 'Professional-grade deep fryer perfect for commercial kitchens. Features durable stainless steel construction, precise temperature control, and large capacity for high-volume frying. Ideal for restaurants, fast food chains, and food service establishments.',
     specifications: {
@@ -38,6 +42,10 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       'Size': '13.75"D x 8.25"W x 8.25"H',
       'Capacity (Ltr)': '2 Liters',
       'Material': 'Stainless Steel'
+    },
+    delivery: {
+      'Delivery Time': '3-5 business days',
+      'Shipping Cost': 'Free shipping on orders over ₹10,000'
     }
   };
 
@@ -67,7 +75,15 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   ];
 
   const handleAddToCart = () => {
-    console.log(`Added ${quantity} of ${product.title} to cart`);
+    const cartItem = {
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      quantity: quantity,
+      image: product.images[0],
+      productCode: product.specifications['Product Code']
+    };
+    addToCart(cartItem);
     setShowCartPopup(true);
   };
 
@@ -96,18 +112,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
             <div>
               {/* Main Image/Video Display */}
               <div className="relative h-96 mb-4 rounded-lg overflow-hidden bg-gray-100">
-                {selectedImage === 0 ? (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      </div>
-                      <p className="text-gray-600">Product Video</p>
-                    </div>
-                  </div>
-                ) : selectedImage <= 3 ? (
+                {selectedImage <= 3 ? (
                   <Image
                     src={product.images[selectedImage - 1]}
                     alt={product.title}
@@ -116,17 +121,15 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />
                 ) : (
-                  <iframe
+                  <video
                     src={product.videos[selectedImage - 4]}
+                    controls
+                    className="w-full h-full"
                     width="560"
                     height="315"
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    allowFullScreen
-                    className="w-full h-full"
-                  />
+                  >
+                    Your browser does not support the video tag.
+                  </video>
                 )}
               </div>
  
@@ -244,6 +247,21 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                   ))}
                 </div>
               </div>
+
+              {/* Delivery Notice */}
+              <div className="border-t pt-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="font-semibold text-blue-900 mb-1">Delivery Notice</h4>
+                      <p className="text-sm text-blue-800">Online delivery is currently available only within Lahore.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -299,8 +317,8 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       </div>
 
       {/* Cart Popup */}
-      {/* {showCartPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      {showCartPopup && (
+        <div className="fixed inset-0 bg-gray-900bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Added to Cart!</h3>
@@ -315,12 +333,14 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
             </div>
             
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                <div className="absolute inset-0 flex items-center justify-center bg-blue-600">
-                  <span className="text-white font-bold text-lg">
-                    {product.title.split(' ').map(word => word[0]).join('').toUpperCase()}
-                  </span>
-                </div>
+              <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 relative">
+                <Image
+                  src={product.images[0]}
+                  alt={product.title}
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
               </div>
               
               <div className="flex-1">
@@ -342,12 +362,12 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                 onClick={() => setShowCartPopup(false)}
                 className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
               >
-                Continue Shopping
+                OK
               </button>
             </div>
           </div>
         </div>
-      )} */}
+      )} 
     </div>
   );
 };
