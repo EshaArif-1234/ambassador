@@ -31,8 +31,8 @@ const CompanySection = () => {
           {/* Right - Image */}
           <div className="relative">
             <Image
-              src="/Images/about/about-image.jfif"
-              alt="Company Building"
+              src="/Images/about/chef.jpg"
+              alt="Chef"
               width={500}
               height={600}
               className="rounded-lg shadow-lg"
