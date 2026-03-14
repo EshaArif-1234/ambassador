@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import ChangePasswordPage from '@/client/pages/auth/ChangePasswordPage';
+import ChangePasswordPage from '../../../client/pages/auth/ChangePasswordPage';
 
 export default function ChangePassword() {
   return (

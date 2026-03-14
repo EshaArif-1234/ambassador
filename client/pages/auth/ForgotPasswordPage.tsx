@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import AuthHeader from '../../../components/common/AuthHeader';
+import ForgotPasswordForm from '../../../components/forgotpassword/ForgotPasswordForm';
+import SuccessState from '../../../components/changepassword/SuccessState';
 
 interface FormData {
   email: string;
@@ -34,6 +36,10 @@ export default function ForgotPasswordPage() {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleFormChange = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,104 +87,30 @@ export default function ForgotPasswordPage() {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="p-8">
             {/* Logo and Header */}
-            <div className="text-center mb-6">
-              <div className="mb-4">
-                <Image
-                  src="/Images/home/logo.webp"
-                  alt="Ambassadors Logo"
-                  width={120}
-                  height={40}
-                  className="h-10 w-auto mx-auto"
-                />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Forgot Password?</h1>
-              <p className="text-gray-600">
-                Enter your email address and we'll send you a verification code to reset your password.
-              </p>
-            </div>
+            <AuthHeader 
+              title="Forgot Password?"
+              description="Enter your email address and we'll send you a verification code to reset your password."
+            />
 
             {/* Success State */}
             {isSuccess ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0l7.89-4.26a2 2 0 002.22 0L30 8a2 2 0 012.22 0l7.89 4.26a2 2 0 010 2.72L15.11 19.26a2 2 0 01-2.22 0L5 15a2 2 0 01-2.22 0L5 8a2 2 0 012.22 0z" />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Email Sent!</h2>
-                <p className="text-gray-600 mb-6">
-                  We've sent a verification code to {formData.email}
-                </p>
-                <button
-                  onClick={() => router.push(`/forgot-password-otp?email=${encodeURIComponent(formData.email)}`)}
-                  className="w-full bg-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-600 transition-colors"
-                >
-                  Continue
-                </button>
-              </div>
+              <SuccessState 
+                title="Email Sent!"
+                message={`We've sent a verification code to ${formData.email}`}
+                buttonText="Continue"
+                onAction={() => router.push(`/forgot-password-otp?email=${encodeURIComponent(formData.email)}`)}
+                icon="email"
+              />
             ) : (
               <>
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Email Field */}
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="Enter your email address"
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-                        errors.email
-                          ? 'border-red-300 bg-red-50'
-                          : 'border-gray-300'
-                      } placeholder:text-gray-400`}
-                      disabled={isLoading}
-                    />
-                    {errors.email && (
-                      <p className="mt-2 text-sm text-red-600">{errors.email}</p>
-                    )}
-                  </div>
-
-                  {/* Submit Error */}
-                  {errors.submit && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                      {errors.submit}
-                    </div>
-                  )}
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                  >
-                    {isLoading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Sending Code...
-                      </>
-                    ) : (
-                      'Send Verification Code'
-                    )}
-                  </button>
-                </form>
-
-                {/* Back to Login */}
-                <div className="mt-6 text-center">
-                  <p className="text-sm text-gray-600">
-                    Remember your password?{' '}
-                    <a href="/login" className="text-orange-500 hover:text-orange-600 font-medium transition-colors">
-                      Sign In
-                    </a>
-                  </p>
-                </div>
+                <ForgotPasswordForm
+                  formData={formData}
+                  errors={errors}
+                  isLoading={isLoading}
+                  onFormChange={handleFormChange}
+                  onSubmit={handleSubmit}
+                />
               </>
             )}
           </div>
