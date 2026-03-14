@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
-import OtpCard from '@/components/OtpCard';
+import OtpCard from '@/components/forms/OtpCard';
 
 export default function OtpVerificationPage() {
   const router = useRouter();

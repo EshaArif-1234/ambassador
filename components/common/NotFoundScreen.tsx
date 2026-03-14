@@ -59,7 +59,7 @@ export default function NotFoundScreen({
               <h1 className="text-2xl font-bold text-gray-900 mb-2">{title}</h1>
               <p className="text-gray-600 text-center">{message}</p>
             </div>
-
+  
             {/* Action Buttons */}
             <div className="space-y-3">
               {showBack && (

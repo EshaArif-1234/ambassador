@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import ProductRatingDropdown from '@/components/ProductRatingDropdown';
+import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
 import { useCart } from '@/contexts/CartContext';
 
 const ProductDetailPage = ({ productId }: { productId: string }) => {

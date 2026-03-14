@@ -1,6 +1,6 @@
 'use client';
 
-import NotFoundScreen from '@/components/NotFoundScreen';
+import NotFoundScreen from '@/components/common/NotFoundScreen';
 
 export default function NotFoundPage() {
   return (

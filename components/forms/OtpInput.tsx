@@ -81,7 +81,7 @@ export default function OtpInput({
               : 'border-gray-300 hover:border-gray-400'
           }`}
         />
-      ))}
+      ))} 
     </div>
   );
 }

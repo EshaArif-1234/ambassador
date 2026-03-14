@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import OtpCard from '@/components/OtpCard';
+import OtpCard from '@/components/forms/OtpCard';
 
 export default function ForgotPasswordOtpPage() {
   const router = useRouter();

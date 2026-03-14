@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import NetworkErrorScreen from '@/components/NetworkErrorScreen';
+import NetworkErrorScreen from '@/components/common/NetworkErrorScreen';
 import { getNetworkErrorInfo, clearNetworkErrorInfo } from '@/utils/networkErrorHandler';
 
 export default function NetworkErrorPage() {

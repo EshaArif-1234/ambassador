@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import ProductRatings from '@/components/ProductRatings';
-import ProductRatingDropdown from '@/components/ProductRatingDropdown';
+import ProductRatings from '@/components/products/ProductRatings';
+import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
 
 interface Product {
   id: number;
