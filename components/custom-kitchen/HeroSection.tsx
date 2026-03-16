@@ -8,7 +8,7 @@ const HeroSection: React.FC = () => {
     <div className="relative h-96 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80"></div>
       <Image
-        src="/images/home/ratio.jpg"
+        src="/Images/home/ratio.jpg"
         alt="Custom Kitchen Solutions"
         fill
         className="object-cover"

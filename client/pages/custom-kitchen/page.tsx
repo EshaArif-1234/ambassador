@@ -12,7 +12,7 @@ const CustomKitchenPage = () => {
       <div className="relative h-96 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80"></div>
         <Image
-          src="/images/home/ratio.jpg"
+          src="/Images/home/ratio.jpg"
           alt="Custom Kitchen Solutions"
           fill
           className="object-cover"
@@ -51,7 +51,7 @@ const CustomKitchenPage = () => {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
             <div className="relative h-48">
               <Image
-                src="/images/home/card1.jpg"
+                src="/Images/home/card1.jpg"
                 alt="Fast Food Kitchen Installation"
                 fill
                 className="object-cover"
@@ -83,7 +83,7 @@ const CustomKitchenPage = () => {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
             <div className="relative h-48">
               <Image
-                src="/images/home/card2.webp"
+                src="/Images/home/card2.webp"
                 alt="Restaurant Kitchen Setup"
                 fill
                 className="object-cover"
@@ -115,7 +115,7 @@ const CustomKitchenPage = () => {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
             <div className="relative h-48">
               <Image
-                src="/images/home/card3.jpg"
+                src="/Images/home/card3.jpg"
                 alt="Industrial Kitchen Solutions"
                 fill
                 className="object-cover"

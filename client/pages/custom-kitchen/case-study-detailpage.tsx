@@ -21,10 +21,10 @@ interface DetailPageProps {
 const DetailPage: React.FC<DetailPageProps> = ({ params }) => {
   // Sample data for the case study
   const kitchenImages = [
-    '/images/home/card1.jpg',
-    '/images/home/card2.webp', 
-    '/images/home/card3.jpg',
-    '/images/home/ratio.jpg'
+    '/Images/home/card1.jpg',
+    '/Images/home/card2.webp', 
+    '/Images/home/card3.jpg',
+    '/Images/home/ratio.jpg'
   ];
 
   return (
