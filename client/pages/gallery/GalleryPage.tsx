@@ -39,6 +39,7 @@ const GalleryPage = () => {
         category: 'Cooking Equipment',
         price: 45000
       },
+      videoUrl: 'https://www.youtube.com/watch?v=MQgXy4cYnsw',
       socialLink: 'https://www.instagram.com/chefsanjeevkapoor/'
     },
     {
@@ -55,7 +56,7 @@ const GalleryPage = () => {
         category: 'Bakery Equipment',
         price: 78000
       },
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      videoUrl: 'https://www.youtube.com/watch?v=rJrKZ6JAexI',
       socialLink: 'https://www.youtube.com/@ranveerbrar'
     },
     {
@@ -72,6 +73,7 @@ const GalleryPage = () => {
         category: 'Food Processing',
         price: 65000
       },
+      videoUrl: 'https://www.youtube.com/shorts/HzRnJuGO30E',
       socialLink: 'https://www.instagram.com/kunalkapur/'
     },
     {
@@ -88,6 +90,7 @@ const GalleryPage = () => {
         category: 'Refrigeration',
         price: 120000
       },
+      videoUrl: 'https://www.youtube.com/shorts/UtiL6m9UPrA',
       socialLink: 'https://www.instagram.com/chefvikaskhanna/'
     },
     {
@@ -104,6 +107,7 @@ const GalleryPage = () => {
         category: 'Cooking Equipment',
         price: 35000
       },
+      videoUrl: 'https://www.youtube.com/shorts/2c4LO14HNzc',
       socialLink: 'https://www.instagram.com/chefsarahtodd/'
     },
     {
@@ -120,7 +124,7 @@ const GalleryPage = () => {
         category: 'Food Processing',
         price: 28000
       },
-      videoUrl: 'https://www.youtube.com/watch?v=9bZkp7q19f0',
+      videoUrl: 'https://www.youtube.com/shorts/vZaYXGl3vwk',
       socialLink: 'https://www.youtube.com/@gagananand'
     }
   ];
@@ -227,22 +231,6 @@ const GalleryPage = () => {
                       (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(review.name)}&background=E36630&color=fff&size=400`;
                     }}
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-300 mx-auto mb-3">
-                        <img
-                          src={review.avatar}
-                          alt={review.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(review.name)}&background=E36630&color=fff&size=80`;
-                          }}
-                        />
-                      </div>
-                      <h3 className="font-semibold text-lg">{review.name}</h3>
-                      <p className="text-sm opacity-90">{review.role}</p>
-                    </div>
-                  </div>
                 </div>
               )}
 
