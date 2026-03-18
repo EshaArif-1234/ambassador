@@ -171,17 +171,40 @@ const GalleryPage = () => {
       `}</style>
 
       {/* Hero Section */}
-      <div className="bg-gray-900 text-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+      <div className="relative bg-gray-900 text-white py-16 h-96 md:h-[600px]">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img
+            src="/Images/gallery dark.jpg"
+            alt="Gallery & Reviews Background"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = `https://via.placeholder.com/1920x400/E36630/ffffff?text=Gallery+Reviews`;
+            }}
+          />
+          <div className="absolute"></div>
+        </div>
+         <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="relative z-10 h-full flex items-center justify-center text-white">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">
               Gallery & Reviews
             </h1>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl text-orange-100 drop-shadow-lg">
               See what top chefs, YouTubers, and celebrities say about Ambassador kitchen equipment
             </p>
           </div>
         </div>
+        {/* <div className="relative container mx-auto px-4 h-full flex items-center">
+          <div className="text-center w-full">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 shadow-lg">
+              
+            </h1>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto shadow-lg">
+              See what top chefs, YouTubers, and celebrities say about Ambassador kitchen equipment
+            </p>
+          </div>
+        </div> */}
       </div>
 
       {/* Category Filter */}

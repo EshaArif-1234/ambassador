@@ -9,10 +9,10 @@ const CustomKitchenPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Banner Section */}
-      <div className="relative h-96 overflow-hidden">
+      <div className="relative h-96 md:h-[600px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80"></div>
         <Image
-          src="/Images/home/ratio.jpg"
+          src="/Images/custom-kitchen-dark.jpg"
           alt="Custom Kitchen Solutions"
           fill
           className="object-cover"

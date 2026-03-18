@@ -4,10 +4,10 @@ import Image from 'next/image';
 
 const Banner = () => {
   return (
-    <div className="relative h-96 md:h-[500px]">
+    <div className="relative h-96 md:h-[600px]">
       {/* Background Image */}
       <Image
-        src="/Images/about/banner-image.jpg"
+        src="/Images/about dark.jpg"
         alt="About Ambassadors Banner"
         fill
         className="object-cover"

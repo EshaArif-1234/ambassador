@@ -56,9 +56,22 @@ const ContactPage = () => {
       `}</style>
 
       {/* Hero Section */}
-      <div className="bg-gray-900 text-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
+      <div className="relative bg-gray-900 text-white py-16 h-96 md:h-[600px]">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img
+            src="/Images/contact-dark.jpg"
+            alt="Contact Us Background"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = `https://via.placeholder.com/1920x400/E36630/ffffff?text=Contact+Us`;
+            }}
+          />
+          <div className="absolute "></div>
+        </div>
+        
+        <div className="relative container mx-auto px-4 h-full flex items-center">
+          <div className="text-center w-full">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Contact Us
             </h1>
