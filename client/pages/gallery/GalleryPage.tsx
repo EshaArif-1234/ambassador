@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import SignupBanner from '@/components/common/signup-banner';
 
 interface Review {
   id: string;
@@ -22,7 +23,8 @@ interface Review {
 }
 
 const GalleryPage = () => {
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const reviewsPerPage = 6;
 
   const reviews: Review[] = [
     {
@@ -126,23 +128,118 @@ const GalleryPage = () => {
       },
       videoUrl: 'https://www.youtube.com/shorts/vZaYXGl3vwk',
       socialLink: 'https://www.youtube.com/@gagananand'
+    },
+    {
+      id: '7',
+      name: 'Kavita Patel',
+      role: 'Restaurant Owner',
+      avatar: '/Images/gallery/kavita-patel.jpg',
+      rating: 5,
+      review: 'Ambassador equipment has been a game-changer for my restaurant business. The reliability and performance are outstanding.',
+      featuredProduct: {
+        id: 'prod-007',
+        name: 'Commercial Grill',
+        image: '/Images/products/commercial-grill.jpg',
+        category: 'Cooking Equipment',
+        price: 55000
+      },
+      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      socialLink: 'https://www.instagram.com/kavitapatel/'
+    },
+    {
+      id: '8',
+      name: 'Rohit Singh',
+      role: 'Food Blogger',
+      avatar: '/Images/gallery/rohit-singh.jpg',
+      rating: 4,
+      review: 'Perfect equipment for content creation. Ambassador products help me showcase recipes beautifully.',
+      featuredProduct: {
+        id: 'prod-008',
+        name: 'Digital Display Fridge',
+        image: '/Images/products/digital-fridge.jpg',
+        category: 'Refrigeration',
+        price: 95000
+      },
+      videoUrl: 'https://www.youtube.com/shorts/abc123def456',
+      socialLink: 'https://www.youtube.com/@rohitsingh'
+    },
+    {
+      id: '9',
+      name: 'Priya Sharma',
+      role: 'Catering Manager',
+      avatar: '/Images/gallery/priya-sharma.jpg',
+      rating: 5,
+      review: 'Outstanding quality and service. Ambassador equipment has helped us serve large events efficiently.',
+      featuredProduct: {
+        id: 'prod-009',
+        name: 'Buffet Server',
+        image: '/Images/products/buffet-server.jpg',
+        category: 'Serving Equipment',
+        price: 42000
+      },
+      videoUrl: 'https://www.youtube.com/watch?v=xyz789uvw012',
+      socialLink: 'https://www.instagram.com/priyasharma/'
+    },
+    {
+      id: '10',
+      name: 'Amit Kumar',
+      role: 'Hotel Chef',
+      avatar: '/Images/gallery/amit-kumar.jpg',
+      rating: 4,
+      review: 'Professional-grade equipment that delivers consistent results. Highly recommended for commercial kitchens.',
+      featuredProduct: {
+        id: 'prod-010',
+        name: 'Industrial Dishwasher',
+        image: '/Images/products/industrial-dishwasher.jpg',
+        category: 'Cleaning Equipment',
+        price: 68000
+      },
+      videoUrl: 'https://www.youtube.com/shorts/def345ghi678',
+      socialLink: 'https://www.linkedin.com/in/amitkumar/'
+    },
+    {
+      id: '11',
+      name: 'Neha Gupta',
+      role: 'Bakery Owner',
+      avatar: '/Images/gallery/nehagupta.jpg',
+      rating: 5,
+      review: 'Ambassador bakery equipment is exceptional. It has helped us increase production while maintaining quality.',
+      featuredProduct: {
+        id: 'prod-011',
+        name: 'Convection Oven',
+        image: '/Images/products/convection-oven.jpg',
+        category: 'Bakery Equipment',
+        price: 72000
+      },
+      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
+      socialLink: 'https://www.instagram.com/nehagupta/'
+    },
+    {
+      id: '12',
+      name: 'Raj Malhotra',
+      role: 'Food Consultant',
+      avatar: '/Images/gallery/raj-malhotra.jpg',
+      rating: 5,
+      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
+      featuredProduct: {
+        id: 'prod-012',
+        name: 'Steamer Unit',
+        image: '/Images/products/steamer-unit.jpg',
+        category: 'Cooking Equipment',
+        price: 38000
+      },
+      videoUrl: 'https://www.youtube.com/shorts/jkl901mno234',
+      socialLink: 'https://www.twitter.com/rajmalhotra'
     }
   ];
 
-  const categories = [
-    { id: 'all', name: 'All Reviews' },
-    { id: 'chefs', name: 'Celebrity Chefs' },
-    { id: 'youtubers', name: 'Food YouTubers' },
-    { id: 'entrepreneurs', name: 'Entrepreneurs' }
-  ];
+  // Pagination logic
+  const indexOfLastReview = currentPage * reviewsPerPage;
+  const indexOfFirstReview = indexOfLastReview - reviewsPerPage;
+  const currentReviews = reviews.slice(indexOfFirstReview, indexOfLastReview);
+  const totalPages = Math.ceil(reviews.length / reviewsPerPage);
 
-  const filteredReviews = reviews.filter(review => {
-    if (selectedCategory === 'all') return true;
-    if (selectedCategory === 'chefs') return review.role.includes('Chef');
-    if (selectedCategory === 'youtubers') return review.role.includes('YouTuber');
-    if (selectedCategory === 'entrepreneurs') return review.role.includes('Entrepreneur');
-    return true;
-  });
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -155,6 +252,18 @@ const GalleryPage = () => {
         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-.755 1.902 0l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.381-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
       </svg>
     ));
+  };
+
+  const getYouTubeEmbedUrl = (url: string) => {
+    const videoId = url.includes('youtube.com/watch?v=') 
+      ? url.split('v=')[1]?.split('&')[0]
+      : url.includes('youtu.be/')
+      ? url.split('youtu.be/')[1]?.split('?')[0]
+      : url.includes('youtube.com/shorts/')
+      ? url.split('/shorts/')[1]?.split('?')[0]
+      : null;
+    
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
   };
 
   return (
@@ -182,9 +291,8 @@ const GalleryPage = () => {
               (e.target as HTMLImageElement).src = `https://via.placeholder.com/1920x400/E36630/ffffff?text=Gallery+Reviews`;
             }}
           />
-          <div className="absolute"></div>
+          <div className="absolute inset-0 bg-black opacity-50"></div>
         </div>
-         <div className="absolute inset-0 bg-black opacity-50"></div>
         <div className="relative z-10 h-full flex items-center justify-center text-white">
           <div className="max-w-4xl mx-auto px-6 text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">
@@ -195,126 +303,173 @@ const GalleryPage = () => {
             </p>
           </div>
         </div>
-        {/* <div className="relative container mx-auto px-4 h-full flex items-center">
-          <div className="text-center w-full">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 shadow-lg">
-              
-            </h1>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto shadow-lg">
-              See what top chefs, YouTubers, and celebrities say about Ambassador kitchen equipment
-            </p>
-          </div>
-        </div> */}
       </div>
 
-      {/* Category Filter */}
-      <div className="bg-white shadow-sm sticky top-28 z-30">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-wrap justify-center gap-4">
-            {categories.map(category => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-6 py-2 rounded-full font-medium transition-colors ${
-                  selectedCategory === category.id
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+
+
+
 
       {/* Reviews Grid */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Customer <span className="text-orange-500">Reviews</span>
+          </h2>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            Hear directly from culinary professionals who trust Ambassador kitchen equipment for their businesses
+          </p>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredReviews.map(review => (
-            <div key={review.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-              {/* Video Section */}
-              {review.videoUrl ? (
-                <div className="relative aspect-video bg-gray-900">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${review.videoUrl.split('v=')[1]?.split('&')[0] || 'dQw4w9WgXcQ'}`}
-                    title={`${review.name} Review`}
-                    className="absolute top-0 left-0 w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+          {currentReviews.map(review => {
+            const embedUrl = getYouTubeEmbedUrl(review.videoUrl || '');
+            
+            return (
+              <div key={review.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+                {/* Video/Image Section */}
+                <div className="relative h-48 bg-gray-100">
+                  {embedUrl ? (
+                    <iframe
+                      src={embedUrl}
+                      title={`${review.name} Review`}
+                      className="w-full h-full object-cover"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <img
+                      src={review.avatar}
+                      alt={review.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://via.placeholder.com/400x300/E36630/ffffff?text=${encodeURIComponent(review.name)}`;
+                      }}
+                    />
+                  )}
                 </div>
-              ) : (
-                <div className="relative aspect-video bg-gray-100">
-                  <img
-                    src={review.avatar}
-                    alt={review.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(review.name)}&background=E36630&color=fff&size=400`;
-                    }}
-                  />
-                </div>
-              )}
 
-              {/* Review Content */}
-              <div className="p-6">
-                <p className="text-gray-700 mb-6">
-                  "{review.review}"
-                </p>
-
-                {/* Featured Product */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-800 mb-3">Featured Product</h4>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                      <img
-                        src={review.featuredProduct.image}
-                        alt={review.featuredProduct.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://via.placeholder.com/80x80/E36630/ffffff?text=${encodeURIComponent(review.featuredProduct.name.substring(0, 10))}`;
-                        }}
-                      />
+                {/* Review Content */}
+                <div className="p-6">
+                  {/* <div className="flex items-center mb-3">
+                    <div className="flex">
+                      {renderStars(review.rating)}
                     </div>
-                    <div className="flex-1">
-                      <h5 className="font-medium text-gray-800">{review.featuredProduct.name}</h5>
-                      <p className="text-sm text-gray-600 mb-2">{review.featuredProduct.category}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-orange-500">
-                          ₹{review.featuredProduct.price.toLocaleString()}
-                        </span>
-                        <Link
-                          href={`/products/${review.featuredProduct.id}`}
-                          className="inline-flex items-center px-3 py-1 bg-orange-500 text-white text-sm rounded hover:bg-orange-600 transition-colors"
-                        >
-                          View Product
-                          <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </Link>
+                    <span className="ml-2 text-sm text-gray-500">({review.rating}.0)</span>
+                  </div> */}
+                  
+                  <blockquote className="text-gray-700 mb-4 italic">
+                    "{review.review}"
+                  </blockquote>
+                  
+                  {/* <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{review.name}</h4>
+                      <p className="text-sm text-gray-500">{review.role}</p>
+                    </div>
+                    {review.socialLink && (
+                      <a
+                        href={review.socialLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-orange-500 hover:text-orange-600"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                      </a>
+                    )}
+                  </div> */}
+
+                  {/* Featured Product */}
+                  <div className="border-t pt-4">
+                    <p className="text-sm text-gray-500 mb-2">Featured Product</p>
+                    <Link href={`/products/${review.featuredProduct.id}`} className="group">
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-orange-50 transition-colors">
+                        <img
+                          src={review.featuredProduct.image}
+                          alt={review.featuredProduct.name}
+                          className="w-16 h-16 object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://via.placeholder.com/64x64/E36630/ffffff?text=${encodeURIComponent(review.featuredProduct.name.substring(0, 3))}`;
+                          }}
+                        />
+                        <div className="flex-1">
+                          <h5 className="font-medium text-gray-900 group-hover:text-orange-600 transition-colors">
+                            {review.featuredProduct.name}
+                          </h5>
+                          <p className="text-sm text-gray-500">{review.featuredProduct.category}</p>
+                          <p className="text-sm font-semibold text-orange-500">₹{review.featuredProduct.price.toLocaleString()}</p>
+                        </div>
+                        <svg className="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
-                    </div>
+                    </Link>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* No Results */}
-        {filteredReviews.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9V7a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        {/* Pagination */}
+        <div className="mt-12 flex justify-center">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-orange-50 hover:border-orange-300'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No reviews found</h3>
-            <p className="text-gray-500">Try selecting a different category</p>
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNumber => (
+              <button
+                key={pageNumber}
+                onClick={() => paginate(pageNumber)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  currentPage === pageNumber
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-orange-50 hover:border-orange-300'
+                }`}
+              >
+                {pageNumber}
+              </button>
+            ))}
+
+            <button
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === totalPages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-orange-50 hover:border-orange-300'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
-        )}
+        </div>
+
+        {/* Page Info */}
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            Showing {indexOfFirstReview + 1} to {Math.min(indexOfLastReview, reviews.length)} of {reviews.length} reviews
+          </p>
+        </div>
       </div>
+      
+      {/* Signup Banner */}
+      <SignupBanner />
     </div>
   );
 };
