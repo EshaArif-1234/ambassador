@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Banner from '@/components/about/Banner';
+import MissionVisionSection from '@/components/about/MissionVisionSection';
 import CompanySection from '@/components/about/CompanySection';
 import TeamSection from '@/components/about/TeamSection';
 import CertificatesSection from '@/components/about/CertificatesSection';
@@ -12,14 +13,18 @@ const AboutPage = () => {
   return (
     <div className="min-h-screen">
       <Banner />
+      
       <div className="bg-gray-50">
         <CompanySection />
       </div>
-      <div className="bg-white">
+      {/* <div className="bg-white">
         <TeamSection />
+      </div> */}
+      <div className="bg-white">
+        <CertificatesSection />
       </div>
       <div className="bg-gray-50">
-        <CertificatesSection />
+        <MissionVisionSection />
       </div>
       <div className="bg-white">
         <TestimonialsSection />
