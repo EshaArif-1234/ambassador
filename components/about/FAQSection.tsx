@@ -50,7 +50,7 @@ const FAQSection = () => {
           </p>
         </div>
         
-        <div className="max-w-6xl mx-auto space-y-4">
+        <div className="space-y-4">
           {faqs.map((faq, index) => (
             <div key={index} className="border border-gray-200 rounded-lg">
               <button

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import InputField from '@/components/common/InputField';
+import FAQSection from '@/components/about/FAQSection';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -307,6 +308,8 @@ const ContactPage = () => {
           </div>
         </div>
       </div>
+
+      <FAQSection />
     </div>
   );
 };

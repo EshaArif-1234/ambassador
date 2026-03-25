@@ -8,6 +8,7 @@ import TeamSection from '@/components/about/TeamSection';
 import CertificatesSection from '@/components/about/CertificatesSection';
 import TestimonialsSection from '@/components/about/TestimonialsSection';
 import FAQSection from '@/components/about/FAQSection';
+import SignupBanner from '@/components/common/signup-banner';
 
 const AboutPage = () => {
   return (
@@ -32,6 +33,7 @@ const AboutPage = () => {
       <div className="bg-gray-50">
         <FAQSection />
       </div>
+      <SignupBanner />
     </div>
   );
 };
