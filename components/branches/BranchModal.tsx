@@ -60,7 +60,7 @@ const BranchModal = ({ branch, onClose }: BranchModalProps) => {
           {/* Branch Details */}
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Contact Information */}
+              {/* Left Column - All Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">Contact Information</h3>
                 
@@ -107,19 +107,15 @@ const BranchModal = ({ branch, onClose }: BranchModalProps) => {
                 </div>
               </div>
 
-              {/* Additional Information */}
+              {/* Right Column - Only Branch Manager */}
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">Branch Manager</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className=" p-4 rounded-lg">
                   <p className="font-medium text-gray-800">{branch.manager}</p>
                   <p className="text-gray-600 text-sm">Branch Manager</p>
                 </div>
-
-               
               </div>
             </div>
-
-           
           </div>
         </div>
       </div>
