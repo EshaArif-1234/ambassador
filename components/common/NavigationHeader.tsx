@@ -9,7 +9,7 @@ const NavigationHeader = () => {
   const menuItems = [
     { name: 'Products', href: '/products' },
     { name: 'About', href: '/about' },
-    { name: 'Our Custom Kitchen', href: '/custom-kitchen' },
+    { name: 'Custom Kitchen', href: '/custom-kitchen' },
     { name: 'Gallery', href: '/gallery' },
     { name: 'Contact Us', href: '/contact-us' },
     { name: 'Orders', href: '/orders' },
@@ -38,7 +38,7 @@ const NavigationHeader = () => {
         {/* Mobile Navigation */}
         <div className="md:hidden">
           <div className="flex items-center justify-between h-12">
-            <div className="text-sm font-medium">Navigation</div>
+            <div className="text-sm font-medium"></div>
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="text-white hover:text-orange-500 focus:outline-none"
