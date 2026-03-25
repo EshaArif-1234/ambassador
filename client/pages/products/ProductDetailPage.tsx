@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
+import CartPopup from '@/components/products/CartPopup';
 import { useCart } from '@/contexts/CartContext';
 
 const ProductDetailPage = ({ productId }: { productId: string }) => {
@@ -317,57 +318,12 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       </div>
 
       {/* Cart Popup */}
-      {showCartPopup && (
-        <div className="fixed inset-0 bg-gray-900bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Added to Cart!</h3>
-              <button
-                onClick={() => setShowCartPopup(false)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 relative">
-                <Image
-                  src={product.images[0]}
-                  alt={product.title}
-                  fill
-                  className="object-cover"
-                  sizes="64px"
-                />
-              </div>
-              
-              <div className="flex-1">
-                <h4 className="font-semibold text-gray-800">{product.title}</h4>
-                <p className="text-sm text-gray-600 mb-2">
-                  Product Code: {product.specifications['Product Code']}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Quantity: {quantity}
-                </p>
-                <p className="text-sm text-green-600 font-medium">
-                  Price: ₹{product.price.toLocaleString()}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => setShowCartPopup(false)}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )} 
+      <CartPopup 
+        show={showCartPopup}
+        onClose={() => setShowCartPopup(false)}
+        product={product}
+        quantity={quantity}
+      />
     </div>
   );
 };

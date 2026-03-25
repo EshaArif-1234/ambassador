@@ -6,6 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ProductRatings from '@/components/products/ProductRatings';
 import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
+import CartPopup from '@/components/products/CartPopup';
+import { useCart } from '@/contexts/CartContext';
 
 interface Product {
   id: number;
@@ -26,6 +28,9 @@ const ProductsPage = () => {
   const [sortBy, setSortBy] = useState('name');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRatings, setSelectedRatings] = useState<{ [key: number]: string }>({});
+  const [showCartPopup, setShowCartPopup] = useState(false);
+  const [addedProduct, setAddedProduct] = useState<Product | null>(null);
+  const { addToCart } = useCart();
   const [features, setFeatures] = useState({
     inStock: false,
     freeShipping: false,
@@ -195,6 +200,23 @@ const ProductsPage = () => {
 
   const handleAvailabilityChange = (availability: string, checked: boolean) => {
     setAvailability(prev => ({ ...prev, [availability]: checked }));
+  };
+
+  const handleAddToCart = (product: Product) => {
+    // Convert product to cart item format
+    const cartItem = {
+      id: product.id.toString(),
+      title: product.name,
+      price: product.price,
+      quantity: 1,
+      image: product.image,
+      productCode: `PRD${product.id}`
+    };
+    
+    addToCart(cartItem);
+    setAddedProduct(product);
+    setShowCartPopup(true);
+    setTimeout(() => setShowCartPopup(false), 3000);
   };
 
   const clearFilters = () => {
@@ -526,7 +548,10 @@ const ProductsPage = () => {
                           
                           {/* Add to Cart Button */}
                           <div className="flex items-end">
-                            <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
+                            <button 
+                              onClick={() => handleAddToCart(product)}
+                              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                            >
                               Add to Cart
                             </button>
                           </div>
@@ -545,6 +570,18 @@ const ProductsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Cart Popup */}
+      <CartPopup 
+        show={showCartPopup}
+        onClose={() => setShowCartPopup(false)}
+        product={addedProduct ? {
+          title: addedProduct.name,
+          images: [addedProduct.image],
+          specifications: { 'Product Code': `PRD${addedProduct.id}` },
+          price: addedProduct.price
+        } : undefined}
+      />
     </div>
   );
 };

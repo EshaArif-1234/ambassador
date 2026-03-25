@@ -28,7 +28,7 @@ const BranchModal = ({ branch, onClose }: BranchModalProps) => {
   if (!branch) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="relative">
           {/* Close Button */}
@@ -115,22 +115,11 @@ const BranchModal = ({ branch, onClose }: BranchModalProps) => {
                   <p className="text-gray-600 text-sm">Branch Manager</p>
                 </div>
 
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Location</h3>
-                <div className="bg-gray-100 h-48 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">Map View</p>
-                </div>
+               
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="mt-6 flex space-x-4">
-              <button className="flex-1 bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors font-semibold">
-                Get Directions
-              </button>
-              <button className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors font-semibold">
-                Call Branch
-              </button>
-            </div>
+           
           </div>
         </div>
       </div>
