@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { useCart } from '@/contexts/CartContext';
 
 const Header = () => {
+  const router = useRouter();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -36,6 +38,11 @@ const Header = () => {
       // Redirect to products page with search query
       window.location.href = `/products?search=${encodeURIComponent(searchQuery.trim())}`;
     }
+  };
+
+  const handleCheckout = () => {
+    setIsCartOpen(false);
+    router.push('/checkout');
   };
 
   return (
@@ -139,7 +146,10 @@ const Header = () => {
                           ₹{cartItems.reduce((total, item) => total + (item.price * item.quantity), 0).toLocaleString()}
                         </span>
                       </div>
-                      <button className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors">
+                      <button 
+                        onClick={handleCheckout}
+                        className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors"
+                      >
                         Checkout
                       </button>
                     </div>
