@@ -69,7 +69,6 @@ const OrderSuccessPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-2xl font-bold text-gray-800">
-              Ambassador Engineering
             </Link>
             <Link href="/products" className="text-orange-500 hover:text-orange-600 flex items-center">
               Continue Shopping
@@ -82,34 +81,34 @@ const OrderSuccessPage = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          {/* Success Message */}
-          <div className="text-center mb-12">
-            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-
-            <h1 className="text-4xl font-bold text-gray-800 mb-4">
-              Order Placed Successfully!
-            </h1>
-            
-            <p className="text-xl text-gray-600 mb-2">
-              Thank you for your order, {orderData.name}!
-            </p>
-            
-            <p className="text-gray-600">
-              We've received your order and will begin processing it right away.
-            </p>
-          </div>
-
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Order Details */}
-            <div className="lg:col-span-2 space-y-6">
+            {/* Left Column - Order Details */}
+            <div className="lg:col-span-2">
+              {/* Success Message */}
+              <div className="text-center mb-8">
+                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+
+                <h1 className="text-4xl font-bold text-gray-800 mb-4">
+                  Order Placed Successfully!
+                </h1>
+                
+                <p className="text-xl text-gray-600 mb-2">
+                  Thank you for your order, {orderData.name}!
+                </p>
+                
+                <p className="text-gray-600">
+                  We've received your order and will begin processing it right away.
+                </p>
+              </div>
+
               {/* Order Information */}
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Order Information</h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -185,9 +184,9 @@ const OrderSuccessPage = () => {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-6">
+            <div className="lg:col-span-1">
               {/* Order Summary */}
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Order Summary</h3>
                 
                 <div className="space-y-3">
@@ -200,72 +199,54 @@ const OrderSuccessPage = () => {
                   
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Delivery Charges</span>
-                    <span className="text-yellow-600 font-medium">To be calculated</span>
+                    <span className="text-orange-600">To be calculated</span>
                   </div>
                   
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax</span>
-                    <span className="text-gray-800">₹0</span>
-                  </div>
-                  
-                  <div className="pt-3 border-t">
+                  <div className="border-t pt-3">
                     <div className="flex justify-between">
-                      <span className="font-semibold text-gray-800">Amount Paid</span>
-                      <span className="font-bold text-lg text-green-600">
-                        ₹{orderData.totalAmount ? orderData.totalAmount.toLocaleString() : '0'}
+                      <span className="text-lg font-semibold text-gray-800">Total Paid</span>
+                      <span className="text-lg font-bold text-orange-500">
+                        ₹{orderData.products ? orderData.products.reduce((total, item) => total + (item.price * item.quantity), 0).toLocaleString() : '0'}
                       </span>
                     </div>
-                  </div>
-                  
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <p className="text-xs text-yellow-800">
-                      <strong>Note:</strong> Delivery charges will be calculated and communicated by our team within 24 hours.
-                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Next Steps */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
                 <h3 className="text-lg font-semibold text-blue-900 mb-3">Next Steps</h3>
                 <div className="space-y-3">
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                      <span className="text-white text-xs font-bold">1</span>
+                    <div className="flex-shrink-0">
+                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">1</span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-blue-800 font-medium">Team Contact</p>
-                      <p className="text-sm text-blue-700">Our team will call you within 24 hours</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                      <span className="text-white text-xs font-bold">2</span>
-                    </div>
-                    <div>
-                      <p className="text-blue-800 font-medium">Delivery Quote</p>
-                      <p className="text-sm text-blue-700">Receive delivery charges and installation options</p>
+                    <div className="ml-3">
+                      <p className="text-sm text-blue-900">Our team will call you within 24 hours</p>
                     </div>
                   </div>
                   
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                      <span className="text-white text-xs font-bold">3</span>
+                    <div className="flex-shrink-0">
+                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">2</span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-blue-800 font-medium">Your Approval</p>
-                      <p className="text-sm text-blue-700">Confirm final charges and delivery schedule</p>
+                    <div className="ml-3">
+                      <p className="text-sm text-blue-900">Delivery charges will be calculated</p>
                     </div>
                   </div>
                   
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                      <span className="text-white text-xs font-bold">4</span>
+                    <div className="flex-shrink-0">
+                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">3</span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-blue-800 font-medium">Delivery</p>
-                      <p className="text-sm text-blue-700">Products delivered and installed (if required)</p>
+                    <div className="ml-3">
+                      <p className="text-sm text-blue-900">Installation scheduled after your approval</p>
                     </div>
                   </div>
                 </div>
@@ -273,12 +254,8 @@ const OrderSuccessPage = () => {
 
               {/* Support */}
               <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Need Help?</h3>
-                <p className="text-gray-600 mb-4">
-                  Our customer support team is here to help you with any questions.
-                </p>
-                
-                <div className="space-y-2 text-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Need Help?</h3>
+                <div className="space-y-3">
                   <div className="flex items-center">
                     <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -294,18 +271,31 @@ const OrderSuccessPage = () => {
                 </div>
               </div>
 
-              {/* Login Section */}
+              {/* Account Section */}
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-orange-900 mb-3">Create Account</h3>
+                <h3 className="text-lg font-semibold text-orange-900 mb-3">Track Your Orders</h3>
                 <p className="text-orange-800 mb-4">
-                  Track your orders, save addresses, and enjoy a faster checkout experience.
+                  Create an account or login to track your order status, save your information for future purchases, and enjoy a faster checkout experience.
                 </p>
-                <Link
-                  href="/signup"
-                  className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors text-center block"
-                >
-                  Create Account
-                </Link>
+                
+                <div className="space-y-3">
+                  <Link
+                    href="/signup"
+                    className="w-full bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors text-center block font-medium"
+                  >
+                    Create New Account
+                  </Link>
+                  
+                  <div className="text-center">
+                    <span className="text-orange-700 text-sm">Already have an account?</span>
+                    <Link
+                      href="/login"
+                      className="text-orange-600 hover:text-orange-700 font-medium text-sm ml-1 underline"
+                    >
+                      Login Here
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
