@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-'use client';
-
-=======
->>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
 import CheckoutPage from '@/client/pages/checkout/page';
 
 export default function Checkout() {

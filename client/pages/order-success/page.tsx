@@ -225,11 +225,7 @@ const OrderSuccessPage = () => {
                 </div>
               </div>
 
-<<<<<<< HEAD
-              {/* Estimated Delivery */}
-=======
               {/* Next Steps */}
->>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-blue-900 mb-3">Next Steps</h3>
                 <div className="space-y-3">
@@ -289,10 +285,6 @@ const OrderSuccessPage = () => {
                     </svg>
                     <span className="text-gray-700">+92 300 1234567</span>
                   </div>
-<<<<<<< HEAD
-                  
-=======
->>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
                   <div className="flex items-center">
                     <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -301,54 +293,6 @@ const OrderSuccessPage = () => {
                   </div>
                 </div>
               </div>
-<<<<<<< HEAD
-            </div>
-          </div>
-
-          {/* Login Section */}
-          <div className="mt-8 bg-orange-50 border border-orange-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-orange-900 mb-4">
-              Track Your Order
-            </h3>
-            
-            <p className="text-orange-800 mb-6">
-              Create an account or login to track your order status and save your information for future purchases.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/login"
-                className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors text-center"
-              >
-                Login to Your Account
-              </Link>
-              
-              <Link
-                href="/signup"
-                className="border border-orange-300 text-orange-700 px-6 py-3 rounded-lg hover:bg-orange-100 transition-colors text-center"
-              >
-                Create New Account
-              </Link>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/products"
-              className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors text-center"
-            >
-              Continue Shopping
-            </Link>
-            
-            <Link
-              href="/contact-us"
-              className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors text-center"
-            >
-              Contact Support
-            </Link>
-          </div>
-=======
 
               {/* Login Section */}
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
@@ -365,7 +309,6 @@ const OrderSuccessPage = () => {
               </div>
             </div>
           </div>
->>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
         </div>
       </main>
     </div>

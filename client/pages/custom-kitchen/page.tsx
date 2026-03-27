@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import DetailPage from '@/app/custom-kitchen/DetailPage';
+import DetailPage from '@/app/(website)/custom-kitchen/DetailPage';
 
 const CustomKitchenPage = () => {
   return (

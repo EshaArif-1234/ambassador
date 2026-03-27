@@ -283,20 +283,6 @@ const PaymentGatewayPage = () => {
     }
   };
 
-<<<<<<< HEAD
-  if (!paymentData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading payment details...</p>
-        </div>
-      </div>
-    );
-  }
-
-=======
->>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
   if (showSuccess) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -321,11 +307,7 @@ const PaymentGatewayPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-2xl font-bold text-gray-900">
-<<<<<<< HEAD
-              Ambassador Engineering
-=======
               
->>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
             </Link>
             <button
               onClick={() => router.push('/checkout')}
@@ -341,460 +323,6 @@ const PaymentGatewayPage = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-<<<<<<< HEAD
-        <div className="max-w-4xl mx-auto">
-          {/* Order Summary */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-gray-600 text-sm">Order ID:</span>
-                <p className="font-medium text-gray-900">{paymentData.orderId}</p>
-              </div>
-              <div>
-                <span className="text-gray-600 text-sm">Customer:</span>
-                <p className="font-medium text-gray-900">{paymentData.customerInfo.name}</p>
-              </div>
-              <div>
-                <span className="text-gray-600 text-sm">Email:</span>
-                <p className="font-medium text-gray-900">{paymentData.customerInfo.email}</p>
-              </div>
-              <div>
-                <span className="text-gray-600 text-sm">Phone:</span>
-                <p className="font-medium text-gray-900">{paymentData.customerInfo.phone}</p>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-900">Total Amount:</span>
-                <span className="text-2xl font-bold text-orange-500">₹{paymentData.amount.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Delivery Charges Information */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg className="w-6 h-6 text-yellow-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-semibold text-yellow-900 mb-2">Payment & Delivery Information</h3>
-                <div className="text-yellow-800 space-y-2">
-                  <p>
-                    <strong>Important:</strong> We collect only the product payment online. Delivery charges will be calculated separately after order confirmation.
-                  </p>
-                  <div className="bg-yellow-100 rounded-lg p-3 mt-3">
-                    <p className="text-sm text-yellow-900 font-medium mb-2">What happens next:</p>
-                    <ol className="list-decimal list-inside space-y-1 text-sm">
-                      <li><strong>Online Payment:</strong> You pay only for the products now</li>
-                      <li><strong>Team Contact:</strong> Our team calls within 24 hours</li>
-                      <li><strong>Delivery Quote:</strong> We provide delivery charges based on your location and order size</li>
-                      <li><strong>Your Approval:</strong> You confirm or modify the order based on final charges</li>
-                      <li><strong>Delivery Payment:</strong> Delivery charges paid separately when confirmed</li>
-                    </ol>
-                  </div>
-                  <div className="mt-3">
-                    <p className="text-sm text-yellow-900">
-                      <strong>Delivery charges depend on:</strong>
-                    </p>
-                    <ul className="list-disc list-inside space-y-1 text-sm mt-1">
-                      <li>Your location and delivery address</li>
-                      <li>Order size and weight</li>
-                      <li>Installation requirements (if needed)</li>
-                      <li>Delivery timeline preferences</li>
-                    </ul>
-                  </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-                    <p className="text-sm text-blue-900">
-                      <strong>Benefit:</strong> You only pay for delivery charges after you approve the final quote. No hidden fees!
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Methods */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Select Payment Method</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button
-                onClick={() => setPaymentMethod('card')}
-                className={`p-4 border rounded-lg text-left transition-colors ${
-                  paymentMethod === 'card'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center mb-2">
-                  <svg className="w-6 h-6 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                  <span className="font-medium">Credit/Debit Card</span>
-                </div>
-                <p className="text-sm text-gray-600">Visa, Mastercard, UnionPay</p>
-              </button>
-
-              <button
-                onClick={() => setPaymentMethod('wallet')}
-                className={`p-4 border rounded-lg text-left transition-colors ${
-                  paymentMethod === 'wallet'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center mb-2">
-                  <svg className="w-6 h-6 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="font-medium">Mobile Wallet</span>
-                </div>
-                <p className="text-sm text-gray-600">JazzCash, Easypaisa</p>
-              </button>
-
-              <button
-                onClick={() => setPaymentMethod('bank')}
-                className={`p-4 border rounded-lg text-left transition-colors ${
-                  paymentMethod === 'bank'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center mb-2">
-                  <svg className="w-6 h-6 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                  <span className="font-medium">Bank Transfer</span>
-                </div>
-                <p className="text-sm text-gray-600">Online Banking</p>
-              </button>
-            </div>
-          </div>
-
-          {/* Payment Form */}
-          <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
-              {paymentMethod === 'card' && 'Card Details'}
-              {paymentMethod === 'wallet' && 'Mobile Wallet Details'}
-              {paymentMethod === 'bank' && 'Bank Transfer Details'}
-            </h2>
-
-            {/* Credit/Debit Card Form */}
-            {paymentMethod === 'card' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Card Number *
-                  </label>
-                  <input
-                    type="text"
-                    name="cardNumber"
-                    value={formData.cardNumber}
-                    onChange={handleInputChange}
-                    placeholder="1234 5678 9012 3456"
-                    maxLength={19}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                      errors.cardNumber ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.cardNumber && (
-                    <p className="mt-1 text-sm text-red-600">{errors.cardNumber}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Expiry Month *
-                    </label>
-                    <select
-                      name="expiryMonth"
-                      value={formData.expiryMonth}
-                      onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                        errors.expiryMonth ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    >
-                      <option value="">Month</option>
-                      {Array.from({ length: 12 }, (_, i) => (
-                    <option key={i} value={String(i + 1).padStart(2, '0')}>
-                          {String(i + 1).padStart(2, '0')}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.expiryMonth && (
-                      <p className="mt-1 text-sm text-red-600">{errors.expiryMonth}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Expiry Year *
-                    </label>
-                    <select
-                      name="expiryYear"
-                      value={formData.expiryYear}
-                      onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                        errors.expiryYear ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    >
-                      <option value="">Year</option>
-                      {Array.from({ length: 10 }, (_, i) => (
-                        <option key={i} value={new Date().getFullYear() + i}>
-                          {new Date().getFullYear() + i}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.expiryYear && (
-                      <p className="mt-1 text-sm text-red-600">{errors.expiryYear}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      CVV *
-                    </label>
-                    <input
-                      type="text"
-                      name="cvv"
-                      value={formData.cvv}
-                      onChange={handleInputChange}
-                      placeholder="123"
-                      maxLength={4}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                        errors.cvv ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.cvv && (
-                      <p className="mt-1 text-sm text-red-600">{errors.cvv}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cardholder Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="cardholderName"
-                      value={formData.cardholderName}
-                      onChange={handleInputChange}
-                      placeholder="John Doe"
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                        errors.cardholderName ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.cardholderName && (
-                      <p className="mt-1 text-sm text-red-600">{errors.cardholderName}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Mobile Wallet Form */}
-            {paymentMethod === 'wallet' && (
-              <div className="space-y-4">
-                {walletStep === 'phone' ? (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Wallet Type *
-                      </label>
-                      <div className="grid grid-cols-2 gap-4">
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, walletType: 'jazzcash' }))}
-                          className={`p-4 border rounded-lg text-left transition-colors ${
-                            formData.walletType === 'jazzcash'
-                              ? 'border-orange-500 bg-orange-50'
-                              : 'border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className="flex items-center mb-2">
-                            <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mr-2">
-                              <span className="text-white text-xs font-bold">JC</span>
-                            </div>
-                            <span className="font-medium">JazzCash</span>
-                          </div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, walletType: 'easypaisa' }))}
-                          className={`p-4 border rounded-lg text-left transition-colors ${
-                            formData.walletType === 'easypaisa'
-                              ? 'border-orange-500 bg-orange-50'
-                              : 'border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className="flex items-center mb-2">
-                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-2">
-                              <span className="text-white text-xs font-bold">EP</span>
-                            </div>
-                            <span className="font-medium">EasyPaisa</span>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mobile Number *
-                      </label>
-                      <input
-                        type="text"
-                        name="walletNumber"
-                        value={formData.walletNumber}
-                        onChange={handleInputChange}
-                        placeholder="03XX-XXXXXXX"
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                          errors.walletNumber ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      {errors.walletNumber && (
-                        <p className="mt-1 text-sm text-red-600">{errors.walletNumber}</p>
-                      )}
-                    </div>
-
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-800">
-                        <strong>Payment Flow:</strong> After clicking "Pay Now", you will be redirected to {formData.walletType === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'} gateway to enter your MPIN and OTP for payment confirmation.
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 text-orange-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Redirecting to {formData.walletType === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'}...
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      Please complete the payment in the {formData.walletType === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'} app
-                    </p>
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <p className="text-sm text-yellow-800">
-                        <strong>Security Note:</strong> Never share your MPIN with anyone. The payment gateway is secure and encrypted.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Bank Transfer Form */}
-            {paymentMethod === 'bank' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bank Account Number *
-                  </label>
-                  <input
-                    type="text"
-                    name="bankAccount"
-                    value={formData.bankAccount}
-                    onChange={handleInputChange}
-                    placeholder="Your bank account number"
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                      errors.bankAccount ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.bankAccount && (
-                    <p className="mt-1 text-sm text-red-600">{errors.bankAccount}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Transaction ID *
-                  </label>
-                  <input
-                    type="text"
-                    name="transactionId"
-                    value={formData.transactionId}
-                    onChange={handleInputChange}
-                    placeholder="Bank transaction reference"
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                      errors.transactionId ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.transactionId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.transactionId}</p>
-                  )}
-                </div>
-
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-sm text-yellow-800 mb-2">
-                    <strong>Bank Transfer Instructions:</strong>
-                  </p>
-                  <ol className="text-sm text-yellow-700 list-decimal list-inside space-y-1">
-                    <li>Transfer ₹{paymentData.amount.toLocaleString()} to our bank account</li>
-                    <li>Account: Ambassador Engineering Ltd.</li>
-                    <li>Bank: Habib Bank Limited</li>
-                    <li>Account #: 1234-5678901-2</li>
-                    <li>Enter your transaction ID above</li>
-                  </ol>
-                </div>
-              </div>
-            )}
-
-            {/* Security Badge */}
-            <div className="mt-6 flex items-center justify-center">
-              <div className="flex items-center text-sm text-gray-600">
-                <svg className="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Secure Payment Gateway - 256-bit SSL Encryption
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {errors.submit && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800">{errors.submit}</p>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isProcessing}
-              className="w-full bg-orange-500 text-white py-4 rounded-lg hover:bg-orange-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-            >
-              {isProcessing ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing Payment...
-                </span>
-              ) : (
-                `Pay ₹${paymentData.amount.toLocaleString()}`
-              )}
-            </button>
-          </form>
-
-          {/* Cancel Button */}
-          <div className="mt-4 text-center">
-            <button
-              onClick={() => router.push('/checkout')}
-              className="text-gray-600 hover:text-gray-800 text-sm"
-            >
-              Cancel and return to checkout
-            </button>
-=======
         <div className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Payment Form */}
@@ -802,30 +330,36 @@ const PaymentGatewayPage = () => {
               {/* Order Summary */}
               <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-gray-600 text-sm">Order ID:</span>
-                    <p className="font-medium text-gray-900">{paymentData.orderId}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 text-sm">Customer:</span>
-                    <p className="font-medium text-gray-900">{paymentData.customerInfo.name}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 text-sm">Email:</span>
-                    <p className="font-medium text-gray-900">{paymentData.customerInfo.email}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 text-sm">Phone:</span>
-                    <p className="font-medium text-gray-900">{paymentData.customerInfo.phone}</p>
-                  </div>
-                </div>
-                <div className="mt-4 pt-4 border-t">
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold text-gray-900">Total Amount:</span>
-                    <span className="text-2xl font-bold text-orange-500">₹{paymentData.amount.toLocaleString()}</span>
-                  </div>
-                </div>
+                {paymentData ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-gray-600 text-sm">Order ID:</span>
+                        <p className="font-medium text-gray-900">{paymentData?.orderId || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-sm">Customer:</span>
+                        <p className="font-medium text-gray-900">{paymentData?.customerInfo?.name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-sm">Email:</span>
+                        <p className="font-medium text-gray-900">{paymentData?.customerInfo?.email || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-sm">Phone:</span>
+                        <p className="font-medium text-gray-900">{paymentData?.customerInfo?.phone || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-semibold text-gray-900">Total Amount:</span>
+                        <span className="text-2xl font-bold text-orange-500">₹{paymentData?.amount?.toLocaleString() || '0'}</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">Loading payment data...</p>
+                )}
               </div>
 
               {/* Payment Methods */}
@@ -1150,7 +684,7 @@ const PaymentGatewayPage = () => {
                         <strong>Bank Transfer Instructions:</strong>
                       </p>
                       <ol className="text-sm text-yellow-700 list-decimal list-inside space-y-1">
-                        <li>Transfer ₹{paymentData.amount.toLocaleString()} to our bank account</li>
+                        <li>Transfer ₹{paymentData?.amount?.toLocaleString() || '0'} to our bank account</li>
                         <li>Account: Ambassador Engineering Ltd.</li>
                         <li>Bank: Habib Bank Limited</li>
                         <li>Account #: 1234-5678901-2</li>
@@ -1180,7 +714,7 @@ const PaymentGatewayPage = () => {
                       Processing...
                     </span>
                   ) : (
-                    `Pay ₹${paymentData.amount.toLocaleString()}`
+                    `Pay ₹${paymentData?.amount?.toLocaleString() || '0'}`
                   )}
                 </button>
               </form>
@@ -1243,7 +777,6 @@ const PaymentGatewayPage = () => {
                 </div>
               </div>
             </div>
->>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
           </div>
         </div>
       </div>
@@ -1276,7 +809,7 @@ const PaymentGatewayPage = () => {
                   
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Amount:</span>
-                    <span className="font-medium text-gray-900">₹{paymentData.amount.toLocaleString()}</span>
+                    <span className="font-medium text-gray-900">₹{paymentData?.amount?.toLocaleString() || '0'}</span>
                   </div>
 
                   {paymentMethod === 'card' && (
