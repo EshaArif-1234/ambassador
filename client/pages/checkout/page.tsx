@@ -44,6 +44,7 @@ const CheckoutPage = () => {
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
+<<<<<<< HEAD
             <Link href="/" className="text-2xl font-bold text-gray-900">
               Ambassador Engineering
             </Link>
@@ -52,6 +53,11 @@ const CheckoutPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Back to Products
+=======
+            
+            <Link href="/products" className="text-orange-500 hover:text-orange-600">
+              ← Back to Products
+>>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
             </Link>
           </div>
         </div>

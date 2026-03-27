@@ -225,7 +225,11 @@ const OrderSuccessPage = () => {
                 </div>
               </div>
 
+<<<<<<< HEAD
               {/* Estimated Delivery */}
+=======
+              {/* Next Steps */}
+>>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-blue-900 mb-3">Next Steps</h3>
                 <div className="space-y-3">
@@ -285,7 +289,10 @@ const OrderSuccessPage = () => {
                     </svg>
                     <span className="text-gray-700">+92 300 1234567</span>
                   </div>
+<<<<<<< HEAD
                   
+=======
+>>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
                   <div className="flex items-center">
                     <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -294,6 +301,7 @@ const OrderSuccessPage = () => {
                   </div>
                 </div>
               </div>
+<<<<<<< HEAD
             </div>
           </div>
 
@@ -340,6 +348,24 @@ const OrderSuccessPage = () => {
               Contact Support
             </Link>
           </div>
+=======
+
+              {/* Login Section */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-orange-900 mb-3">Create Account</h3>
+                <p className="text-orange-800 mb-4">
+                  Track your orders, save addresses, and enjoy a faster checkout experience.
+                </p>
+                <Link
+                  href="/signup"
+                  className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors text-center block"
+                >
+                  Create Account
+                </Link>
+              </div>
+            </div>
+          </div>
+>>>>>>> b5996f4b87eac5a65d51873f78a080424b7f1e68
         </div>
       </main>
     </div>

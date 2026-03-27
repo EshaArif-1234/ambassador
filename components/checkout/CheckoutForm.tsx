@@ -168,42 +168,6 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Login Section */}
-      {!user && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-900 font-medium">Already have an account?</p>
-              <p className="text-blue-700 text-sm">Login for faster checkout and order tracking</p>
-            </div>
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Login
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* User Info */}
-      {user && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-900 font-medium">Welcome back, {user.name}!</p>
-              <p className="text-green-700 text-sm">{user.email}</p>
-            </div>
-            <button
-              onClick={() => setUser(null)}
-              className="text-green-700 hover:text-green-800 text-sm"
-            >
-              Not you?
-            </button>
-          </div>
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Information */}
         <div className="bg-white rounded-lg border p-6">
