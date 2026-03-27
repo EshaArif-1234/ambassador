@@ -733,7 +733,7 @@ const PaymentGatewayPage = () => {
             {/* Right Column - Payment & Delivery Information */}
             <div className="lg:col-span-1">
               {/* Delivery Charges Information */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+              <div className="bg-orange-50 border border-gray-300 rounded-lg p-6 mb-6">
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     <svg className="w-6 h-6 text-yellow-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -746,7 +746,7 @@ const PaymentGatewayPage = () => {
                       <p>
                         <strong>Important:</strong> We collect only the product payment online. Delivery charges will be calculated separately after order confirmation.
                       </p>
-                      <div className="bg-yellow-100 rounded-lg p-3 mt-3">
+                      <div className=" rounded-lg p-3 mt-3">
                         <p className="text-sm text-yellow-900 font-medium mb-2">What happens next:</p>
                         <ol className="list-decimal list-inside space-y-1 text-sm">
                           <li><strong>Online Payment:</strong> You pay only for the products now</li>
