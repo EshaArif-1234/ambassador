@@ -10,3 +10,4 @@ export default function CustomKitchen({ params }: { params: Promise<{ caseStudy:
     </Suspense>
   );
 }
+
