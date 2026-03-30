@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useUser } from '@/contexts/UserContext';
+import { useUser, User } from '@/contexts/UserContext';
 import LoginMarketingSection from '../../../components/login/LoginMarketingSection';
 import LoginForm from '../../../components/login/LoginForm';
 
@@ -96,20 +96,28 @@ export default function LoginPage() {
       // Here you would normally send data to your backend
       console.log('Login data:', formData);
       
+      // Check if admin credentials
+      const isAdmin = formData.email === 'info@ambassador.pk' && formData.password === 'admin@123456';
+      
       // Create user object (in real app, get from API)
-      const user = {
-        id: '1',
-        name: formData.email.split('@')[0], // Use email prefix as name
+      const user: User = {
+        id: isAdmin ? 'admin-1' : '1',
+        name: isAdmin ? 'Admin User' : formData.email.split('@')[0], // Use email prefix as name
         email: formData.email,
         profileImage: '', // Will be set during registration
-        initials: formData.email.substring(0, 2).toUpperCase()
+        initials: isAdmin ? 'AU' : formData.email.substring(0, 2).toUpperCase(),
+        role: isAdmin ? 'admin' : 'user'
       };
       
       // Login user
       login(user);
       
-      // Redirect to home page
-      router.push('/');
+      // Redirect based on user role
+      if (isAdmin) {
+        router.push('/admin');
+      } else {
+        router.push('/');
+      }
     } catch (error) {
       console.error('Login error:', error);
       setErrors(prev => ({

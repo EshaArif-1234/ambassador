@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/common/header";
-import NavigationHeader from "@/components/common/NavigationHeader";
-import Footer from "@/components/common/footer";
+import LayoutWrapper from "@/components/common/LayoutWrapper";
 import { UserProvider } from "@/contexts/UserContext";
 import { CartProvider } from "@/contexts/CartContext";
 
@@ -45,10 +43,9 @@ export default function RootLayout({
       >
         <CartProvider>
           <UserProvider>
-            <Header />
-            <NavigationHeader />
-            {children}
-            <Footer />
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
           </UserProvider>
         </CartProvider>
       </body>

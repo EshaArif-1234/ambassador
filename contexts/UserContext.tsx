@@ -2,16 +2,18 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-interface User {
+export interface User {
   id: string;
   name: string;
   email: string;
   profileImage?: string;
   initials: string;
+  role?: 'admin' | 'user';
 }
 
 interface UserContextType {
   user: User | null;
+  isLoading: boolean;
   login: (user: User) => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
@@ -33,6 +35,7 @@ interface UserProviderProps {
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const login = (userData: User) => {
     setUser(userData);
@@ -74,11 +77,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           }
         }
       }
+      setIsLoading(false); // Set loading to false after checking localStorage
     }
   }, []);
 
   const value: UserContextType = {
     user,
+    isLoading,
     login,
     logout,
     updateUser,
