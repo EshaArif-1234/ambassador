@@ -11,6 +11,7 @@ const AdminHeader = () => {
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [selectedDateFilter, setSelectedDateFilter] = useState('This Month');
   const [showNotifications, setShowNotifications] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
   const dateFilterRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -27,6 +28,9 @@ const AdminHeader = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
       if (dateFilterRef.current && !dateFilterRef.current.contains(event.target as Node)) {
         setShowDateFilter(false);
       }
@@ -128,7 +132,7 @@ const AdminHeader = () => {
 
               {/* Notifications Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50" ref={notificationRef}>
                   <div className="p-4 border-b border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
                     <p className="text-xs text-gray-500 mt-1">{unreadCount} unread</p>
@@ -169,7 +173,7 @@ const AdminHeader = () => {
             </div>
 
             {/* User Profile */}
-            <div className="relative">
+            <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
@@ -188,7 +192,7 @@ const AdminHeader = () => {
 
               {/* Profile Dropdown */}
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50" ref={profileRef}>
                   <Link
                     href="/admin/profile"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
