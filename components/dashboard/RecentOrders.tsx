@@ -133,41 +133,59 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
       </div>
 
       {orders.length === 0 ? (
-        <div className="text-center py-8">
-          <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        <div className="text-center py-12">
+          <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
-          <p className="text-gray-500">No orders found</p>
+          <p className="text-gray-500 text-lg font-medium mb-2">No orders yet</p>
+          <p className="text-gray-400 text-sm">When orders are placed, they will appear here</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <div key={order.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-3">
-                  <div>
-                    <p className="font-medium text-gray-900">{order.customerName}</p>
-                    <p className="text-sm text-gray-500">{order.email}</p>
-                  </div>
+        <div className="overflow-x-auto">
+          {/* Table Header */}
+          <div className="grid grid-cols-5 gap-4 pb-3 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wide">
+            <div>Customer</div>
+            <div>Order ID</div>
+            <div>Date</div>
+            <div>Amount</div>
+            <div>Status</div>
+          </div>
+
+          {/* Table Rows */}
+          <div className="divide-y divide-gray-100">
+            {orders.map((order) => (
+              <div key={order.id} className="grid grid-cols-5 gap-4 py-3 hover:bg-gray-50 transition-colors">
+                {/* Customer */}
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{order.customerName}</p>
+                  <p className="text-sm text-gray-500 truncate">{order.email}</p>
                 </div>
-                <div className="text-right">
+
+                {/* Order ID */}
+                <div className="min-w-0">
+                  <p className="font-mono text-sm text-gray-900">#{order.id}</p>
+                </div>
+
+                {/* Date */}
+                <div className="min-w-0">
+                  <p className="text-sm text-gray-600">{order.date}</p>
+                </div>
+
+                {/* Amount */}
+                <div className="min-w-0">
                   <p className="font-semibold text-gray-900">₹{order.total.toLocaleString()}</p>
                   <p className="text-xs text-gray-500">{order.items} items</p>
                 </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">{order.id}</span>
-                  <span className="text-gray-300">•</span>
-                  <span className="text-sm text-gray-500">{order.date}</span>
+
+                {/* Status */}
+                <div className="min-w-0">
+                  <span className={getStatusBadge(order.status)}>
+                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  </span>
                 </div>
-                <span className={getStatusBadge(order.status)}>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </span>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

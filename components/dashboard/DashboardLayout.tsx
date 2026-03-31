@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import AdminProtection from './AdminProtection';
 import AdminHeader from './AdminHeader';
-import AdminFooter from './AdminFooter';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -181,8 +180,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             {children}
           </main>
 
-          {/* Admin Footer */}
-          <AdminFooter />
+         
         </div>
       </div>
     </AdminProtection>

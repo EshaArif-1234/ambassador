@@ -51,15 +51,15 @@ const StatsCard: React.FC<StatsCardProps> = ({
   const getColorClasses = (color: string) => {
     switch (color) {
       case 'orange':
-        return 'bg-orange-500 text-white';
+        return 'bg-orange-100 text-orange-600';
       case 'green':
-        return 'bg-green-500 text-white';
+        return 'bg-green-100 text-green-600';
       case 'blue':
-        return 'bg-blue-500 text-white';
+        return 'bg-blue-100 text-blue-600';
       case 'purple':
-        return 'bg-purple-500 text-white';
+        return 'bg-purple-100 text-purple-600';
       default:
-        return 'bg-gray-500 text-white';
+        return 'bg-gray-100 text-gray-600';
     }
   };
 
@@ -68,19 +68,19 @@ const StatsCard: React.FC<StatsCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-lg shadow-sm p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
-          <div className="flex items-center mt-2">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+          <div className="flex items-center mt-3">
             <span className={`text-sm font-medium ${getChangeColor(changeType)}`}>
               {change}
             </span>
-            <span className="text-sm text-gray-500 ml-2">from last month</span>
+            <span className="text-xs text-gray-400 ml-2">from last month</span>
           </div>
         </div>
-        <div className={`p-3 rounded-lg ${getColorClasses(color)}`}>
+        <div className={`p-3 rounded-xl ${getColorClasses(color)} transition-transform duration-300 hover:scale-110`}>
           {getIcon(icon)}
         </div>
       </div>

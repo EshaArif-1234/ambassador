@@ -59,20 +59,20 @@ const QuickActions = () => {
           <Link
             key={index}
             href={action.href}
-            className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-orange-300 transition-all duration-200 group"
+            className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-orange-300 hover:shadow-md transition-all duration-200 group cursor-pointer"
           >
             <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-lg ${action.color} group-hover:scale-110 transition-transform duration-200`}>
+              <div className={`p-2 rounded-lg ${action.color} group-hover:scale-110 transition-transform duration-200 flex-shrink-0`}>
                 {action.icon}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-gray-900 group-hover:text-orange-600 transition-colors">
                   {action.title}
                 </h4>
-                <p className="text-sm text-gray-500">{action.description}</p>
+                <p className="text-sm text-gray-500 truncate">{action.description}</p>
               </div>
               <svg 
-                className="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors" 
+                className="w-4 h-4 text-gray-400 group-hover:text-orange-500 transition-colors flex-shrink-0 ml-2" 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
