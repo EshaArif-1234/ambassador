@@ -13,7 +13,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
   const pathname = usePathname();
   
   // Check if we're in admin routes
-  const isAdminRoute = pathname?.startsWith('/admin');
+  const isAdminRoute = pathname?.startsWith('/admin') || pathname?.startsWith('/product-management');
   
   // Don't render main navigation for admin routes
   if (isAdminRoute) {

@@ -34,7 +34,7 @@ const BranchesPage = () => {
   const branches: Branch[] = [
     {
       id: '1',
-      name: 'FAZYYIA DISPLAY',
+      name: 'Fazzya Showroom',
       address: 'Ca 77, fazaia downtown, Lahore Pakistan',
       city: 'Lahore',
       state: 'Punjab',
@@ -49,7 +49,7 @@ const BranchesPage = () => {
     },
     {
       id: '2',
-      name: 'RAYA DISPLAY',
+      name: 'Raya Showroom',
       address: 'Ca 77, fazaia downtown, Lahore Pakistan',
       city: 'Lahore',
       state: 'Punjab',
@@ -64,7 +64,7 @@ const BranchesPage = () => {
     },
     {
       id: '3',
-      name: 'RAWALPINDI DISPLAY',
+      name: 'Rawalpindi Showroom',
       address: 'Ambassador house 1- khursheed Palace 135 - kasmeer rood sadar rawalpindi.',
       city: 'Rawalpindi',
       state: 'Punjab',
@@ -79,7 +79,7 @@ const BranchesPage = () => {
     },
     {
       id: '4',
-      name: 'MUSLIM TOWN DISPLAY',
+      name: 'Head Office',
       address: '5-A Fazal ELahi Road, Rehman Pura Link Ferozpur Road, Lahore,Pakistan',
       city: 'Lahore',
       state: 'Punjab',

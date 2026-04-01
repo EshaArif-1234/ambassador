@@ -17,7 +17,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { name: 'Dashboard', href: '/admin', icon: 'dashboard' },
-    { name: 'Products', href: '/admin/products', icon: 'products' },
+    { name: 'Products', href: '/product-management', icon: 'products' },
     { name: 'Orders', href: '/admin/orders', icon: 'orders' },
     { name: 'Users', href: '/admin/users', icon: 'users' },
     { name: 'Categories', href: '/admin/categories', icon: 'categories' },

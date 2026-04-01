@@ -31,8 +31,8 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
       const mockOrders: Order[] = [
         {
           id: 'ORD-001',
-          customerName: 'Rajesh Kumar',
-          email: 'rajesh@email.com',
+          customerName: 'John Doe',
+          email: 'john.doe@email.com',
           total: 45999,
           status: 'pending',
           date: '2024-03-30',
@@ -40,8 +40,8 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
         },
         {
           id: 'ORD-002',
-          customerName: 'Priya Sharma',
-          email: 'priya@email.com',
+          customerName: 'Jane Smith',
+          email: 'jane.smith@email.com',
           total: 28500,
           status: 'completed',
           date: '2024-03-30',
@@ -49,8 +49,8 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
         },
         {
           id: 'ORD-003',
-          customerName: 'Amit Patel',
-          email: 'amit@email.com',
+          customerName: 'Mike Johnson',
+          email: 'mike.johnson@email.com',
           total: 125000,
           status: 'processing',
           date: '2024-03-29',
@@ -58,8 +58,8 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
         },
         {
           id: 'ORD-004',
-          customerName: 'Sneha Reddy',
-          email: 'sneha@email.com',
+          customerName: 'Sarah Wilson',
+          email: 'sarah.wilson@email.com',
           total: 18999,
           status: 'pending',
           date: '2024-03-29',
@@ -67,8 +67,8 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
         },
         {
           id: 'ORD-005',
-          customerName: 'Vikram Singh',
-          email: 'vikram@email.com',
+          customerName: 'David Brown',
+          email: 'david.brown@email.com',
           total: 67000,
           status: 'completed',
           date: '2024-03-28',
