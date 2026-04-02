@@ -20,7 +20,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: 'Products', href: '/product-management', icon: 'products' },
     { name: 'Orders', href: '/admin/orders', icon: 'orders' },
     { name: 'Users', href: '/admin/users', icon: 'users' },
-    { name: 'Categories', href: '/admin/categories', icon: 'categories' },
+    { name: 'Categories', href: '/category-management', icon: 'categories' },
     { name: 'Branches', href: '/admin/branches', icon: 'branches' },
     { name: 'Gallery', href: '/admin/gallery', icon: 'gallery' },
     { name: 'Settings', href: '/admin/settings', icon: 'settings' },
