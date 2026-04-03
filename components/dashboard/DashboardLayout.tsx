@@ -21,8 +21,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: 'Orders', href: '/orders-management', icon: 'orders' },
     { name: 'Users', href: '/users', icon: 'users' },
     { name: 'Categories', href: '/category-management', icon: 'categories' },
-    { name: 'Branches', href: '/admin/branches', icon: 'branches' },
-    { name: 'Gallery', href: '/admin/gallery', icon: 'gallery' },
+    { name: 'Branches', href: '/branch-management', icon: 'branches' },
+    { name: 'Gallery', href: '/gallery-management', icon: 'gallery' },
     { name: 'Settings', href: '/admin/settings', icon: 'settings' },
   ];
 
