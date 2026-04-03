@@ -185,7 +185,7 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
                 onChange={handleInputChange}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   errors.fullName ? 'border-red-500' : 'border-gray-300'
-                }`}
+                } placeholder:text-gray-400`}
                 placeholder="Enter your full name"
               />
               {errors.fullName && (
@@ -204,7 +204,7 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
                 onChange={handleInputChange}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
+                } placeholder:text-gray-400`}
                 placeholder="Enter your email"
                 disabled={!!user}
               />
@@ -224,7 +224,7 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
                 onChange={handleInputChange}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   errors.phone ? 'border-red-500' : 'border-gray-300'
-                }`}
+                } placeholder:text-gray-400`}
                 placeholder="03XX-XXXXXXX"
                 disabled={!!user}
               />

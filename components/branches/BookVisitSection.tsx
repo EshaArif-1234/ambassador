@@ -75,7 +75,7 @@ const BookVisitSection = ({ branches }: BookVisitSectionProps) => {
                       id="name"
                       name="name"
                       required
-                      className="w-full text-gray-900 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full text-gray-900 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent placeholder:text-gray-400"
                       placeholder="Enter your full name"
                     />
                   </div>
@@ -89,7 +89,7 @@ const BookVisitSection = ({ branches }: BookVisitSectionProps) => {
                       id="phone"
                       name="phone"
                       required
-                      className="w-full text-gray-900 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full text-gray-900 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent placeholder:text-gray-400"
                       placeholder="Enter your phone number"
                     />
                   </div>

@@ -43,10 +43,13 @@ const OrdersPage = () => {
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('all');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'pending' | 'paid' | 'failed' | 'refunded'>('all');
-  const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month' | 'recent'>('all');
 
   useEffect(() => {
     // Simulate API call
@@ -213,6 +216,30 @@ const OrdersPage = () => {
     ));
   };
 
+  const handleCancelOrder = (order: Order) => {
+    setOrderToCancel(order);
+    setCancelReason('');
+    setShowCancelModal(true);
+  };
+
+  const confirmCancelOrder = () => {
+    if (orderToCancel) {
+      setOrders(orders.map(o => 
+        o.id === orderToCancel.id 
+          ? { 
+              ...o, 
+              status: 'cancelled', 
+              paymentStatus: 'refunded' as const,
+              notes: o.notes ? `${o.notes}\n\nCancelled: ${cancelReason}` : `Cancelled: ${cancelReason}`
+            }
+          : o
+      ));
+    }
+    setShowCancelModal(false);
+    setOrderToCancel(null);
+    setCancelReason('');
+  };
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -236,6 +263,11 @@ const OrdersPage = () => {
         case 'month':
           const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
           matchesDate = orderDate >= monthAgo;
+          break;
+        case 'recent':
+          const recentDays = 3; // Last 3 days
+          const recentDate = new Date(today.getTime() - recentDays * 24 * 60 * 60 * 1000);
+          matchesDate = orderDate >= recentDate;
           break;
       }
     }
@@ -357,7 +389,7 @@ const OrdersPage = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search orders..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none text-gray-900 focus:ring-orange-500 focus:border-transparent placeholder:text-gray-400"
               />
             </div>
             <div>
@@ -365,7 +397,7 @@ const OrdersPage = () => {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none text-gray-900 focus:ring-orange-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -381,7 +413,7 @@ const OrdersPage = () => {
               <select
                 value={filterPaymentStatus}
                 onChange={(e) => setFilterPaymentStatus(e.target.value as any)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none text-gray-900 focus:ring-orange-500 focus:border-transparent"
               >
                 <option value="all">All Payment</option>
                 <option value="pending">Pending</option>
@@ -395,9 +427,10 @@ const OrdersPage = () => {
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value as any)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none text-gray-900 focus:ring-orange-500 focus:border-transparent"
               >
                 <option value="all">All Time</option>
+                <option value="recent">Recent Orders (Last 3 Days)</option>
                 <option value="today">Today</option>
                 <option value="week">This Week</option>
                 <option value="month">This Month</option>
@@ -468,6 +501,17 @@ const OrdersPage = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </button>
+                        {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                          <button 
+                            onClick={() => handleCancelOrder(order)}
+                            className="text-orange-600 hover:text-orange-800 mr-2"
+                            title="Cancel Order"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </button>
+                        )}
                         <button 
                           onClick={() => handleDeleteOrder(order)}
                           className="text-red-600 hover:text-red-800"
@@ -513,6 +557,61 @@ const OrdersPage = () => {
           cancelText="Cancel"
           type="delete"
         />
+
+        {/* Cancel Order Modal */}
+        {showCancelModal && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Cancel Order</h2>
+                <button 
+                  onClick={() => setShowCancelModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Are you sure you want to cancel order <span className="font-semibold">{orderToCancel?.orderNumber}</span> for <span className="font-semibold">{orderToCancel?.customerName}</span>?
+                  </p>
+                  <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                    ⚠️ This will also refund the payment and cannot be undone.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cancellation Reason</label>
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Please provide a reason for cancelling this order..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Keep Order
+                </button>
+                <button
+                  onClick={confirmCancelOrder}
+                  disabled={!cancelReason.trim()}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel Order
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* View Order Modal */}
         {showViewModal && selectedOrder && (
