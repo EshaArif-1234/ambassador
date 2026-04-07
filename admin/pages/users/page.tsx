@@ -15,6 +15,8 @@ interface User {
   createdAt: string;
   lastLogin?: string;
   blockReason?: string;
+  disableReason?: string;
+  disableDescription?: string;
 }
 
 const UsersPage = () => {
@@ -26,6 +28,12 @@ const UsersPage = () => {
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [userToBlock, setUserToBlock] = useState<User | null>(null);
   const [blockReason, setBlockReason] = useState('');
+  const [showDisableModal, setShowDisableModal] = useState(false);
+  const [userToDisable, setUserToDisable] = useState<User | null>(null);
+  const [disableReason, setDisableReason] = useState('');
+  const [disableDescription, setDisableDescription] = useState('');
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [userToView, setUserToView] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'manager' | 'staff'>('all');
@@ -113,6 +121,11 @@ const UsersPage = () => {
     console.log('Edit user:', user);
   };
 
+  const handleViewUser = (user: User) => {
+    setUserToView(user);
+    setShowViewModal(true);
+  };
+
   const handleBlockUser = (user: User) => {
     setUserToBlock(user);
     setBlockReason('');
@@ -138,6 +151,35 @@ const UsersPage = () => {
         ? { ...u, status: 'active', blockReason: undefined }
         : u
     ));
+  };
+
+  const handleDisableUser = (user: User) => {
+    setUserToDisable(user);
+    setDisableReason('');
+    setDisableDescription('');
+    setShowDisableModal(true);
+  };
+
+  const handleEnableUser = (user: User) => {
+    setUsers(users.map(u => 
+      u.id === user.id 
+        ? { ...u, status: 'active', disableReason: undefined, disableDescription: undefined }
+        : u
+    ));
+  };
+
+  const confirmDisableUser = () => {
+    if (userToDisable) {
+      setUsers(users.map(u => 
+        u.id === userToDisable.id 
+          ? { ...u, status: 'inactive', disableReason: disableReason, disableDescription: disableDescription }
+          : u
+      ));
+    }
+    setShowDisableModal(false);
+    setUserToDisable(null);
+    setDisableReason('');
+    setDisableDescription('');
   };
 
   const filteredUsers = users.filter(user => {
@@ -241,6 +283,7 @@ const UsersPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disable</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -289,13 +332,29 @@ const UsersPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {user.status === 'active' ? (
+                        <button
+                          onClick={() => handleDisableUser(user)}
+                          className="px-3 py-1 bg-red-400 text-white text-xs font-medium rounded hover:bg-red-500 transition-colors"
+                          title="Disable User"
+                        >
+                          Disable
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleEnableUser(user)}
+                          className="px-3 py-1 bg-green-400 text-white text-xs font-medium rounded hover:bg-green-500 transition-colors"
+                          title="Enable User"
+                        >
+                          Enable
+                        </button>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button 
-                          onClick={() => {
-                            // Handle view user action
-                            console.log('View user:', user);
-                          }}
+                          onClick={() => handleViewUser(user)}
                           className="text-blue-600 hover:text-blue-800 mr-2" 
                           title="View User"
                         >
@@ -349,6 +408,151 @@ const UsersPage = () => {
           cancelText="Cancel"
           type="delete"
         />
+
+        {/* Disable User Modal */}
+        {showDisableModal && userToDisable && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Disable User</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Are you sure you want to disable "{userToDisable.name}"? This will prevent them from accessing the system.
+                </p>
+                
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-bold mb-2">Reason for Disabling</label>
+                  <select
+                    value={disableReason}
+                    onChange={(e) => setDisableReason(e.target.value)}
+                    className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    required
+                  >
+                    <option value="">Select a reason</option>
+                    <option value="policy_violation">Policy Violation</option>
+                    <option value="security_concern">Security Concern</option>
+                    <option value="inactivity">Inactivity</option>
+                    <option value="account_issue">Account Issue</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                {disableReason === 'other' && (
+                  <div className="mb-4">
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                    <textarea
+                      value={disableDescription}
+                      onChange={(e) => setDisableDescription(e.target.value)}
+                      className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      rows={3}
+                      placeholder="Please describe the reason for disabling this user..."
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowDisableModal(false)}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDisableUser}
+                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                  >
+                    Disable User
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View User Modal */}
+        {showViewModal && userToView && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">User Details</h3>
+                
+                <div className="flex items-center mb-4">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full overflow-hidden border-2 border-gray-300 mr-4">
+                    {userToView.avatar ? (
+                      <Image 
+                        src={userToView.avatar} 
+                        alt={userToView.name}
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5 4.722M12 14a8 8 0 00-16-5.578M14 14a8 8 0 00-16-5.578z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">{userToView.name}</h4>
+                    <p className="text-sm text-gray-500">{userToView.email}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-sm font-medium text-gray-600">Role:</span>
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(userToView.role)}`}>
+                      {userToView.role}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-sm font-medium text-gray-600">Status:</span>
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(userToView.status)}`}>
+                      {userToView.status}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-sm font-medium text-gray-600">Member Since:</span>
+                    <span className="text-sm text-gray-900">{new Date(userToView.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-sm font-medium text-gray-600">Last Login:</span>
+                    <span className="text-sm text-gray-900">
+                      {userToView.lastLogin ? new Date(userToView.lastLogin).toLocaleDateString() : 'Never'}
+                    </span>
+                  </div>
+                  
+                  {userToView.disableReason && (
+                    <div className="py-2 border-b">
+                      <span className="text-sm font-medium text-gray-600 block mb-1">Disable Reason:</span>
+                      <span className="text-sm text-gray-900 capitalize">
+                        {userToView.disableReason.replace('_', ' ')}
+                      </span>
+                      {userToView.disableDescription && (
+                        <p className="text-sm text-gray-700 mt-1">{userToView.disableDescription}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={() => setShowViewModal(false)}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

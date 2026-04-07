@@ -19,14 +19,14 @@ const GalleryPage = () => {
   const reviews: Review[] = [
     {
       id: '1',
-      name: 'Chef Sanjeev Kapoor',
+      name: 'Chef Mehboob Khan',
       role: 'Celebrity Chef',
       review: 'Ambassador\'s commercial kitchen equipment has transformed my restaurant operations. The quality and durability are unmatched!',
       videoUrl: 'https://www.youtube.com/watch?v=MQgXy4cYnsw',
     },
     {
       id: '2',
-      name: 'Ranveer Brar',
+      name: 'Chef Zakir Qureshi',
       role: 'Food YouTuber',
       review: 'I use Ambassador equipment in my kitchen studio. The precision and reliability help me create perfect content every time.',
       videoUrl: 'https://www.youtube.com/watch?v=rJrKZ6JAexI',
@@ -34,7 +34,7 @@ const GalleryPage = () => {
     },
     {
       id: '3',
-      name: 'Kunal Kapur',
+      name: 'Chef Rahat Ali',
       role: 'Chef & Entrepreneur',
       review: 'Great value for money equipment. Has helped scale my catering business effectively.',
       videoUrl: 'https://www.youtube.com/shorts/HzRnJuGO30E',
@@ -42,7 +42,7 @@ const GalleryPage = () => {
     },
     {
       id: '4',
-      name: 'Vikas Khanna',
+      name: 'Chef Ali Abbas',
       role: 'Michelin Star Chef',
       review: 'Ambassador understands the needs of professional chefs. Their equipment is designed with perfection in mind.',
       videoUrl: 'https://www.youtube.com/shorts/UtiL6m9UPrA',
@@ -50,7 +50,7 @@ const GalleryPage = () => {
     },
     {
       id: '5',
-      name: 'Sarah Todd',
+      name: 'Chef Faiza Khan',
       role: 'Chef & TV Personality',
       review: 'Excellent equipment that meets international standards. Perfect for fusion cuisine restaurants.',
       videoUrl: 'https://www.youtube.com/shorts/2c4LO14HNzc',
@@ -58,7 +58,7 @@ const GalleryPage = () => {
     },
     {
       id: '6',
-      name: 'Gagan Anand',
+      name: 'Chef Azam Khan',
       role: 'Food YouTuber',
       review: 'The best investment for my food channel. Ambassador equipment delivers consistent results every time.',
       videoUrl: 'https://www.youtube.com/shorts/vZaYXGl3vwk',
@@ -66,137 +66,50 @@ const GalleryPage = () => {
     },
     {
       id: '7',
-      name: 'Kavita Patel',
-      role: 'Restaurant Owner',
+      name: 'Chef Deniel',
+      role: 'Chef & Food Blogger',
       review: 'Ambassador equipment has been a game-changer for my restaurant business. The reliability and performance are outstanding.',
-      videoUrl: 'https://www.youtube.com/shorts/vZaYXGl3vwk',
+      videoUrl: 'https://www.youtube.com/shorts/oK8_f9tckTo',
 
     },
     {
       id: '8',
-      name: 'Kavita Patel',
-      role: 'Restaurant Owner',
+      name: 'Waqas Illyas Khan',
+      role: 'Vice President of Chef Association Of Pakistan',
       review: 'Ambassador equipment has been a game-changer for my restaurant business. The reliability and performance are outstanding.',
-      videoUrl: 'https://www.youtube.com/shorts/vZaYXGl3vwk',
+      videoUrl: 'https://www.youtube.com/watch?v=6x6l5DfMqtQ',
 
     },
     {
-      id: '7',
-      name: 'Kavita Patel',
+      id: '9',
+      name: 'Chef Tippu',
       role: 'Restaurant Owner',
       review: 'Ambassador equipment has been a game-changer for my restaurant business. The reliability and performance are outstanding.',       
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    },
-    {
-      id: '8',
-      name: 'Rohit Singh',
-      role: 'Food Blogger',
-      review: 'Perfect equipment for content creation. Ambassador products help me showcase recipes beautifully.',
-      videoUrl: 'https://www.youtube.com/shorts/abc123def456',
-    },
-    {
-      id: '9',
-      name: 'Priya Sharma',
-      role: 'Catering Manager',
-      review: 'Outstanding quality and service. Ambassador equipment has helped us serve large events efficiently.',
-      videoUrl: 'https://www.youtube.com/shorts/abc123def456',
-    },
-    {
-      id: '9',
-      name: 'Priya Sharma',
-      role: 'Catering Manager',
-      review: 'Outstanding quality and service. Ambassador equipment has helped us serve large events efficiently.',
-      videoUrl: 'https://www.youtube.com/watch?v=xyz789uvw012',
-
+      videoUrl: 'https://www.youtube.com/watch?v=oMIb2iGQ0rI',
     },
     {
       id: '10',
-      name: 'Amit Kumar',
-      role: 'Hotel Chef',
-      review: 'Professional-grade equipment that delivers consistent results. Highly recommended for commercial kitchens.',
-      videoUrl: 'https://www.youtube.com/shorts/def345ghi678',
-
+      name: 'Baba Food RRC',
+      role: 'Food Blogger',
+      review: 'Perfect equipment for content creation. Ambassador products help me showcase recipes beautifully.',
+      videoUrl: 'https://www.youtube.com/shorts/YBDcByYdwmk',
     },
     {
       id: '11',
-      name: 'Neha Gupta',
-      role: 'Bakery Owner',
-      review: 'Ambassador bakery equipment is exceptional. It has helped us increase production while maintaining quality.',
-      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
-
+      name: 'Chef Gulzar',
+      role: 'Catering Manager',
+      review: 'Outstanding quality and service. Ambassador equipment has helped us serve large events efficiently.',
+      videoUrl: 'https://www.youtube.com/watch?v=Gi45aHuShcE',
     },
     {
       id: '12',
-      name: 'Raj Malhotra',
-      role: 'Food Consultant',
-      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
-      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
+      name: 'Chef Tippu Imran',
+      role: 'Celebrity Chef',
+      review: 'Outstanding quality and service. Ambassador equipment has helped us serve large events efficiently.',
+      videoUrl: 'https://www.youtube.com/watch?v=-jG1agRx0WQ',
 
     },
-    {
-      id: '12',
-      name: 'Raj Malhotra',
-      role: 'Food Consultant',
-      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
-      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
-
-    },
-    {
-      id: '12',
-      name: 'Raj Malhotra',
-      role: 'Food Consultant',
-      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
-      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
-
-    },
-    {
-      id: '12',
-      name: 'Raj Malhotra',
-      role: 'Food Consultant',
-      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
-      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
-
-    },
-    {
-      id: '12',
-      name: 'Raj Malhotra',
-      role: 'Food Consultant',
-      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
-      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
-
-    },
-    {
-      id: '12',
-      name: 'Raj Malhotra',
-      role: 'Food Consultant',
-      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
-      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
-
-    },
-    {
-      id: '12',
-      name: 'Raj Malhotra',
-      role: 'Food Consultant',
-      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
-      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
-
-    },
-    {
-      id: '12',
-      name: 'Raj Malhotra',
-      role: 'Food Consultant',
-      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
-      videoUrl: 'https://www.youtube.com/watch?v=ghi678jkl901',
-
-    },
-    {
-      id: '12',
-      name: 'Raj Malhotra',
-      role: 'Food Consultant',
-      review: 'I recommend Ambassador equipment to all my clients. The quality and support are unmatched.',
-      videoUrl: 'https://www.youtube.com/shorts/jkl901mno234',
-
-    }
+    
   ];
 
   // Pagination logic

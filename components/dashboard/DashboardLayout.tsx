@@ -19,6 +19,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: 'Dashboard', href: '/admin', icon: 'dashboard' },
     { name: 'Products', href: '/product-management', icon: 'products' },
     { name: 'Orders', href: '/orders-management', icon: 'orders' },
+    { name: 'Payments', href: '/payments', icon: 'payments' },
     { name: 'Users', href: '/users', icon: 'users' },
     { name: 'Categories', href: '/category-management', icon: 'categories' },
     { name: 'Branches', href: '/branch-management', icon: 'branches' },
@@ -44,6 +45,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         return (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        );
+      case 'payments':
+        return (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
           </svg>
         );
       case 'users':

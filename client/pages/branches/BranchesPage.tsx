@@ -32,6 +32,22 @@ const BranchesPage = () => {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
 
   const branches: Branch[] = [
+
+     {
+      id: '4',
+      name: 'Head Office',
+      address: '5-A Fazal ELahi Road, Rehman Pura Link Ferozpur Road, Lahore,Pakistan',
+      city: 'Lahore',
+      state: 'Punjab',
+      pincode: '54600',
+      phone: '03324313104',
+      email: 'info@ambassador.pk',
+      manager: 'Mr Faheem Ashraf',
+      hours: 'Mon-Sat: 9:00 AM - 6:00 PM',
+      services: ['Catering Equipment', 'Industrial Kitchen', 'Consulting', 'Training'],
+      image: '/Images/home/card1.jpg',
+      coordinates: { lat: 31.524732, lng: 74.322147} // Lahore Muslim Town coordinates
+    },
     {
       id: '1',
       name: 'Fazzya Showroom',
@@ -50,7 +66,7 @@ const BranchesPage = () => {
     {
       id: '2',
       name: 'Raya Showroom',
-      address: 'Ca 77, fazaia downtown, Lahore Pakistan',
+      address: 'Ambassador Commercial Kitchen 57,Raya firways ph DHA Lahore',
       city: 'Lahore',
       state: 'Punjab',
       pincode: '54000',
@@ -77,21 +93,7 @@ const BranchesPage = () => {
       image: '/Images/home/slider 3.jpg',
       coordinates: { lat: 33.600344, lng: 73.060206 } // Rawalpindi coordinates
     },
-    {
-      id: '4',
-      name: 'Head Office',
-      address: '5-A Fazal ELahi Road, Rehman Pura Link Ferozpur Road, Lahore,Pakistan',
-      city: 'Lahore',
-      state: 'Punjab',
-      pincode: '54600',
-      phone: '03324313104',
-      email: 'info@ambassador.pk',
-      manager: 'Mr Faheem Ashraf',
-      hours: 'Mon-Sat: 9:00 AM - 6:00 PM',
-      services: ['Catering Equipment', 'Industrial Kitchen', 'Consulting', 'Training'],
-      image: '/Images/home/card1.jpg',
-      coordinates: { lat: 31.524732, lng: 74.322147} // Lahore Muslim Town coordinates
-    }
+   
   ];
 
   const handleGetDirections = (branch: Branch) => {

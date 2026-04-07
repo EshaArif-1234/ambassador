@@ -15,6 +15,7 @@ interface Order {
   totalAmount: number;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  paymentMethod: 'online' | 'cash_on_delivery';
   orderDate: string;
   deliveryDate?: string;
   shippingAddress: {
@@ -25,6 +26,9 @@ interface Order {
     country: string;
   };
   notes?: string;
+  codCollectedBy?: string;
+  codCollectionTime?: string;
+  failedReason?: string;
 }
 
 interface OrderItem {
@@ -39,6 +43,7 @@ interface OrderItem {
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'online' | 'cod'>('online');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -48,6 +53,11 @@ const OrdersPage = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('all');
+  const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [showFailedModal, setShowFailedModal] = useState(false);
+  const [failedReason, setFailedReason] = useState('');
+  const [orderToFail, setOrderToFail] = useState<Order | null>(null);
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'pending' | 'paid' | 'failed' | 'refunded'>('all');
   const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month' | 'recent'>('all');
 
@@ -85,6 +95,7 @@ const OrdersPage = () => {
           totalAmount: 4100,
           status: 'delivered',
           paymentStatus: 'paid',
+          paymentMethod: 'online',
           orderDate: '2024-04-01',
           deliveryDate: '2024-04-03',
           shippingAddress: {
@@ -115,6 +126,7 @@ const OrdersPage = () => {
           totalAmount: 450,
           status: 'processing',
           paymentStatus: 'paid',
+          paymentMethod: 'online',
           orderDate: '2024-04-02',
           shippingAddress: {
             street: '456 Oak Ave',
@@ -143,6 +155,7 @@ const OrdersPage = () => {
           totalAmount: 600,
           status: 'pending',
           paymentStatus: 'pending',
+          paymentMethod: 'cash_on_delivery',
           orderDate: '2024-04-03',
           shippingAddress: {
             street: '789 Pine Rd',
@@ -171,6 +184,7 @@ const OrdersPage = () => {
           totalAmount: 3500,
           status: 'cancelled',
           paymentStatus: 'refunded',
+          paymentMethod: 'online',
           orderDate: '2024-04-01',
           shippingAddress: {
             street: '321 Elm St',
@@ -189,6 +203,18 @@ const OrdersPage = () => {
 
     fetchOrders();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showActionsDropdown && !(event.target as Element).closest('.relative')) {
+        setShowActionsDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showActionsDropdown]);
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
@@ -240,40 +266,139 @@ const OrdersPage = () => {
     setCancelReason('');
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
-    const matchesPaymentStatus = filterPaymentStatus === 'all' || order.paymentStatus === filterPaymentStatus;
-    
-    let matchesDate = true;
-    if (dateRange !== 'all') {
-      const orderDate = new Date(order.orderDate);
-      const today = new Date();
-      
-      switch (dateRange) {
-        case 'today':
-          matchesDate = orderDate.toDateString() === today.toDateString();
-          break;
-        case 'week':
-          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-          matchesDate = orderDate >= weekAgo;
-          break;
-        case 'month':
-          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-          matchesDate = orderDate >= monthAgo;
-          break;
-        case 'recent':
-          const recentDays = 3; // Last 3 days
-          const recentDate = new Date(today.getTime() - recentDays * 24 * 60 * 60 * 1000);
-          matchesDate = orderDate >= recentDate;
-          break;
-      }
+  const handleMarkAsProcessing = (order: Order) => {
+    console.log('Processing order:', order); // Debug log
+    // Create a new array to avoid direct state mutation
+    const updatedOrders = orders.map(o => 
+      o.id === order.id 
+        ? { ...o, status: 'processing' as const }
+        : o
+    );
+    setOrders([...updatedOrders]); // Force re-render with new array
+  };
+
+  const handleMarkAsShipped = (order: Order) => {
+    const updatedOrders = orders.map(o => 
+      o.id === order.id 
+        ? { ...o, status: 'shipped' as const }
+        : o
+    );
+    setOrders([...updatedOrders]);
+  };
+
+  const handleMarkAsDelivered = (order: Order) => {
+    const updatedOrders = orders.map(o => 
+      o.id === order.id 
+        ? { 
+            ...o, 
+            status: 'delivered' as const,
+            deliveryDate: new Date().toISOString().split('T')[0]
+          }
+        : o
+    );
+    setOrders([...updatedOrders]);
+  };
+
+  const handleMarkAsPaid = (order: Order) => {
+    setOrders(orders.map(o => 
+      o.id === order.id 
+        ? { 
+            ...o, 
+            paymentStatus: 'paid' as const,
+            codCollectedBy: 'Admin - Manual Update',
+            codCollectionTime: new Date().toISOString()
+          }
+        : o
+    ));
+  };
+
+  const handleMarkAsFailed = (order: Order) => {
+    setOrderToFail(order);
+    setFailedReason('');
+    setShowFailedModal(true);
+    setShowActionsDropdown(null);
+  };
+
+  const confirmMarkAsFailed = () => {
+    if (orderToFail && failedReason.trim()) {
+      const updatedOrders = orders.map(o => 
+        o.id === orderToFail.id 
+          ? { 
+              ...o, 
+              status: 'cancelled' as const,
+              paymentStatus: 'failed' as const,
+              failedReason: failedReason.trim()
+            }
+          : o
+      );
+      setOrders(updatedOrders);
+      setShowFailedModal(false);
+      setOrderToFail(null);
+      setFailedReason('');
     }
+  };
+
+  // Function to handle dropdown positioning
+  const handleActionsClick = (event: React.MouseEvent, orderNumber: string) => {
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
     
-    return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
-  });
+    // Position dropdown below and to the right of the button
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY + 5,
+      left: rect.right - 200 + window.scrollX // 200px width dropdown, align right edge
+    });
+    
+    setShowActionsDropdown(showActionsDropdown === orderNumber ? null : orderNumber);
+  };
+
+  // Separate online and COD orders
+  const onlineOrders = orders.filter(o => o.paymentMethod === 'online');
+  const codOrders = orders.filter(o => o.paymentMethod === 'cash_on_delivery');
+
+  // Filter based on active tab
+  const getFilteredOrders = () => {
+    const baseOrders = activeTab === 'online' ? onlineOrders : codOrders;
+    
+    return baseOrders.filter(order => {
+      const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
+      const matchesPaymentStatus = filterPaymentStatus === 'all' || order.paymentStatus === filterPaymentStatus;
+      
+      let matchesDate = true;
+      if (dateRange !== 'all') {
+        const orderDate = new Date(order.orderDate);
+        const today = new Date();
+        
+        switch (dateRange) {
+          case 'today':
+            matchesDate = orderDate.toDateString() === today.toDateString();
+            break;
+          case 'week':
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            matchesDate = orderDate >= weekAgo;
+            break;
+          case 'month':
+            const monthAgo = new Date(today);
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            matchesDate = orderDate >= monthAgo;
+            break;
+          case 'recent':
+            const recentAgo = new Date(today);
+            recentAgo.setDate(recentAgo.getDate() - 3);
+            matchesDate = orderDate >= recentAgo;
+            break;
+        }
+      }
+      
+      return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
+    });
+  };
+
+  const filteredOrders = getFilteredOrders();
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -316,6 +441,34 @@ const OrdersPage = () => {
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Management</h1>
           <p className="text-gray-600">Manage customer orders and track delivery status</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="mb-8">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('online')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'online'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Online Payment Orders
+              </button>
+              <button
+                onClick={() => setActiveTab('cod')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'cod'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Cash on Delivery Orders
+              </button>
+            </nav>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -440,8 +593,8 @@ const OrdersPage = () => {
         </div>
 
         {/* Orders Table */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-lg shadow-sm overflow-visible">
+          <div className="overflow-x-auto overflow-y-visible">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -453,6 +606,7 @@ const OrdersPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">View</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -490,38 +644,29 @@ const OrdersPage = () => {
                       {new Date(order.orderDate).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={() => handleViewOrder(order)}
-                          className="text-blue-600 hover:text-blue-800 mr-2" 
-                          title="View Order"
+                      <div className="relative">
+                        <button
+                          onClick={(e) => handleActionsClick(e, order.orderNumber)}
+                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </button>
-                        {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                          <button 
-                            onClick={() => handleCancelOrder(order)}
-                            className="text-orange-600 hover:text-orange-800 mr-2"
-                            title="Cancel Order"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => handleDeleteOrder(order)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Delete Order"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <span>Actions</span>
+                          <svg className="ml-2 -mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                           </svg>
                         </button>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleViewOrder(order)}
+                        className="inline-flex items-center px-3 py-2 border border-blue-300 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -534,12 +679,109 @@ const OrdersPage = () => {
         {filteredOrders.length === 0 && (
           <div className="text-center py-12">
             <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
             <p className="text-gray-600">
               {searchTerm ? `No orders found matching "${searchTerm}"` : 'No orders available'}
             </p>
+          </div>
+        )}
+
+        {/* Actions Dropdown - Positioned outside table */}
+        {showActionsDropdown && (
+          <div 
+            className="fixed z-[9999] w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+            style={{ 
+              top: `${dropdownPosition.top}px`, 
+              left: `${dropdownPosition.left}px` 
+            }}
+          >
+            <div className="py-1">
+              <button
+                onClick={() => {
+                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
+                  console.log('Found order for processing:', order); // Debug log
+                  if (order) handleMarkAsProcessing(order);
+                  setShowActionsDropdown(null);
+                }}
+                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+              >
+                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Mark as Processing
+              </button>
+              <button
+                onClick={() => {
+                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
+                  if (order) handleMarkAsShipped(order);
+                  setShowActionsDropdown(null);
+                }}
+                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+              >
+                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h4.586a1 1 0 01.707.293l3.414 3.414a1 1 0 010 1.414l-3.414 3.414A1 1 0 0118.586 16H16" />
+                </svg>
+                Mark as Shipped
+              </button>
+              <button
+                onClick={() => {
+                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
+                  if (order) handleMarkAsDelivered(order);
+                  setShowActionsDropdown(null);
+                }}
+                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+              >
+                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Mark as Delivered
+              </button>
+              <button
+                onClick={() => {
+                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
+                  if (order) handleCancelOrder(order);
+                  setShowActionsDropdown(null);
+                }}
+                className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+              >
+                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Cancel Order
+              </button>
+              {activeTab === 'cod' && (
+                <>
+                  <button
+                    onClick={() => {
+                      const order = orders.find(o => o.orderNumber === showActionsDropdown);
+                      if (order) handleMarkAsPaid(order);
+                      setShowActionsDropdown(null);
+                    }}
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                  >
+                    <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Mark as Paid
+                  </button>
+                  <button
+                    onClick={() => {
+                      const order = orders.find(o => o.orderNumber === showActionsDropdown);
+                      if (order) handleMarkAsFailed(order);
+                    }}
+                    className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                  >
+                    <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Mark as Failed
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
 
@@ -767,6 +1009,52 @@ const OrdersPage = () => {
                 >
                   Close
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Failed Reason Modal */}
+        {showFailedModal && orderToFail && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Mark as Failed - Reason</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Please provide a reason for marking this order as failed:
+                    </label>
+                    <textarea
+                      value={failedReason}
+                      onChange={(e) => setFailedReason(e.target.value)}
+                      rows={4}
+                      className="w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="Enter reason for failure..."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowFailedModal(false);
+                      setOrderToFail(null);
+                      setFailedReason('');
+                    }}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmMarkAsFailed}
+                    disabled={!failedReason.trim()}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    Mark as Failed
+                  </button>
+                </div>
               </div>
             </div>
           </div>
