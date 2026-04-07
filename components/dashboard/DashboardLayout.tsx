@@ -22,9 +22,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: 'Payments', href: '/payments', icon: 'payments' },
     { name: 'Users', href: '/users', icon: 'users' },
     { name: 'Categories', href: '/category-management', icon: 'categories' },
-    { name: 'Branches', href: '/branch-management', icon: 'branches' },
     { name: 'Gallery', href: '/gallery-management', icon: 'gallery' },
-    { name: 'Settings', href: '/admin/settings', icon: 'settings' },
+    { name: 'Settings', href: '/admin-settings', icon: 'settings' },
   ];
 
   const getIcon = (iconName: string) => {
