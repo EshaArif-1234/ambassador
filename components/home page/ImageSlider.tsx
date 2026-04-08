@@ -9,7 +9,7 @@ const ImageSlider = () => {
   const slides = [
     {
       id: 1,
-      image: '/Images/testing9.jpeg',
+      image: '/Images/8k-banner(2).png',
       alt: 'Premium Kitchen Equipment'
     },
     {
