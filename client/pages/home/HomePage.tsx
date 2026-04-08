@@ -25,7 +25,7 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <style jsx global>{`
         :root {
           --color-gray-dark: #565D63;
@@ -36,9 +36,9 @@ const HomePage = () => {
           --color-white: #FFFFFF;
         }
       `}</style>
-      
+       <ImageSlider />
       <div className="container mx-auto px-4">
-        <ImageSlider />
+       
 
         <div className="py-12">
           <div className="text-center mb-12">

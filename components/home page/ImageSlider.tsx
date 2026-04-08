@@ -9,25 +9,43 @@ const ImageSlider = () => {
   const slides = [
     {
       id: 1,
-      image: '/Images/home/slider 1.jpg',
+      image: '/Images/testing9.jpeg',
       alt: 'Premium Kitchen Equipment'
     },
     {
       id: 2,
-      image: '/Images/home/slider 2.jpg',
+      image: '/Images/testing3.jpeg',
       alt: 'Professional Restaurant Solutions'
     },
     {
       id: 3,
-      image: '/Images/home/slider 3.jpg',
+      image: '/Images/testing4.jpeg',
       alt: 'Hotel Kitchen Equipment'
     }
   ];
 
+  // Calculate dynamic height based on viewport and image aspect ratio
+  const [sliderHeight, setSliderHeight] = useState('800px');
+  
+  useEffect(() => {
+    const updateHeight = () => {
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        setSliderHeight('600px');
+      } else {
+        setSliderHeight('700px');
+      }
+    };
+
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
+    }, 10000); // Changed from 5000ms to 10000ms (10 seconds per slide)
     return () => clearInterval(timer);
   }, [slides.length]);
 
@@ -44,7 +62,7 @@ const ImageSlider = () => {
   };
 
   return (
-    <div className="relative w-full h-96 md:h-[500px] overflow-hidden">
+    <div className="relative w-full" style={{ height: sliderHeight }} >
       <div className="relative h-full">
         {slides.map((slide, index) => (
           <div
@@ -56,7 +74,7 @@ const ImageSlider = () => {
             <img
                 src={slide.image}
                 alt={slide.alt}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-top object-contain"
               />
           </div>
         ))}
