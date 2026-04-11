@@ -5,7 +5,7 @@ import CategoryCard from '../../../components/home page/CategoryCard';
 
 const HomePage = () => {
   const categories = [
-    { name: 'Stainless Steel Kitchen', image: '/Images/home/stainless-steal.webp', category: 'Stainless Steel Kitchen' },
+    { name: 'Stainless Steel Kitchen', image: '/Images/card.png', category: 'Stainless Steel Kitchen' },
     { name: 'Hotel', image: '/Images/home/hotel.avif', category: 'Hotel Kitchen Equipment' },
     { name: 'Restaurant', image: '/Images/home/restaurent.jpg', category: 'Restaurant Equipment' },
     { name: 'Fast Food', image: '/Images/home/fast food.avif', category: 'Fast Food Equipment' },

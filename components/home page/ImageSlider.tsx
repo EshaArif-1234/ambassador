@@ -14,12 +14,12 @@ const ImageSlider = () => {
     },
     {
       id: 2,
-      image: '/Images/banner-2.jpeg',
+      image: '/Images/banner-2-new.png',
       alt: 'Professional Restaurant Solutions'
     },
     {
       id: 3,
-      image: '/Images/banner-3.jpeg',
+      image: '/Images/banner-3-new.png',
       alt: 'Hotel Kitchen Equipment'
     }
   ];
