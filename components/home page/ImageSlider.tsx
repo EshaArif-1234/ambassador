@@ -9,17 +9,17 @@ const ImageSlider = () => {
   const slides = [
     {
       id: 1,
-      image: '/Images/8k-banner(2).png',
+      image: '/Images/banner-1.jpeg',
       alt: 'Premium Kitchen Equipment'
     },
     {
       id: 2,
-      image: '/Images/testing3.jpeg',
+      image: '/Images/banner-2.jpeg',
       alt: 'Professional Restaurant Solutions'
     },
     {
       id: 3,
-      image: '/Images/testing4.jpeg',
+      image: '/Images/banner-3.jpeg',
       alt: 'Hotel Kitchen Equipment'
     }
   ];

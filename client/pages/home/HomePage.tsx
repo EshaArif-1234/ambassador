@@ -37,7 +37,10 @@ const HomePage = () => {
         }
       `}</style>
        <ImageSlider />
-      <div className="container mx-auto px-4">
+       
+
+       <div className="bg-[#F9FAFB]">
+      <div className="container mx-auto px-4 ">
        
 
         <div className="py-12">
@@ -69,6 +72,7 @@ const HomePage = () => {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
