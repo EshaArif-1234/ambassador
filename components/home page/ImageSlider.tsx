@@ -21,6 +21,16 @@ const ImageSlider = () => {
       id: 3,
       image: '/Images/banner-3-new.png',
       alt: 'Hotel Kitchen Equipment'
+    },
+    {
+      id: 4,
+      image: '/Images/banner-2.png',
+      alt: 'Hotel Kitchen Equipment'
+    },
+    {
+      id: 5,
+      image: '/Images/banner-4.png',
+      alt: 'Hotel Kitchen Equipment'
     }
   ];
 
