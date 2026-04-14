@@ -54,7 +54,7 @@ const SignupSection = () => {
               <ul className="space-y-5 mb-10">
                 {benefits.map((benefit, i) => (
                   <li key={i} className="flex items-start gap-4">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center mt-0.5">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#E36630]/10 flex items-center justify-center mt-0.5">
                       <svg className="w-3.5 h-3.5 text-[#E36630]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>

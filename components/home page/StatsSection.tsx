@@ -61,7 +61,7 @@ const StatsSection = () => {
   }, []);
 
   return (
-    <section ref={ref} className="bg-white border-y border-gray-100 py-14">
+    <section ref={ref} className="bg-[#FAFAFA] py-14">
       <div className="container mx-auto px-4">
 
         {/* Top label */}

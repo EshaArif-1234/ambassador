@@ -9,15 +9,15 @@ import CTASection from '../../../components/home page/CTASection';
 
 const categories = [
   { name: 'Stainless Steel Kitchen',          image: '/Images/card.png',                          category: 'Stainless Steel Kitchen' },
-  { name: 'Hotel',                             image: '/Images/home/hotel.avif',                   category: 'Hotel Kitchen Equipment' },
-  { name: 'Restaurant',                        image: '/Images/home/restaurent.jpg',               category: 'Restaurant Equipment' },
-  { name: 'Fast Food',                         image: '/Images/home/fast food.avif',               category: 'Fast Food Equipment' },
-  { name: 'Bakery',                            image: '/Images/home/bakeries.webp',                category: 'Bakery Equipment' },
-  { name: 'Cafes',                             image: '/Images/home/cafes.png',                    category: 'Café Equipment' },
-  { name: 'Banquets',                          image: '/Images/home/Banquets.jpg',                 category: 'Banquet Equipment' },
-  { name: 'Super Markets',                     image: '/Images/home/Super Markets.jpg',            category: 'Supermarket Equipment' },
+  { name: 'Hotel',                             image: '/Images/Banquets.jpg',                   category: 'Hotel Kitchen Equipment' },
+  { name: 'Restaurant',                        image: '/Images/Restaurant-Card.png',               category: 'Restaurant Equipment' },
+  { name: 'Fast Food',                         image: '/Images/Fast-Food-Card-Banner.jpg',               category: 'Fast Food Equipment' },
+  { name: 'Bakery',                            image: '/Images/Bakery-Card-banner.jpg',                category: 'Bakery Equipment' },
+  { name: 'Cafes',                             image: '/Images/Cafes-Card-banner.jpg',                    category: 'Café Equipment' },
+  { name: 'Banquets',                          image: '/Images/Banquets.jpg',                 category: 'Banquet Equipment' },
+  { name: 'Super Markets',                     image: '/Images/Super-market.jpg',            category: 'Supermarket Equipment' },
   { name: 'Hospital Kitchen',                  image: '/Images/home/Hospital Kitchen.jpg',         category: 'Hospital Kitchen' },
-  { name: 'Mess Kitchen',                      image: '/Images/home/mess kitchen.jfif',            category: 'Mess Kitchen (Large Catering)' },
+  { name: 'Mess Kitchen',                      image: '/Images/Mess-Card.png',            category: 'Mess Kitchen (Large Catering)' },
   { name: 'University Kitchen',                image: '/Images/home/university kitchen.jpg',       category: 'University / Institutional Kitchen' },
   { name: 'Ambassador Engineering Products',   image: '/Images/home/engeniering products.jfif',   category: 'Ambassador Engineering Products' },
   { name: 'Imported Items',                    image: '/Images/home/Imported Items.jfif',          category: 'Imported Items' },
@@ -34,10 +34,10 @@ const HomePage = () => {
       <StatsSection />
 
       {/* ── 3. Product Categories ────────────────────────── */}
-      <section className="bg-white">
+      <section className="bg-white border-t border-gray-100">
         <div className="container mx-auto px-4 py-16">
           <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1 bg-orange-100 text-[#E36630] text-sm font-semibold rounded-full mb-3 tracking-wide uppercase">
+            <span className="inline-block px-4 py-1 bg-[#E36630]/10 text-[#E36630] text-sm font-semibold rounded-full mb-3 tracking-wide uppercase">
               What We Offer
             </span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">

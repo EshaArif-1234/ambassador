@@ -1,15 +1,15 @@
 import Link from 'next/link';
 
 const CTASection = () => (
-  <section className="bg-gray-900 py-20 relative overflow-hidden">
+  <section className="bg-[#0F4C69] py-20 relative overflow-hidden">
     {/* Subtle decorative blobs */}
     <div className="absolute top-0 left-0 w-72 h-72 bg-[#E36630] rounded-full opacity-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-    <div className="absolute bottom-0 right-0 w-60 h-60 bg-[#0F4C69] rounded-full opacity-10 translate-x-1/3 translate-y-1/3 pointer-events-none" />
+    <div className="absolute bottom-0 right-0 w-60 h-60 bg-white rounded-full opacity-10 translate-x-1/3 translate-y-1/3 pointer-events-none" />
 
     <div className="relative container mx-auto px-4">
       <div className="max-w-3xl mx-auto text-center">
 
-        <span className="inline-block px-4 py-1 bg-white/10 text-orange-400 text-sm font-semibold rounded-full mb-6 tracking-wide uppercase">
+        <span className="inline-block px-4 py-1 bg-white/10 text-[#E36630] text-sm font-semibold rounded-full mb-6 tracking-wide uppercase">
           Get Started Today
         </span>
 
@@ -18,14 +18,14 @@ const CTASection = () => (
           <span className="text-[#E36630]">Commercial Kitchen?</span>
         </h2>
 
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-white/60 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
           Whether you&apos;re opening a new restaurant, upgrading a hotel kitchen, or setting up a large-scale institutional kitchen — our team is ready to help you build the perfect setup.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
           <Link
             href="/products"
-            className="px-8 py-4 bg-[#E36630] hover:bg-orange-600 text-white font-bold rounded-xl transition-colors text-base shadow-lg"
+            className="px-8 py-4 bg-[#E36630] hover:bg-[#cc5a2a] text-white font-bold rounded-xl transition-colors text-base shadow-lg"
           >
             Browse All Products
           </Link>
@@ -38,7 +38,7 @@ const CTASection = () => (
         </div>
 
         {/* Trust badges */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 border-t border-white/10 pt-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 border-t border-white/20 pt-10">
           {[
             { icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />, label: '500+ Products', sub: 'In Stock & Ready' },
             { icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />, label: 'Fast Delivery', sub: 'Nationwide Coverage' },
@@ -50,7 +50,7 @@ const CTASection = () => (
                 {item.icon}
               </svg>
               <span className="text-white text-sm font-semibold">{item.label}</span>
-              <span className="text-gray-500 text-xs">{item.sub}</span>
+              <span className="text-white/60 text-xs">{item.sub}</span>
             </div>
           ))}
         </div>

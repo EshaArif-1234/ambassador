@@ -68,7 +68,7 @@ const Header = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="w-full px-4 py-2 pl-10 pr-4 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 focus:bg-white placeholder:text-gray-400"
+                className="w-full px-4 py-2 pl-10 pr-4 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:border-[#E36630] focus:bg-white placeholder:text-gray-400"
               />
               <div className="absolute inset-y-0 left-0 flex items-center pl-3">
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,12 +84,12 @@ const Header = () => {
             <div className="relative" ref={cartRef}>
               <button
                 onClick={() => setIsCartOpen(!isCartOpen)}
-                className="relative p-2 text-gray-700 hover:text-orange-500 transition-colors"
+                className="relative p-2 text-gray-700 hover:text-[#E36630] transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-[#E36630] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cartCount}
                 </span>
               </button>
@@ -148,7 +148,7 @@ const Header = () => {
                       </div>
                       <button 
                         onClick={handleCheckout}
-                        className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors"
+                        className="w-full bg-[#E36630] text-white py-2 px-4 rounded-lg hover:bg-[#cc5a2a] transition-colors"
                       >
                         Checkout
                       </button>
@@ -174,7 +174,7 @@ const Header = () => {
                       className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-semibold">
+                    <div className="w-8 h-8 rounded-full bg-[#E36630] flex items-center justify-center text-white text-sm font-semibold">
                       {user.initials}
                     </div>
                   )}
@@ -195,7 +195,7 @@ const Header = () => {
                       {user.role === 'admin' && (
                         <Link
                           href="/admin"
-                          className="block px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 transition-colors font-medium"
+                          className="block px-4 py-2 text-sm text-[#E36630] hover:bg-[#E36630]/5 transition-colors font-medium"
                         >
                           📊 Dashboard
                         </Link>
@@ -218,10 +218,10 @@ const Header = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <Link href="/login" className="px-4 py-2 text-gray-700 hover:text-orange-500 transition-colors font-medium">
+                <Link href="/login" className="px-4 py-2 text-gray-700 hover:text-[#E36630] transition-colors font-medium">
                   Login
                 </Link>
-                <Link href="/signup" className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium">
+                <Link href="/signup" className="px-4 py-2 bg-[#E36630] text-white rounded-lg hover:bg-[#cc5a2a] transition-colors font-medium">
                   Sign Up
                 </Link>
               </div>
