@@ -91,7 +91,7 @@ const SignupSection = () => {
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
               Get Started Free
             </h3>
-            <p className="text-orange-100 text-sm mb-8 leading-relaxed">
+            <p className="text-white/80 text-sm mb-8 leading-relaxed">
               No subscription fees. No hidden charges. Just a better way to equip your commercial kitchen.
             </p>
 
@@ -128,7 +128,7 @@ const SignupSection = () => {
               </Link>
             </div>
 
-            <p className="text-orange-200 text-xs text-center mt-5">
+            <p className="text-white/60 text-xs text-center mt-5">
               By signing up, you agree to our{' '}
               <Link href="#" className="underline hover:text-white transition-colors">Terms of Service</Link>
               {' '}and{' '}

@@ -37,14 +37,17 @@ const HomePage = () => {
       <section className="bg-white border-t border-gray-100">
         <div className="container mx-auto px-4 py-16">
           <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1 bg-[#E36630]/10 text-[#E36630] text-sm font-semibold rounded-full mb-3 tracking-wide uppercase">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-4">
+              <span className="w-8 h-px bg-[#0F4C69]" />
               What We Offer
+              <span className="w-8 h-px bg-[#0F4C69]" />
             </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Our Categories
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-5 leading-tight">
+              Equipment Built for<br className="hidden sm:block" />{' '}
+              <span className="text-[#E36630]">Every Kitchen</span>
             </h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-              Explore our complete range of premium commercial kitchen equipment for every industry and scale.
+            <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+              From fast food counters to hospital canteens — explore our full range of commercial kitchen solutions tailored to your industry.
             </p>
           </div>
 

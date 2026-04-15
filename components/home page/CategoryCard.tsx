@@ -28,8 +28,8 @@ const CategoryCard = ({ title, image, category, children }: CategoryCardProps) =
           )}
         </div>
         <div className="p-4">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>
-          <span className="text-orange-500 hover:text-orange-600 font-medium transition-colors inline-block">
+          <h3 className="text-lg font-semibold text-[#0F4C69] mb-2">{title}</h3>
+          <span className="text-[#E36630] hover:text-[#E36630]/80 font-medium transition-colors inline-block">
             See More →
           </span>
         </div>

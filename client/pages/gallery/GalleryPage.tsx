@@ -163,14 +163,14 @@ const GalleryPage = () => {
         {/* Background Image */}
         <div className="absolute inset-0">
           <img
-            src="/Images/gallery dark.jpg"
+            src="/Images/Chef-Reviews-Banner.png"
             alt="Gallery & Reviews Background"
             className="w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).src = `https://via.placeholder.com/1920x400/E36630/ffffff?text=Gallery+Reviews`;
             }}
           />
-          <div className="absolute inset-0 bg-black opacity-50"></div>
+          <div className="absolute "></div>
         </div>
         <div className="relative z-10 h-full flex items-center justify-center text-white">
           <div className="max-w-4xl mx-auto px-6 text-center">

@@ -57,30 +57,16 @@ const ContactPage = () => {
       `}</style>
 
       {/* Hero Section */}
-      <div className="relative bg-gray-900 text-white py-16 h-96 md:h-[600px]">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <img
-            src="/Images/contact-dark.jpg"
-            alt="Contact Us Background"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = `https://via.placeholder.com/1920x400/E36630/ffffff?text=Contact+Us`;
-            }}
-          />
-          <div className="absolute "></div>
-        </div>
-        
-        <div className="relative container mx-auto px-4 h-full flex items-center">
-          <div className="text-center w-full">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Contact Us
-            </h1>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Get in touch with us for all your kitchen equipment needs. We're here to help you find the perfect solutions.
-            </p>
-          </div>
-        </div>
+      <div className="w-full" style={{ maxHeight: '600px', overflow: 'hidden' }}>
+        <img
+          src="/Images/Contact-Us-Banner-1.png"
+          alt="Contact Us Background"
+          className="w-full block"
+          style={{ maxHeight: '600px', objectFit: 'cover', objectPosition: 'center center' }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = `https://via.placeholder.com/1920x600/E36630/ffffff?text=Contact+Us`;
+          }}
+        />
       </div>
 
       {/* Contact Content */}

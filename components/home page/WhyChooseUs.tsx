@@ -41,7 +41,8 @@ const WhyChooseUs = () => (
       <div className="text-center mb-12">
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-4">
           <span className="w-6 h-px bg-[#0F4C69]" />
-          Why Ambassador
+          Why 
+          <span className="text-[#E36630]">Ambassador</span>
           <span className="w-6 h-px bg-[#0F4C69]" />
         </span>
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">

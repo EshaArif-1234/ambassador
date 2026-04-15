@@ -3,7 +3,7 @@ import Link from 'next/link';
 const CTASection = () => (
   <section className="bg-[#0F4C69] py-20 relative overflow-hidden">
     {/* Subtle decorative blobs */}
-    <div className="absolute top-0 left-0 w-72 h-72 bg-[#E36630] rounded-full opacity-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+    <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full opacity-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
     <div className="absolute bottom-0 right-0 w-60 h-60 bg-white rounded-full opacity-10 translate-x-1/3 translate-y-1/3 pointer-events-none" />
 
     <div className="relative container mx-auto px-4">

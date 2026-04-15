@@ -7,7 +7,7 @@ const Banner = () => {
     <div className="relative h-96 md:h-[600px]">
       {/* Background Image */}
       <Image
-        src="/Images/about-us.jpg"
+        src="/Images/About-Us-Banner.jpg"
         alt="About Ambassadors Banner"
         fill
         className="object-cover"
