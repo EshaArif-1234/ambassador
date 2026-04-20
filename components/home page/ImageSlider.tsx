@@ -9,27 +9,17 @@ const ImageSlider = () => {
   const slides = [
     {
       id: 1,
-      image: '/Images/banner-1.jpeg',
+      image: '/Images/without-logo.png',
       alt: 'Premium Kitchen Equipment'
     },
     {
       id: 2,
-      image: '/Images/banner-2-new.png',
+      image: '/Images/without-logo-1.png',
       alt: 'Professional Restaurant Solutions'
     },
     {
       id: 3,
-      image: '/Images/banner-3-new.png',
-      alt: 'Hotel Kitchen Equipment'
-    },
-    {
-      id: 4,
-      image: '/Images/banner-2.png',
-      alt: 'Hotel Kitchen Equipment'
-    },
-    {
-      id: 5,
-      image: '/Images/banner-4.png',
+      image: '/Images/without-logo-2.png',
       alt: 'Hotel Kitchen Equipment'
     }
   ];
@@ -116,7 +106,7 @@ const ImageSlider = () => {
             className={`w-3 h-3 rounded-full transition-all ${
               index === currentSlide 
                 ? 'bg-orange-500' 
-                : 'bg-white bg-opacity-50 hover:bg-opacity-75'
+                : 'bg-[#0F4C69] bg-opacity-50 hover:bg-opacity-75'
             }`}
           />
         ))}

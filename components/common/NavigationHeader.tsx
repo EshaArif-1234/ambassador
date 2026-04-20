@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const menuItems = [
-  { name: 'Products',       href: '/products' },
+  { name: 'Home',           href: '/' },
+  // { name: 'Products',       href: '/products' },
   { name: 'About',          href: '/about' },
   { name: 'Custom Kitchen', href: '/custom-kitchen' },
   { name: 'Gallery',        href: '/gallery' },

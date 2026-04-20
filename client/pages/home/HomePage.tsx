@@ -6,7 +6,7 @@ import StatsSection from '../../../components/home page/StatsSection';
 import WhyChooseUs from '../../../components/home page/WhyChooseUs';
 import SignupSection from '../../../components/home page/SignupSection';
 import CTASection from '../../../components/home page/CTASection';
-
+import ClientLogosSlider from '../../../components/about/ClientLogosSlider';
 const categories = [
   { name: 'Stainless Steel Kitchen',          image: '/Images/card.png',                          category: 'Stainless Steel Kitchen' },
   { name: 'Hotel',                             image: '/Images/Banquets.jpg',                   category: 'Hotel Kitchen Equipment' },
@@ -29,13 +29,13 @@ const HomePage = () => {
 
       {/* ── 1. Hero Banner Slider ─────────────────────────── */}
       <ImageSlider />
+      <ClientLogosSlider />
 
       {/* ── 2. Stats / Trust Bar ─────────────────────────── */}
-      <StatsSection />
 
       {/* ── 3. Product Categories ────────────────────────── */}
       <section className="bg-white border-t border-gray-100">
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 py-32">
           <div className="text-center mb-12">
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-4">
               <span className="w-8 h-px bg-[#0F4C69]" />
@@ -63,9 +63,9 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+      <StatsSection />
 
       {/* ── 4. Featured Products ─────────────────────────── */}
-
       {/* ── 5. Why Choose Us ─────────────────────────────── */}
       <WhyChooseUs />
 

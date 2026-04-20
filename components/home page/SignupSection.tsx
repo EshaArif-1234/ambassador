@@ -28,9 +28,9 @@ const SignupSection = () => {
   if (user) return null;
 
   return (
-    <section className="bg-white py-16 border-t border-gray-100">
+    <section className="bg-[#FAFAFA] py-32 border-t border-gray-100">
       <div className="container mx-auto px-4">
-        <div className="rounded-2xl overflow-hidden shadow-xl flex flex-col lg:flex-row">
+        <div className="rounded-2xl overflow-hidden shadow-[0_-4px_24px_0_rgba(0,0,0,0.08),0_8px_24px_0_rgba(0,0,0,0.10)] flex flex-col lg:flex-row">
 
           {/* ── Left Panel — White ── */}
           <div className="flex-1 bg-white p-10 lg:p-14">
