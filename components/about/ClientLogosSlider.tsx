@@ -22,7 +22,7 @@ const LogoCard = ({ logo }: LogoCardProps) => (
         src={logo.logo}
         alt={logo.name}
         fill
-        className="object-contain p-3 transition-transform duration-300 group-hover:scale-110"
+        className="object-contain transition-transform duration-300 group-hover:scale-110"
         onError={(e) => {
           (e.target as HTMLImageElement).src = `https://placehold.co/80x80/E36630/ffffff?text=${logo.id}`;
         }}
