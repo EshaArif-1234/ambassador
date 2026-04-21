@@ -28,12 +28,12 @@ const SignupSection = () => {
   if (user) return null;
 
   return (
-    <section className="bg-[#FAFAFA] py-32 border-t border-gray-100">
+    <section className="bg-[#FAFAFA] py-10 md:py-16 border-t border-gray-100">
       <div className="container mx-auto px-4">
         <div className="rounded-2xl overflow-hidden shadow-[0_-4px_24px_0_rgba(0,0,0,0.08),0_8px_24px_0_rgba(0,0,0,0.10)] flex flex-col lg:flex-row">
 
           {/* ── Left Panel — White ── */}
-          <div className="flex-1 bg-white p-10 lg:p-14">
+          <div className="flex-1 bg-white p-6 sm:p-10 lg:p-14">
             <div className="max-w-lg">
               {/* Label */}
               <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-4">
@@ -87,7 +87,7 @@ const SignupSection = () => {
           </div>
 
           {/* ── Right Panel — Orange ── */}
-          <div className="lg:w-[420px] bg-[#E36630] p-10 lg:p-14 flex flex-col justify-center">
+          <div className="lg:w-[420px] bg-[#E36630] p-6 sm:p-10 lg:p-14 flex flex-col justify-center">
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
               Get Started Free
             </h3>

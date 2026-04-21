@@ -36,7 +36,7 @@ function useCountUp(target: number, duration: number, active: boolean) {
 const StatCard = ({ stat, active }: { stat: StatItem; active: boolean }) => {
   const count = useCountUp(stat.value, 1800, active);
   return (
-    <div className="text-center px-4">
+    <div className="text-center px-4 py-6 md:py-0">
       <p className="text-4xl md:text-5xl font-black text-[#E36630] mb-1">
         {active ? count : 0}
         {stat.suffix}
@@ -61,7 +61,7 @@ const StatsSection = () => {
   }, []);
 
   return (
-    <section ref={ref} className="bg-[#FAFAFA] py-32">
+    <section ref={ref} className="bg-[#FAFAFA] py-10 md:py-16">
       <div className="container mx-auto px-4">
 
         {/* Top label */}
@@ -74,7 +74,7 @@ const StatsSection = () => {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-200">
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-gray-200">
           {stats.map((stat, i) => (
             <StatCard key={i} stat={stat} active={active} />
           ))}

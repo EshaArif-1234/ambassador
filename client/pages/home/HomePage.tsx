@@ -35,7 +35,7 @@ const HomePage = () => {
 
       {/* ── 3. Product Categories ────────────────────────── */}
       <section className="bg-white border-t border-gray-100">
-        <div className="container mx-auto px-4 py-32">
+        <div className="container mx-auto px-4 py-10 md:py-16">
           <div className="text-center mb-12">
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-4">
               <span className="w-8 h-px bg-[#0F4C69]" />

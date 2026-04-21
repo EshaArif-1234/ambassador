@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 const CTASection = () => (
-  <section className="bg-[#0F4C69] py-20 relative overflow-hidden">
+  <section className="bg-[#0F4C69] py-12 md:py-20 relative overflow-hidden">
     
     <div className="relative container mx-auto px-4">
       <div className="max-w-3xl mx-auto text-center">

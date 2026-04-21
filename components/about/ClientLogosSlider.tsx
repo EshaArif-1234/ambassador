@@ -16,7 +16,7 @@ interface LogoCardProps {
 }
 
 const LogoCard = ({ logo }: LogoCardProps) => (
-  <div className="group flex-shrink-0 w-20 h-20 mx-3">
+  <div className="group flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 mx-2 sm:mx-3">
     <div className="relative w-full h-full rounded-full border-2 border-gray-100 bg-white shadow-sm hover:border-[#E36630] hover:shadow-md transition-all duration-300 hover:-translate-y-1 overflow-hidden">
       <Image
         src={logo.logo}
@@ -55,7 +55,7 @@ const ClientLogosSlider = () => {
         }
       `}</style>
 
-      <section className="bg-[#FAFAFA] py-32 border-t border-gray-100 overflow-hidden">
+      <section className="bg-[#FAFAFA] py-10 md:py-16 border-t border-gray-100 overflow-hidden">
         <div className="container mx-auto px-4">
 
           {/* ── Header ───────────────────────────────────── */}
