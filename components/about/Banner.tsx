@@ -7,7 +7,7 @@ const Banner = () => {
     <div className="relative h-96 md:h-[600px]">
       {/* Background Image */}
       <Image
-        src="/Images/About-Us-Banner.jpg"
+        src="/Images/About-Us-Banner-New-Update.jpg"
         alt="About Ambassadors Banner"
         fill
         className="object-cover"
@@ -23,7 +23,7 @@ const Banner = () => {
               textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5), 0 0 40px rgba(0,0,0,0.3)'
             }}
           >
-            About Ambassadors
+            About Ambassadors       
           </h1>
           <p 
             className="text-xl md:text-2xl leading-relaxed max-w-3xl mx-auto font-semibold"

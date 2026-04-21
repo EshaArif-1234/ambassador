@@ -1,22 +1,11 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 
 const SignUpMarketingSection: React.FC = () => {
   return (
     <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-500 to-orange-600 items-center justify-center p-8">
       <div className="max-w-md text-center text-white">
-        <div className="mb-8">
-          <Image
-            src="/Images/home/logo.webp"
-            alt="Ambassadors Kitchen Equipment"
-            width={120}
-            height={40}
-            className="h-10 w-auto mx-auto filter brightness-0 invert"
-          />
-        </div>
-        
         <h2 className="text-2xl font-bold mb-4">Join Ambassadors Kitchen Equipment</h2>
         <p className="text-orange-100 mb-6">
           Create an account to access premium kitchen equipment and exclusive deals. Join thousands of satisfied customers worldwide.

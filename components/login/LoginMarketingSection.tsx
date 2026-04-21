@@ -1,22 +1,11 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 
 export default function LoginMarketingSection() {
   return (
     <div className="lg:w-1/2 bg-orange-500 p-6 lg:p-8 flex flex-col justify-center items-center text-white">
       <div className="text-center">
-        <div className="mb-6">
-          <Image
-            src="/Images/home/logo.webp"
-            alt="Ambassadors Logo"
-            width={120}
-            height={40}
-            className="h-10 w-auto mx-auto filter brightness-0 invert"
-          />
-        </div>
-        
         <h2 className="text-2xl font-bold mb-4">Welcome Back!</h2>
         <p className="text-orange-100 mb-6">
           Sign in to access your account and continue your journey with premium kitchen equipment.
