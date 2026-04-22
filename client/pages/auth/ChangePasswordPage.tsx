@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { authApi } from '@/utils/auth.api';
 import AuthHeader from '../../../components/common/AuthHeader';
 import ChangePasswordForm from '../../../components/changepassword/ChangePasswordForm';
 import SuccessState from '../../../components/changepassword/SuccessState';
@@ -19,6 +20,9 @@ interface Errors {
 
 export default function ChangePasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email') || '';
+  const otp = searchParams.get('otp') || '';
   const [formData, setFormData] = useState<FormData>({
     newPassword: '',
     confirmPassword: ''
@@ -66,26 +70,30 @@ export default function ChangePasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
+
+    if (!validateForm()) return;
+
+    if (!email || !otp) {
+      setErrors(prev => ({
+        ...prev,
+        submit: 'Reset session expired. Please start the forgot password flow again.',
+      }));
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Here you would normally send data to your backend
-      console.log('Password change data:', formData);
-      
+      await authApi.resetPassword({
+        email,
+        otp,
+        newPassword: formData.newPassword,
+      });
       setIsSuccess(true);
     } catch (error) {
-      console.error('Password change error:', error);
       setErrors(prev => ({
         ...prev,
-        submit: 'An error occurred. Please try again.'
+        submit: (error as Error).message || 'An error occurred. Please try again.',
       }));
     } finally {
       setIsLoading(false);

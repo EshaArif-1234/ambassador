@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useUser, User } from '@/contexts/UserContext';
+import { useUser } from '@/contexts/UserContext';
+import { authApi } from '@/utils/auth.api';
 import LoginMarketingSection from '../../../components/login/LoginMarketingSection';
 import LoginForm from '../../../components/login/LoginForm';
 
@@ -22,26 +23,25 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useUser();
+
+  const isJustVerified = searchParams.get('verified') === 'true';
+  const verifiedEmail = searchParams.get('email') || '';
+
   const [formData, setFormData] = useState<FormData>({
-    email: '',
+    email: verifiedEmail,
     password: '',
-    rememberMe: false
+    rememberMe: false,
   });
   const [errors, setErrors] = useState<Errors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Check if user is verified from OTP
+  // Clear the verified params from the URL after reading them (clean URL)
   useEffect(() => {
-    if (searchParams.get('verified') === 'true') {
-      // Show success message
-      const timer = setTimeout(() => {
-        // Clear the URL parameter
-        router.replace('/login');
-      }, 3000);
-      return () => clearTimeout(timer);
+    if (isJustVerified) {
+      router.replace('/login');
     }
-  }, [router, searchParams]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
@@ -83,46 +83,24 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Here you would normally send data to your backend
-      console.log('Login data:', formData);
-      
-      // Check if admin credentials
-      const isAdmin = formData.email === 'info@ambassador.pk' && formData.password === 'admin@123456';
-      
-      // Create user object (in real app, get from API)
-      const user: User = {
-        id: isAdmin ? 'admin-1' : '1',
-        name: isAdmin ? 'Admin User' : formData.email.split('@')[0], // Use email prefix as name
+      const res = await authApi.login({
         email: formData.email,
-        profileImage: '', // Will be set during registration
-        initials: isAdmin ? 'AU' : formData.email.substring(0, 2).toUpperCase(),
-        role: isAdmin ? 'admin' : 'user'
-      };
-      
-      // Login user
-      login(user);
-      
-      // Redirect based on user role
-      if (isAdmin) {
-        router.push('/admin');
-      } else {
-        router.push('/');
+        password: formData.password,
+      });
+
+      if (res.data?.user) {
+        login(res.data.user);
+        router.push(res.data.user.role === 'admin' ? '/admin' : '/');
       }
     } catch (error) {
-      console.error('Login error:', error);
       setErrors(prev => ({
         ...prev,
-        submit: 'Invalid email or password. Please try again.'
+        submit: (error as Error).message || 'Invalid email or password. Please try again.',
       }));
     } finally {
       setIsLoading(false);
@@ -141,6 +119,20 @@ export default function LoginPage() {
         </svg>
         <span className="text-sm font-medium">Back</span>
       </button>
+
+      {/* Email Verified Success Banner */}
+      {isJustVerified && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
+          <div className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-md text-sm">
+            <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p>
+              <span className="font-semibold">Email verified!</span> You can now sign in with your credentials.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-6xl mx-auto w-full">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">

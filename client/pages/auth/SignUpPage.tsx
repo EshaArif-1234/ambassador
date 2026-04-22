@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/contexts/UserContext';
+import { authApi } from '@/utils/auth.api';
 import SignUpMarketingSection from '../../../components/login/SignUpMarketingSection';
 
 const SignUpPage = () => {
   const router = useRouter();
-  const { login } = useUser();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -155,27 +154,26 @@ const SignUpPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Here you would normally send data to your backend
-      console.log('Sign up data:', formData);
-      
-      // Redirect to OTP verification page (don't auto-login yet)
+      await authApi.register({
+        fullName: formData.fullName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        address: formData.address || undefined,
+        password: formData.password,
+      });
+
+      // Redirect to OTP verification — user must verify before logging in
       router.push(`/otp-verification?email=${encodeURIComponent(formData.email)}`);
     } catch (error) {
-      console.error('Sign up error:', error);
       setErrors(prev => ({
         ...prev,
-        submit: 'An error occurred. Please try again.'
+        submit: (error as Error).message || 'An error occurred. Please try again.',
       }));
     } finally {
       setIsLoading(false);

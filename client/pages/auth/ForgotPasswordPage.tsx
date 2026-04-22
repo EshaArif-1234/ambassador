@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { authApi } from '@/utils/auth.api';
 import AuthHeader from '../../../components/common/AuthHeader';
 import ForgotPasswordForm from '../../../components/forgotpassword/ForgotPasswordForm';
 import SuccessState from '../../../components/changepassword/SuccessState';
@@ -44,26 +45,18 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Here you would normally send email to your backend
-      console.log('Password reset requested for:', formData.email);
-      
+      await authApi.forgotPassword({ email: formData.email });
       setIsSuccess(true);
     } catch (error) {
-      console.error('Password reset error:', error);
       setErrors(prev => ({
         ...prev,
-        submit: 'An error occurred. Please try again.'
+        submit: (error as Error).message || 'An error occurred. Please try again.',
       }));
     } finally {
       setIsLoading(false);

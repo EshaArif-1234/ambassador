@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
 import { generateOtp, hashOtp, otpExpiry } from '@/utils/otp.util';
+import { sendPasswordResetEmail } from '@/utils/email.util';
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,12 +32,13 @@ export async function POST(req: NextRequest) {
     user.otpExpiry = otpExpiry();
     await user.save({ validateBeforeSave: false });
 
-    // In production: send plainOtp via email / SMS — do NOT return it.
+    // Send OTP to user's email
+    await sendPasswordResetEmail(user.email, user.fullName, plainOtp);
+
     return NextResponse.json(
       {
         success: true,
-        message: 'Password reset OTP generated.',
-        data: { otp: plainOtp }, // ← REMOVE in production
+        message: 'If that email exists, a password reset code has been sent.',
       },
       { status: 200 }
     );

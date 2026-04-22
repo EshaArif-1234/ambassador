@@ -8,24 +8,22 @@ export default function ForgotPasswordOtpPage() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
 
+  /**
+   * We do NOT verify the OTP here — the backend verifies it together with the
+   * new password in a single reset-password call. We just collect it and pass
+   * it to the ChangePasswordPage via URL params.
+   */
   const handleVerify = async (otp: string[]) => {
-    // Simulate API verification - auto-verify any 6-digit code for demo
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
     const otpCode = otp.join('');
-    if (otpCode.length === 6) {
-      // Redirect to change password page
-      setTimeout(() => {
-        router.push('/change-password');
-      }, 2000);
-    } else {
-      throw new Error('Invalid OTP code');
-    }
-  };
 
-  const handleResend = async () => {
-    // Simulate API resend
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    if (!email) throw new Error('Email is missing. Please restart the password reset flow.');
+
+    // Small pause so the success state is visible
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    router.push(
+      `/change-password?email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otpCode)}`
+    );
   };
 
   return (
@@ -33,11 +31,10 @@ export default function ForgotPasswordOtpPage() {
       type="forgot-password"
       email={email}
       otpLength={6}
-      expirationMinutes={15}
+      expirationMinutes={10}
       onVerify={handleVerify}
-      onResend={handleResend}
       title="Verify Your Code"
-      subtitle={`We've sent a 6-digit code to ${email}`}
+      subtitle={`We've sent a 6-digit code to ${email || 'your email'}`}
     />
   );
 }

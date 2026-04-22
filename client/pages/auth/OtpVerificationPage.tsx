@@ -1,48 +1,38 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useUser } from '@/contexts/UserContext';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { authApi } from '@/utils/auth.api';
 import OtpCard from '@/components/forms/OtpCard';
 
 export default function OtpVerificationPage() {
   const router = useRouter();
-  const { login } = useUser();
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email') || '';
 
   const handleVerify = async (otp: string[]) => {
-    // Simulate API verification - auto-verify any 6-digit code for demo
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
     const otpCode = otp.join('');
-    if (otpCode.length === 6) {
-      // Create user object and login
-      const user = {
-        id: Date.now().toString(),
-        name: otpCode.substring(0, 2).toUpperCase(), // Use first 2 digits as name for demo
-        email: 'verified@user.com', // Will be set from URL params
-        profileImage: '', // Will be set during registration
-        initials: otpCode.substring(0, 2).toUpperCase()
-      };
-      
-      // Login user
-      login(user);
-      
-      // Redirect to login page
-      setTimeout(() => {
-        router.push('/login?verified=true');
-      }, 2000);
-    } else {
-      throw new Error('Invalid OTP code');
-    }
+
+    if (!email) throw new Error('Email is missing. Please register again.');
+
+    // Verify the OTP — marks the user as isVerified in the DB
+    await authApi.verifyOtp({ email, otp: otpCode });
+
+    // Pause briefly so the OtpCard success animation is visible
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // Redirect to login with a verified flag so the login page can show a success banner
+    router.push(`/login?verified=true&email=${encodeURIComponent(email)}`);
   };
 
   return (
     <OtpCard
       type="signup"
+      email={email}
       otpLength={6}
-      expirationMinutes={5}
+      expirationMinutes={10}
       onVerify={handleVerify}
       title="Verify Your Email"
-      subtitle="We've sent a 6-digit code to your email"
+      subtitle={`We've sent a 6-digit code to ${email || 'your email'}`}
     />
   );
 }
