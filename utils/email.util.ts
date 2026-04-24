@@ -132,6 +132,110 @@ export const sendVerificationEmail = async (
 };
 
 /**
+ * Send account disabled notification email.
+ */
+export const sendAccountDisabledEmail = async (
+  to: string,
+  fullName: string,
+  reason: string,
+  description?: string
+): Promise<void> => {
+  const transporter = createTransporter();
+  const fromName  = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromEmail = process.env.SMTP_USER!;
+
+  const reasonLabels: Record<string, string> = {
+    policy_violation: 'Policy Violation',
+    security_concern: 'Security Concern',
+    inactivity:       'Inactivity',
+    account_issue:    'Account Issue',
+    other:            'Other',
+  };
+
+  const readableReason = reasonLabels[reason] ?? reason;
+
+  const body = `
+    <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
+      Your Account Has Been Disabled
+    </h2>
+    <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
+      Hi <strong>${fullName}</strong>,<br/>
+      We are writing to inform you that your account on <strong>Ambassador Kitchen Equipment</strong>
+      has been temporarily disabled by our admin team.
+    </p>
+
+    <div style="background:#fff5f5;border-left:4px solid #ef4444;border-radius:8px;padding:16px 20px;margin:0 0 24px;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#b91c1c;text-transform:uppercase;letter-spacing:0.5px;">
+        Reason
+      </p>
+      <p style="margin:0;font-size:15px;color:#1a1a1a;font-weight:600;">${readableReason}</p>
+      ${description ? `<p style="margin:8px 0 0;font-size:14px;color:#555555;">${description}</p>` : ''}
+    </div>
+
+    <p style="margin:0 0 16px;color:#555555;font-size:14px;line-height:1.7;">
+      While your account is disabled you will not be able to sign in. If you believe this is
+      a mistake or would like to appeal, please contact our support team by replying to this
+      email or reaching out at <a href="mailto:${fromEmail}" style="color:#0F4C69;">${fromEmail}</a>.
+    </p>
+
+    <p style="margin:0;color:#999999;font-size:13px;">
+      — The Ambassador Kitchen Equipment Team
+    </p>
+  `;
+
+  await transporter.sendMail({
+    from:    `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: 'Your Account Has Been Disabled — Ambassador Kitchen Equipment',
+    html:    baseTemplate('Account Disabled', body),
+  });
+};
+
+/**
+ * Send account re-enabled notification email.
+ */
+export const sendAccountEnabledEmail = async (
+  to: string,
+  fullName: string
+): Promise<void> => {
+  const transporter = createTransporter();
+  const fromName  = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromEmail = process.env.SMTP_USER!;
+
+  const body = `
+    <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
+      Your Account Has Been Re-Enabled
+    </h2>
+    <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
+      Hi <strong>${fullName}</strong>,<br/>
+      Great news! Your account on <strong>Ambassador Kitchen Equipment</strong> has been
+      re-enabled by our admin team. You can now sign in and access your account as usual.
+    </p>
+
+    <div style="margin:28px 0;text-align:center;">
+      <a href="${process.env.NEXT_PUBLIC_BASE_URL ?? 'https://ambassador-blue.vercel.app'}/login"
+        style="display:inline-block;background:#0F4C69;color:#ffffff;text-decoration:none;
+               font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;
+               letter-spacing:0.3px;">
+        Sign In to Your Account
+      </a>
+    </div>
+
+    <p style="margin:0;color:#555555;font-size:14px;line-height:1.7;">
+      If you have any questions or concerns, feel free to reach out to our support team at
+      <a href="mailto:${fromEmail}" style="color:#0F4C69;">${fromEmail}</a>.
+    </p>
+  `;
+
+  await transporter.sendMail({
+    from:    `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: 'Your Account Has Been Re-Enabled — Ambassador Kitchen Equipment',
+    html:    baseTemplate('Account Re-Enabled', body),
+  });
+};
+
+/**
  * Send the password reset OTP email.
  */
 export const sendPasswordResetEmail = async (

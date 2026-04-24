@@ -1,215 +1,186 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import Image from 'next/image';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
-interface User {
-  id: number;
-  name: string;
+interface AdminUser {
+  _id: string;
+  fullName: string;
   email: string;
-  role: 'admin' | 'manager' | 'staff';
-  status: 'active' | 'inactive';
-  avatar?: string;
-  createdAt: string;
-  lastLogin?: string;
-  blockReason?: string;
+  phoneNumber: string;
+  address: string;
+  role: 'user' | 'admin';
+  isVerified: boolean;
+  isDisabled: boolean;
   disableReason?: string;
   disableDescription?: string;
+  lastLoginAt?: string;
+  createdAt: string;
 }
 
 const UsersPage = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showBlockModal, setShowBlockModal] = useState(false);
-  const [userToBlock, setUserToBlock] = useState<User | null>(null);
-  const [blockReason, setBlockReason] = useState('');
-  const [showDisableModal, setShowDisableModal] = useState(false);
-  const [userToDisable, setUserToDisable] = useState<User | null>(null);
-  const [disableReason, setDisableReason] = useState('');
-  const [disableDescription, setDisableDescription] = useState('');
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [userToView, setUserToView] = useState<User | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [users, setUsers]               = useState<AdminUser[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [error, setError]               = useState('');
+  const [successMsg, setSuccessMsg]     = useState('');
+  const successTimer                    = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Filters
+  const [searchTerm, setSearchTerm]     = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'manager' | 'staff'>('all');
+  const [filterRole, setFilterRole]     = useState<'all' | 'admin' | 'user'>('all');
+
+  // Modals
+  const [showDeleteModal, setShowDeleteModal]   = useState(false);
+  const [userToDelete, setUserToDelete]         = useState<AdminUser | null>(null);
+  const [showDisableModal, setShowDisableModal] = useState(false);
+  const [userToDisable, setUserToDisable]       = useState<AdminUser | null>(null);
+  const [disableReason, setDisableReason]       = useState('');
+  const [disableDescription, setDisableDescription] = useState('');
+  const [showViewModal, setShowViewModal]       = useState(false);
+  const [userToView, setUserToView]             = useState<AdminUser | null>(null);
+
+  // ── Fetch ───────────────────────────────────────────────────────────────────
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm)              params.set('search', searchTerm);
+      if (filterRole !== 'all')    params.set('role', filterRole);
+      if (filterStatus !== 'all')  params.set('status', filterStatus);
+
+      const res  = await fetch(`/api/admin/users?${params}`, { credentials: 'include' });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || 'Failed to fetch users.');
+      setUsers(data.data.users);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, filterRole, filterStatus]);
 
   useEffect(() => {
-    // Simulate API call
-    const fetchUsers = async () => {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockUsers: User[] = [
-        {
-          id: 1,
-          name: 'John Doe',
-          email: 'john.doe@ambassadors.com',
-          role: 'admin',
-          status: 'active',
-          avatar: '/Images/avatars/admin.jpg',
-          createdAt: '2024-01-15',
-          lastLogin: '2024-04-02T10:30:00Z'
-        },
-        {
-          id: 2,
-          name: 'Jane Smith',
-          email: 'jane.smith@ambassadors.com',
-          role: 'manager',
-          status: 'active',
-          avatar: '/Images/avatars/manager.jpg',
-          createdAt: '2024-01-20',
-          lastLogin: '2024-04-01T14:22:00Z'
-        },
-        {
-          id: 3,
-          name: 'Mike Johnson',
-          email: 'mike.johnson@ambassadors.com',
-          role: 'staff',
-          status: 'inactive',
-          avatar: '/Images/avatars/staff.jpg',
-          createdAt: '2024-02-01',
-          lastLogin: '2024-03-15T09:15:00Z'
-        },
-        {
-          id: 4,
-          name: 'Sarah Wilson',
-          email: 'sarah.wilson@ambassadors.com',
-          role: 'staff',
-          status: 'active',
-          avatar: '/Images/avatars/staff2.jpg',
-          createdAt: '2024-02-10',
-          lastLogin: '2024-04-03T16:45:00Z'
-        }
-      ];
-      
-      setUsers(mockUsers);
-      setLoading(false);
-    };
-
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
-  const handleToggleUserStatus = (user: User) => {
-    setUsers(users.map(u => 
-      u.id === user.id 
-        ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' }
-        : u
-    ));
-  };
-
-  const handleDeleteUser = (user: User) => {
-    setUserToDelete(user);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDeleteUser = () => {
-    if (userToDelete) {
-      setUsers(users.filter(u => u.id !== userToDelete.id));
+  // ── Delete ──────────────────────────────────────────────────────────────────
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    setActionLoading(userToDelete._id);
+    try {
+      const res  = await fetch(`/api/admin/users/${userToDelete._id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setUsers(prev => prev.filter(u => u._id !== userToDelete._id));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setActionLoading(null);
+      setShowDeleteModal(false);
       setUserToDelete(null);
     }
-    setShowDeleteModal(false);
   };
 
-  const handleEditUser = (user: User) => {
-    setSelectedUser(user);
-    // In a real implementation, this would open an edit modal
-    console.log('Edit user:', user);
+  const showSuccess = (msg: string) => {
+    setSuccessMsg(msg);
+    if (successTimer.current) clearTimeout(successTimer.current);
+    successTimer.current = setTimeout(() => setSuccessMsg(''), 4000);
   };
 
-  const handleViewUser = (user: User) => {
-    setUserToView(user);
-    setShowViewModal(true);
-  };
+  // ── Disable / Enable ────────────────────────────────────────────────────────
+  const confirmDisableUser = async () => {
+    if (!userToDisable || !disableReason) return;
+    setActionLoading(userToDisable._id);
+    try {
+      const res  = await fetch(`/api/admin/users/${userToDisable._id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDisabled: true, disableReason, disableDescription }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
 
-  const handleBlockUser = (user: User) => {
-    setUserToBlock(user);
-    setBlockReason('');
-    setShowBlockModal(true);
-  };
-
-  const confirmBlockUser = () => {
-    if (userToBlock) {
-      setUsers(users.map(u => 
-        u.id === userToBlock.id 
-          ? { ...u, status: 'inactive', blockReason: blockReason }
+      // Directly patch the affected fields so the status badge and button
+      // toggle instantly without relying on the API response shape
+      setUsers(prev => prev.map(u =>
+        u._id === userToDisable._id
+          ? { ...u, isDisabled: true, disableReason, disableDescription }
           : u
       ));
+      showSuccess(`${userToDisable.fullName} has been disabled and notified by email.`);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setActionLoading(null);
+      setShowDisableModal(false);
+      setUserToDisable(null);
+      setDisableReason('');
+      setDisableDescription('');
     }
-    setShowBlockModal(false);
-    setUserToBlock(null);
-    setBlockReason('');
   };
 
-  const handleUnblockUser = (user: User) => {
-    setUsers(users.map(u => 
-      u.id === user.id 
-        ? { ...u, status: 'active', blockReason: undefined }
-        : u
-    ));
-  };
+  const handleEnableUser = async (user: AdminUser) => {
+    setActionLoading(user._id);
+    try {
+      const res  = await fetch(`/api/admin/users/${user._id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDisabled: false }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
 
-  const handleDisableUser = (user: User) => {
-    setUserToDisable(user);
-    setDisableReason('');
-    setDisableDescription('');
-    setShowDisableModal(true);
-  };
-
-  const handleEnableUser = (user: User) => {
-    setUsers(users.map(u => 
-      u.id === user.id 
-        ? { ...u, status: 'active', disableReason: undefined, disableDescription: undefined }
-        : u
-    ));
-  };
-
-  const confirmDisableUser = () => {
-    if (userToDisable) {
-      setUsers(users.map(u => 
-        u.id === userToDisable.id 
-          ? { ...u, status: 'inactive', disableReason: disableReason, disableDescription: disableDescription }
+      // Directly clear the disabled fields so the status badge and button
+      // toggle instantly
+      setUsers(prev => prev.map(u =>
+        u._id === user._id
+          ? { ...u, isDisabled: false, disableReason: '', disableDescription: '' }
           : u
       ));
-    }
-    setShowDisableModal(false);
-    setUserToDisable(null);
-    setDisableReason('');
-    setDisableDescription('');
-  };
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
-    const matchesRole = filterRole === 'all' || user.role === filterRole;
-    return matchesSearch && matchesStatus && matchesRole;
-  });
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-purple-100 text-purple-800';
-      case 'manager': return 'bg-blue-100 text-blue-800';
-      case 'staff': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      showSuccess(`${user.fullName}'s account has been re-enabled.`);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setActionLoading(null);
     }
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    return status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  const REASON_LABELS: Record<string, string> = {
+    policy_violation: 'Policy Violation',
+    security_concern: 'Security Concern',
+    inactivity:       'Inactivity',
+    account_issue:    'Account Issue',
+    other:            'Other',
   };
 
+  const getRoleBadgeColor = (role: string) =>
+    role === 'admin'
+      ? 'bg-purple-100 text-purple-800'
+      : 'bg-blue-100 text-blue-800';
+
+  const getStatusBadgeColor = (isDisabled: boolean) =>
+    isDisabled ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800';
+
+  const initials = (name: string) =>
+    name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="p-6">
-          <div className="flex items-center justify-center min-h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-          </div>
+        <div className="p-6 flex items-center justify-center min-h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E36630]" />
         </div>
       </DashboardLayout>
     );
@@ -218,160 +189,191 @@ const UsersPage = () => {
   return (
     <DashboardLayout>
       <div className="p-6">
+
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">User Management</h1>
-          <p className="text-gray-600">Manage user accounts and permissions</p>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {users.length} total user{users.length !== 1 ? 's' : ''}
+          </p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 mb-6">
-          <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 shadow-md">
-            + Add User
-          </button>
-        </div>
+        {/* Success Banner */}
+        {successMsg && (
+          <div className="mb-4 flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
+            <svg className="w-4 h-4 shrink-0 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {successMsg}
+            <button onClick={() => setSuccessMsg('')} className="ml-auto text-green-400 hover:text-green-600">✕</button>
+          </div>
+        )}
+
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {error}
+            <button onClick={() => setError('')} className="ml-auto text-red-400 hover:text-red-600">✕</button>
+          </div>
+        )}
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search users..."
-                className="w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Name, email or phone..."
+                className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E36630] focus:border-transparent"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                onChange={e => setFilterStatus(e.target.value as typeof filterStatus)}
+                className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E36630] focus:border-transparent"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="inactive">Disabled</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
               <select
                 value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value as any)}
-                className="w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                onChange={e => setFilterRole(e.target.value as typeof filterRole)}
+                className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E36630] focus:border-transparent"
               >
                 <option value="all">All Roles</option>
                 <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="staff">Staff</option>
+                <option value="user">User</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {/* Table */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disable</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  {['User', 'Phone', 'Role', 'Account', 'Verified', 'Last Login', 'Joined', 'Actions'].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden border-2 border-gray-300">
-                          {user.avatar ? (
-                            <Image 
-                              src={user.avatar} 
-                              alt={user.name}
-                              width={40}
-                              height={40}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5 4.722M12 14a8 8 0 00-16-5.578M14 14a8 8 0 00-16-5.578z" />
-                              </svg>
-                            </div>
-                          )}
+              <tbody className="divide-y divide-gray-100">
+                {users.map(user => (
+                  <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+
+                    {/* Avatar + Name */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-[#0F4C69] flex items-center justify-center text-white text-xs font-bold shrink-0">
+                          {initials(user.fullName)}
                         </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          <div className="text-xs text-gray-500">{user.email}</div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                          <p className="text-xs text-gray-400">{user.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {user.email}
+
+                    {/* Phone */}
+                    <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {user.phoneNumber || '—'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(user.role)}`}>
+
+                    {/* Role */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full capitalize ${getRoleBadgeColor(user.role)}`}>
                         {user.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(user.status)}`}>
-                        {user.status}
+
+                    {/* Account status — Enabled / Disabled */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${user.isDisabled ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${user.isDisabled ? 'bg-red-500' : 'bg-green-500'}`} />
+                        {user.isDisabled ? 'Disabled' : 'Enabled'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+
+                    {/* Email verification */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${user.isVerified ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${user.isVerified ? 'bg-blue-500' : 'bg-yellow-500'}`} />
+                        {user.isVerified ? 'Verified' : 'Pending'}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {user.status === 'active' ? (
-                        <button
-                          onClick={() => handleDisableUser(user)}
-                          className="px-3 py-1 bg-red-400 text-white text-xs font-medium rounded hover:bg-red-500 transition-colors"
-                          title="Disable User"
-                        >
-                          Disable
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleEnableUser(user)}
-                          className="px-3 py-1 bg-green-400 text-white text-xs font-medium rounded hover:bg-green-500 transition-colors"
-                          title="Enable User"
-                        >
-                          Enable
-                        </button>
-                      )}
+
+                    {/* Last Login */}
+                    <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={() => handleViewUser(user)}
-                          className="text-blue-600 hover:text-blue-800 mr-2" 
-                          title="View User"
+
+                    {/* Joined */}
+                    <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+
+                        {/* View */}
+                        <button
+                          onClick={() => { setUserToView(user); setShowViewModal(true); }}
+                          className="px-3 py-1.5 text-xs font-medium bg-[#0F4C69] text-white rounded-lg hover:bg-[#0d3f59] transition-colors"
                         >
-                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
+                          View
                         </button>
-                        <button 
-                          onClick={() => handleDeleteUser(user)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Delete User"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+
+                        {/* Disable / Enable */}
+                        {user.role !== 'admin' && (
+                          actionLoading === user._id ? (
+                            <div className="px-3 py-1.5 flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
+                              <div className="w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+                              Loading...
+                            </div>
+                          ) : user.isDisabled ? (
+                            <button
+                              onClick={() => handleEnableUser(user)}
+                              className="px-3 py-1.5 text-xs font-medium bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                            >
+                              Enable
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { setUserToDisable(user); setDisableReason(''); setDisableDescription(''); setShowDisableModal(true); }}
+                              className="px-3 py-1.5 text-xs font-medium bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
+                            >
+                              Disable
+                            </button>
+                          )
+                        )}
+
+                        {/* Delete */}
+                        {user.role !== 'admin' && (
+                          <button
+                            onClick={() => { setUserToDelete(user); setShowDeleteModal(true); }}
+                            className="px-3 py-1.5 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        )}
+
                       </div>
                     </td>
                   </tr>
@@ -379,55 +381,84 @@ const UsersPage = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Empty state */}
+          {users.length === 0 && !loading && (
+            <div className="text-center py-16">
+              <svg className="w-14 h-14 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <p className="text-gray-500 text-sm">No users found</p>
+            </div>
+          )}
         </div>
 
-        {/* Empty State */}
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-12">
-            <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
-            <p className="text-gray-600">
-              {searchTerm ? `No users found matching "${searchTerm}"` : 'No users available'}
-            </p>
-          </div>
-        )}
+        {/* ── Modals ── */}
 
-        {/* Delete Confirmation Modal */}
+        {/* Delete */}
         <ConfirmModal
           isOpen={showDeleteModal}
-          onClose={() => {
-            setShowDeleteModal(false);
-            setUserToDelete(null);
-          }}
+          onClose={() => { setShowDeleteModal(false); setUserToDelete(null); }}
           onConfirm={confirmDeleteUser}
           title="Delete User"
-          message={`Are you sure you want to delete "${userToDelete?.name || 'this user'}"? This action cannot be undone.`}
+          message={`Are you sure you want to permanently delete "${userToDelete?.fullName}"? This cannot be undone.`}
           confirmText="Delete"
           cancelText="Cancel"
           type="delete"
         />
 
-        {/* Disable User Modal */}
+        {/* Disable Modal */}
         {showDisableModal && userToDisable && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Disable User</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Are you sure you want to disable "{userToDisable.name}"? This will prevent them from accessing the system.
-                </p>
-                
-                <div className="mb-4">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">Reason for Disabling</label>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+
+              {/* Modal Header */}
+              <div className="bg-yellow-50 border-b border-yellow-100 px-6 py-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">Disable User Account</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">This action will block login access immediately</p>
+                </div>
+                <button
+                  onClick={() => { setShowDisableModal(false); setDisableReason(''); setDisableDescription(''); }}
+                  className="ml-auto text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="px-6 py-5 space-y-5">
+
+                {/* User info card */}
+                <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+                  <div className="w-10 h-10 rounded-full bg-[#0F4C69] flex items-center justify-center text-white text-sm font-bold shrink-0">
+                    {initials(userToDisable.fullName)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{userToDisable.fullName}</p>
+                    <p className="text-xs text-gray-500">{userToDisable.email}</p>
+                  </div>
+                </div>
+
+                {/* Reason */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Reason for Disabling <span className="text-red-500">*</span>
+                  </label>
                   <select
                     value={disableReason}
-                    onChange={(e) => setDisableReason(e.target.value)}
-                    className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    required
+                    onChange={e => { setDisableReason(e.target.value); setDisableDescription(''); }}
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors ${
+                      disableReason ? 'border-yellow-400 bg-yellow-50/40' : 'border-gray-300'
+                    }`}
                   >
-                    <option value="">Select a reason</option>
+                    <option value="">— Select a reason —</option>
                     <option value="policy_violation">Policy Violation</option>
                     <option value="security_concern">Security Concern</option>
                     <option value="inactivity">Inactivity</option>
@@ -436,123 +467,136 @@ const UsersPage = () => {
                   </select>
                 </div>
 
-                {disableReason === 'other' && (
-                  <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                {/* Message — always visible once reason is picked */}
+                {disableReason && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Additional Message
+                      {disableReason === 'other' && <span className="text-red-500 ml-1">*</span>}
+                      <span className="text-gray-400 font-normal ml-1">(sent to user via email)</span>
+                    </label>
                     <textarea
                       value={disableDescription}
-                      onChange={(e) => setDisableDescription(e.target.value)}
-                      className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      onChange={e => setDisableDescription(e.target.value)}
                       rows={3}
-                      placeholder="Please describe the reason for disabling this user..."
-                      required
+                      placeholder={
+                        disableReason === 'policy_violation' ? 'e.g. Your account violated our terms of service regarding...' :
+                        disableReason === 'security_concern' ? 'e.g. We detected suspicious login activity on your account...' :
+                        disableReason === 'inactivity'       ? 'e.g. Your account has been inactive for more than 6 months...' :
+                        disableReason === 'account_issue'    ? 'e.g. There is an issue with your account that requires review...' :
+                        'Please describe the reason for disabling this account...'
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 resize-none"
                     />
+                    <p className="text-xs text-gray-400 mt-1">
+                      {disableDescription.length}/500 characters
+                    </p>
                   </div>
                 )}
 
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={() => setShowDisableModal(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmDisableUser}
-                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                  >
-                    Disable User
-                  </button>
-                </div>
+                {/* Email preview notice */}
+                {disableReason && (
+                  <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                    <svg className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs font-semibold text-blue-800">Email will be sent to {userToDisable.email}</p>
+                      <p className="text-xs text-blue-600 mt-0.5">
+                        The user will be notified with reason: <strong>{REASON_LABELS[disableReason]}</strong>
+                        {disableDescription && ' and your additional message'}.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                <button
+                  onClick={() => { setShowDisableModal(false); setDisableReason(''); setDisableDescription(''); }}
+                  className="px-5 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDisableUser}
+                  disabled={!disableReason || (disableReason === 'other' && !disableDescription.trim()) || actionLoading === userToDisable._id}
+                  className="px-5 py-2 text-sm font-medium bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                >
+                  {actionLoading === userToDisable._id ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      Disabling...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                      Disable & Notify User
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* View User Modal */}
+        {/* View */}
         {showViewModal && userToView && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">User Details</h3>
-                
-                <div className="flex items-center mb-4">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full overflow-hidden border-2 border-gray-300 mr-4">
-                    {userToView.avatar ? (
-                      <Image 
-                        src={userToView.avatar} 
-                        alt={userToView.name}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5 4.722M12 14a8 8 0 00-16-5.578M14 14a8 8 0 00-16-5.578z" />
-                        </svg>
-                      </div>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-14 h-14 rounded-full bg-[#0F4C69] flex items-center justify-center text-white text-lg font-bold shrink-0">
+                  {initials(userToView.fullName)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">{userToView.fullName}</h3>
+                  <p className="text-sm text-gray-500">{userToView.email}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm">
+                {[
+                  { label: 'Phone',       value: userToView.phoneNumber || '—' },
+                  { label: 'Address',     value: userToView.address || '—' },
+                  { label: 'Role',        value: userToView.role },
+                  { label: 'Status',      value: userToView.isDisabled ? 'Disabled' : 'Active' },
+                  { label: 'Verified',    value: userToView.isVerified ? 'Yes' : 'No' },
+                  { label: 'Last Login',  value: userToView.lastLoginAt ? new Date(userToView.lastLoginAt).toLocaleString() : 'Never' },
+                  { label: 'Joined',      value: new Date(userToView.createdAt).toLocaleDateString() },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between py-2 border-b border-gray-100">
+                    <span className="text-gray-500 font-medium">{label}</span>
+                    <span className="text-gray-900 capitalize">{value}</span>
+                  </div>
+                ))}
+
+                {userToView.disableReason && (
+                  <div className="py-2">
+                    <span className="text-gray-500 font-medium">Disable Reason:</span>
+                    <p className="text-gray-900 capitalize mt-1">{userToView.disableReason.replace('_', ' ')}</p>
+                    {userToView.disableDescription && (
+                      <p className="text-gray-600 mt-1 text-xs">{userToView.disableDescription}</p>
                     )}
                   </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900">{userToView.name}</h4>
-                    <p className="text-sm text-gray-500">{userToView.email}</p>
-                  </div>
-                </div>
+                )}
+              </div>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Role:</span>
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(userToView.role)}`}>
-                      {userToView.role}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Status:</span>
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(userToView.status)}`}>
-                      {userToView.status}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Member Since:</span>
-                    <span className="text-sm text-gray-900">{new Date(userToView.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Last Login:</span>
-                    <span className="text-sm text-gray-900">
-                      {userToView.lastLogin ? new Date(userToView.lastLogin).toLocaleDateString() : 'Never'}
-                    </span>
-                  </div>
-                  
-                  {userToView.disableReason && (
-                    <div className="py-2 border-b">
-                      <span className="text-sm font-medium text-gray-600 block mb-1">Disable Reason:</span>
-                      <span className="text-sm text-gray-900 capitalize">
-                        {userToView.disableReason.replace('_', ' ')}
-                      </span>
-                      {userToView.disableDescription && (
-                        <p className="text-sm text-gray-700 mt-1">{userToView.disableDescription}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end mt-6">
-                  <button
-                    onClick={() => setShowViewModal(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                  >
-                    Close
-                  </button>
-                </div>
+              <div className="flex justify-end mt-5">
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
         )}
+
       </div>
     </DashboardLayout>
   );

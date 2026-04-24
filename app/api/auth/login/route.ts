@@ -33,6 +33,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (user.isDisabled) {
+      return NextResponse.json(
+        { success: false, message: 'Your account has been disabled. Please contact support.' },
+        { status: 403 }
+      );
+    }
+
+    // Track last login time
+    await User.findByIdAndUpdate(user._id, { lastLoginAt: new Date() });
+
     const token = signToken(String(user._id));
     const response = NextResponse.json(
       {

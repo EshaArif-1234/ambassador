@@ -21,7 +21,13 @@ const ImageSlider = () => {
       id: 3,
       image: '/Images/HD-banner2.png',
       alt: 'Hotel Kitchen Equipment'
-    }
+    },
+    {
+      id: 4,
+      image: '/Images/testing.jpg',
+      alt: 'Hotel Kitchen Equipment'
+    },
+    
   ];
 
   // Calculate dynamic height based on viewport and image aspect ratio
