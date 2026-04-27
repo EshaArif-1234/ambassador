@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import ImageSlider from '../../../components/home page/ImageSlider';
 import CategoryCard from '../../../components/home page/CategoryCard';
 import StatsSection from '../../../components/home page/StatsSection';
@@ -7,23 +8,36 @@ import WhyChooseUs from '../../../components/home page/WhyChooseUs';
 import SignupSection from '../../../components/home page/SignupSection';
 import CTASection from '../../../components/home page/CTASection';
 import ClientLogosSlider from '../../../components/about/ClientLogosSlider';
-const categories = [
-  { name: 'Stainless Steel Kitchen',          image: '/Images/card.png',                          category: 'Stainless Steel Kitchen' },
-  { name: 'Hotel',                             image: '/Images/Banquets.jpg',                   category: 'Hotel Kitchen Equipment' },
-  { name: 'Restaurant',                        image: '/Images/Restaurant-Card.png',               category: 'Restaurant Equipment' },
-  { name: 'Fast Food',                         image: '/Images/Fast-Food-Card-Banner.jpg',               category: 'Fast Food Equipment' },
-  { name: 'Bakery',                            image: '/Images/Bakery-Card-banner.jpg',                category: 'Bakery Equipment' },
-  { name: 'Cafes',                             image: '/Images/Cafes-Card-banner.jpg',                    category: 'Café Equipment' },
-  { name: 'Banquets',                          image: '/Images/Banquets.jpg',                 category: 'Banquet Equipment' },
-  { name: 'Super Markets',                     image: '/Images/Super-market.jpg',            category: 'Supermarket Equipment' },
-  { name: 'Hospital Kitchen',                  image: '/Images/home/Hospital Kitchen.jpg',         category: 'Hospital Kitchen' },
-  { name: 'Mess Kitchen',                      image: '/Images/Mess-Card.png',            category: 'Mess Kitchen (Large Catering)' },
-  { name: 'University Kitchen',                image: '/Images/home/university kitchen.jpg',       category: 'University / Institutional Kitchen' },
-  { name: 'Ambassador Engineering Products',   image: '/Images/home/engeniering products.jfif',   category: 'Ambassador Engineering Products' },
-  { name: 'Imported Items',                    image: '/Images/home/Imported Items.jfif',          category: 'Imported Items' },
-];
+
+interface StorefrontCategory {
+  _id: string;
+  title: string;
+  slug: string;
+  image: string;
+}
 
 const HomePage = () => {
+  const [categories, setCategories] = useState<StorefrontCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/categories');
+        const data = await res.json();
+        if (!cancelled && data.success && Array.isArray(data.data)) {
+          setCategories(data.data);
+        }
+      } catch {
+        if (!cancelled) setCategories([]);
+      } finally {
+        if (!cancelled) setCategoriesLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
 
@@ -52,14 +66,33 @@ const HomePage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {categories.map((category, index) => (
-              <CategoryCard
-                key={index}
-                title={category.name}
-                image={category.image}
-                category={category.category}
-              />
-            ))}
+            {categoriesLoading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg border border-gray-100 bg-gray-50 overflow-hidden animate-pulse"
+                >
+                  <div className="h-48 bg-gray-200" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-5 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-gray-200 rounded w-1/3" />
+                  </div>
+                </div>
+              ))
+            ) : categories.length === 0 ? (
+              <p className="col-span-full text-center text-sm text-gray-500 py-8">
+                No categories to show yet.
+              </p>
+            ) : (
+              categories.map((category) => (
+                <CategoryCard
+                  key={category._id}
+                  title={category.title}
+                  image={category.image || undefined}
+                  category={category.title}
+                />
+              ))
+            )}
           </div>
         </div>
       </section>
