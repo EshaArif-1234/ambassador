@@ -2,14 +2,67 @@
 
 import Image from 'next/image';
 
-const logos = Array.from({ length: 44 }, (_, i) => ({
+/**
+ * Client logo slider — edit this list to swap images or reorder.
+ * Paths are under `/public` (leading `/` in URL).
+ * First half of the list → top row (scrolls left); second half → bottom row (scrolls right).
+ */
+const CLIENT_LOGO_IMAGES: string[] = [
+  '/Images/Logo Final/logo1.webp',
+  '/Images/Logo Final/logo2.webp',
+  '/Images/Logo Final/logo3.webp',
+  '/Images/Logo Final/logo4.webp',
+  '/Images/Logo Final/logo5.webp',
+  '/Images/Logo Final/logo6.webp',
+  '/Images/slider-images-new/logo-7.png',
+  '/Images/slider-images-new/logo-8.png',
+  '/Images/slider-images-new/logo-9.png',
+  '/Images/Logo Final/logo10.webp',
+  '/Images/slider-images-new/logo-11.png',
+  '/Images/Logo Final/logo12.webp',
+  '/Images/Logo Final/logo13.webp',
+  '/Images/Logo Final/logo14.webp',
+  '/Images/Logo Final/logo15.webp',
+  '/Images/Logo Final/logo16.webp',
+  '/Images/Logo Final/logo17.webp',
+  '/Images/Logo Final/logo18.webp',
+  '/Images/Logo Final/logo19.webp',
+  '/Images/Logo Final/logo20.webp',
+  '/Images/Logo Final/logo21.webp',
+  '/Images/Logo Final/logo22.webp',
+  '/Images/Logo Final/logo23.webp',
+  '/Images/Logo Final/logo24.webp',
+  '/Images/Logo Final/logo25.webp',
+  '/Images/Logo Final/logo26.webp',
+  '/Images/Logo Final/logo27.webp',
+  '/Images/Logo Final/logo28.webp',
+  '/Images/Logo Final/logo29.webp',
+  '/Images/Logo Final/logo30.webp',
+  '/Images/Logo Final/logo31.webp',
+  '/Images/Logo Final/logo32.webp',
+  '/Images/Logo Final/logo33.webp',
+  '/Images/Logo Final/logo34.webp',
+  '/Images/Logo Final/logo35.webp',
+  '/Images/Logo Final/logo36.webp',
+  '/Images/Logo Final/logo37.webp',
+  '/Images/Logo Final/logo38.webp',
+  '/Images/Logo Final/logo39.webp',
+  '/Images/Logo Final/logo40.webp',
+  '/Images/Logo Final/logo41.webp',
+  '/Images/Logo Final/logo42.webp',
+  '/Images/Logo Final/logo43.webp',
+  '/Images/Logo Final/logo44.webp',
+];
+
+const logos = CLIENT_LOGO_IMAGES.map((logo, i) => ({
   id: String(i + 1),
-  logo: `/Images/Logo Final/logo${i + 1}.webp`,
+  logo,
   name: `Client ${i + 1}`,
 }));
 
-const row1 = logos.slice(0, 22);
-const row2 = logos.slice(22, 44);
+const half = Math.ceil(logos.length / 2);
+const row1 = logos.slice(0, half);
+const row2 = logos.slice(half);
 
 interface LogoCardProps {
   logo: { id: string; logo: string; name: string };
@@ -85,7 +138,7 @@ const ClientLogosSlider = () => {
 
           <div className="flex marquee-left">
             {[...row1, ...row1].map((logo, i) => (
-              <LogoCard key={`r1-${i}`} logo={logo} />
+              <LogoCard key={`r1-${i}-${logo.id}`} logo={logo} />
             ))}
           </div>
         </div>
@@ -97,7 +150,7 @@ const ClientLogosSlider = () => {
 
           <div className="flex marquee-right">
             {[...row2, ...row2].map((logo, i) => (
-              <LogoCard key={`r2-${i}`} logo={logo} />
+              <LogoCard key={`r2-${i}-${logo.id}`} logo={logo} />
             ))}
           </div>
         </div>
