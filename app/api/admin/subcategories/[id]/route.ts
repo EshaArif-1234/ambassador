@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Types } from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
 import connectDB from '@/backend/config/db';
 import Category from '@/backend/models/Category.model';
 import SubCategory from '@/backend/models/SubCategory.model';
+import { migrateLegacySubcategoryParents } from '@/backend/lib/migrateSubCategoryParents';
 import { requireAdmin } from '@/backend/lib/adminAuth';
+
+function resolveParentCategoryIds(body: {
+  categoryIds?: unknown;
+  categoryId?: unknown;
+}): string[] | null {
+  if (Array.isArray(body.categoryIds) && body.categoryIds.length > 0) {
+    const ids = [...new Set(body.categoryIds.map(String).filter(Boolean))];
+    return ids.length ? ids : null;
+  }
+  if (body.categoryId != null && String(body.categoryId).trim() !== '') {
+    return [String(body.categoryId)];
+  }
+  return null;
+}
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -11,7 +27,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-/** PATCH /api/admin/subcategories/[id] — update title, image, categoryId, or status */
+/** PATCH /api/admin/subcategories/[id] — update title, image, categoryIds, or status */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -21,26 +37,36 @@ export async function PATCH(
 
   try {
     await connectDB();
+    await migrateLegacySubcategoryParents(SubCategory.collection);
     const { id } = await params;
-    const { title, image, imagePublicId, categoryId, status } = await req.json();
+    const body = await req.json();
+    const { title, image, imagePublicId, status, metaTitle } = body;
 
     const sub = await SubCategory.findById(id);
     if (!sub) {
       return NextResponse.json({ success: false, message: 'Subcategory not found.' }, { status: 404 });
     }
 
-    if (title      !== undefined) sub.title  = title.trim();
-    if (status     !== undefined) sub.status = status;
+    if (title            !== undefined) sub.title            = title.trim();
+    if (status           !== undefined) sub.status           = status;
+    if (metaTitle !== undefined) sub.metaTitle = metaTitle?.trim() ?? '';
 
-    if (categoryId !== undefined) {
-      const parentExists = await Category.findById(categoryId);
-      if (!parentExists) {
+    if (body.categoryIds !== undefined || body.categoryId !== undefined) {
+      const parentIds = resolveParentCategoryIds(body);
+      if (!parentIds) {
         return NextResponse.json(
-          { success: false, message: 'Parent category not found.' },
+          { success: false, message: 'At least one parent category is required.' },
+          { status: 400 }
+        );
+      }
+      const parents = await Category.find({ _id: { $in: parentIds } }).select('_id').lean();
+      if (parents.length !== parentIds.length) {
+        return NextResponse.json(
+          { success: false, message: 'One or more parent categories were not found.' },
           { status: 404 }
         );
       }
-      sub.categoryId = categoryId;
+      sub.categoryIds = parentIds.map((cid) => new Types.ObjectId(cid));
     }
 
     // Replace image and delete old one from Cloudinary
@@ -53,7 +79,7 @@ export async function PATCH(
     }
 
     await sub.save();
-    const populated = await sub.populate('categoryId', 'title');
+    const populated = await sub.populate('categoryIds', 'title');
 
     return NextResponse.json(
       { success: true, message: 'Subcategory updated.', data: populated },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import Category from '@/backend/models/Category.model';
 import SubCategory from '@/backend/models/SubCategory.model';
+import { migrateLegacySubcategoryParents } from '@/backend/lib/migrateSubCategoryParents';
 import { requireAdmin } from '@/backend/lib/adminAuth';
 
 /** GET /api/admin/categories — list all categories with subcategory count */
@@ -11,6 +12,7 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectDB();
+    await migrateLegacySubcategoryParents(SubCategory.collection);
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') ?? '';
     const status = searchParams.get('status') ?? 'all';
@@ -24,8 +26,10 @@ export async function GET(req: NextRequest) {
     // Attach subcategory count for each category
     const categoryIds = categories.map((c) => c._id);
     const counts = await SubCategory.aggregate([
-      { $match: { categoryId: { $in: categoryIds } } },
-      { $group: { _id: '$categoryId', count: { $sum: 1 } } },
+      { $match: { categoryIds: { $in: categoryIds } } },
+      { $unwind: '$categoryIds' },
+      { $match: { categoryIds: { $in: categoryIds } } },
+      { $group: { _id: '$categoryIds', count: { $sum: 1 } } },
     ]);
     const countMap = new Map(counts.map((c) => [String(c._id), c.count]));
 
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectDB();
-    const { title, image, imagePublicId, status } = await req.json();
+    const { title, image, imagePublicId, status, metaTitle } = await req.json();
 
     if (!title?.trim()) {
       return NextResponse.json(
@@ -67,9 +71,10 @@ export async function POST(req: NextRequest) {
 
     const category = await Category.create({
       title: title.trim(),
-      image:         image         ?? '',
-      imagePublicId: imagePublicId ?? '',
-      status:        status        ?? 'active',
+      image:           image           ?? '',
+      imagePublicId:   imagePublicId   ?? '',
+      status:          status          ?? 'active',
+      metaTitle: metaTitle?.trim() ?? '',
     });
 
     return NextResponse.json(

@@ -3,6 +3,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import connectDB from '@/backend/config/db';
 import Category from '@/backend/models/Category.model';
 import SubCategory from '@/backend/models/SubCategory.model';
+import { migrateLegacySubcategoryParents } from '@/backend/lib/migrateSubCategoryParents';
 import { requireAdmin } from '@/backend/lib/adminAuth';
 
 cloudinary.config({
@@ -22,7 +23,7 @@ export async function PATCH(
   try {
     await connectDB();
     const { id } = await params;
-    const { title, image, imagePublicId, status } = await req.json();
+    const { title, image, imagePublicId, status, metaTitle } = await req.json();
 
     const category = await Category.findById(id);
     if (!category) {
@@ -53,6 +54,7 @@ export async function PATCH(
     }
 
     if (status !== undefined) category.status = status;
+    if (metaTitle !== undefined) category.metaTitle = metaTitle?.trim() ?? '';
 
     await category.save();
 
@@ -66,7 +68,7 @@ export async function PATCH(
   }
 }
 
-/** DELETE /api/admin/categories/[id] — delete category and all its subcategories */
+/** DELETE /api/admin/categories/[id] — delete category; unlink or remove subcategories that referenced it */
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -88,19 +90,28 @@ export async function DELETE(
       try { await cloudinary.uploader.destroy(category.imagePublicId); } catch { /* ignore */ }
     }
 
-    // Delete all subcategory images from Cloudinary and then the subcategories themselves
-    const subs = await SubCategory.find({ categoryId: id });
-    await Promise.allSettled(
-      subs
-        .filter((s) => s.imagePublicId)
-        .map((s) => cloudinary.uploader.destroy(s.imagePublicId))
-    );
-    await SubCategory.deleteMany({ categoryId: id });
+    const subs = await SubCategory.find({ categoryIds: id });
+    for (const sub of subs) {
+      const nextIds = sub.categoryIds.filter((cid) => String(cid) !== String(id));
+      if (nextIds.length === 0) {
+        if (sub.imagePublicId) {
+          try {
+            await cloudinary.uploader.destroy(sub.imagePublicId);
+          } catch {
+            /* ignore */
+          }
+        }
+        await SubCategory.findByIdAndDelete(sub._id);
+      } else {
+        sub.categoryIds = nextIds;
+        await sub.save();
+      }
+    }
 
     await Category.findByIdAndDelete(id);
 
     return NextResponse.json(
-      { success: true, message: 'Category and its subcategories deleted.' },
+      { success: true, message: 'Category deleted. Shared subcategories were unlinked from it.' },
       { status: 200 }
     );
   } catch (error) {

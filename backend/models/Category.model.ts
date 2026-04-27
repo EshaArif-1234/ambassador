@@ -6,6 +6,7 @@ export interface ICategory extends Document {
   image: string;
   imagePublicId: string;
   status: 'active' | 'inactive';
+  metaTitle?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,6 +39,12 @@ const categorySchema = new Schema<ICategory>(
       type: String,
       enum: ['active', 'inactive'],
       default: 'active',
+    },
+    metaTitle: {
+      type: String,
+      trim: true,
+      maxlength: [160, 'Meta title cannot exceed 160 characters'],
+      default: '',
     },
   },
   { timestamps: true }

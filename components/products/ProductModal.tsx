@@ -5,13 +5,18 @@ import { useState, useEffect } from 'react';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Category    { _id: string; title: string; status: string; }
-interface SubCategory { _id: string; title: string; categoryId: string | { _id: string }; status: string; }
+interface SubCategory {
+  _id: string;
+  title: string;
+  categoryIds?: Array<string | { _id: string }>;
+  status: string;
+}
 interface MediaSlot   { url: string; file: File | null; preview: string; publicId: string; }
 
 export interface ProductFormData {
   name: string;
-  category: string;
-  subCategory: string;
+  categories: string[];
+  subCategories: string[];
   price: string | number;
   originalPrice: string | number;
   stock: string | number;
@@ -39,6 +44,19 @@ interface ProductModalProps {
 const getId    = (v: any): string => (v && typeof v === 'object' && v._id) ? String(v._id) : String(v || '');
 const getTitle = (v: any): string => (v && typeof v === 'object' && v.title) ? v.title : '';
 
+const categoryIdsFromProduct = (p: any): string[] => {
+  if (Array.isArray(p?.categories) && p.categories.length)
+    return p.categories.map(getId).filter(Boolean);
+  if (p?.category) return [getId(p.category)].filter(Boolean);
+  return [];
+};
+const subCategoryIdsFromProduct = (p: any): string[] => {
+  if (Array.isArray(p?.subCategories) && p.subCategories.length)
+    return p.subCategories.map(getId).filter(Boolean);
+  if (p?.subCategory) return [getId(p.subCategory)].filter(Boolean);
+  return [];
+};
+
 const initMediaSlots = (urls: string[], pids: string[], count: number): MediaSlot[] =>
   Array.from({ length: count }, (_, i) => ({
     url:      urls[i] || '',
@@ -52,8 +70,18 @@ const initMediaSlots = (urls: string[], pids: string[], count: number): MediaSlo
 const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ product: p = {}, onClose }) => {
   const [activeImg, setActiveImg] = useState(0);
 
-  const categoryTitle    = getTitle(p.category)    || p.category    || '—';
-  const subCategoryTitle = getTitle(p.subCategory) || p.subCategory || '—';
+  const catItems = Array.isArray(p.categories) && p.categories.length
+    ? p.categories
+    : p.category
+      ? [p.category]
+      : [];
+  const subItems = Array.isArray(p.subCategories) && p.subCategories.length
+    ? p.subCategories
+    : p.subCategory
+      ? [p.subCategory]
+      : [];
+  const categoryLabels    = catItems.map((c: any) => getTitle(c) || getId(c) || '—');
+  const subCategoryLabels = subItems.map((c: any) => getTitle(c) || getId(c) || '—');
   const specs  = (p.specifications || {}) as Record<string, unknown>;
   const imgs   = (p.images  || []).filter(Boolean) as string[];
   const vids   = (p.videos  || []).filter(Boolean) as string[];
@@ -318,13 +346,21 @@ const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ pro
               {/* Category Info */}
               <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
                 <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Classification</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Category</span>
-                  <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">{categoryTitle}</span>
+                <div>
+                  <span className="text-sm text-gray-500 block mb-1.5">Categories</span>
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {categoryLabels.length ? categoryLabels.map((t: string, i: number) => (
+                      <span key={i} className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">{t}</span>
+                    )) : <span className="text-xs text-gray-400">—</span>}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Subcategory</span>
-                  <span className="px-2.5 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full">{subCategoryTitle}</span>
+                <div>
+                  <span className="text-sm text-gray-500 block mb-1.5">Subcategories</span>
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {subCategoryLabels.length ? subCategoryLabels.map((t: string, i: number) => (
+                      <span key={i} className="px-2.5 py-0.5 bg-purple-50 text-purple-700 text-xs font-medium rounded-full">{t}</span>
+                    )) : <span className="text-xs text-gray-400">—</span>}
+                  </div>
                 </div>
               </div>
 
@@ -393,8 +429,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
   // ── Form ──
   const [form, setForm] = useState({
     name:            product?.name            || '',
-    categoryId:      getId(product?.category),
-    subCategoryId:   getId(product?.subCategory),
+    categoryIds:     categoryIdsFromProduct(product),
+    subCategoryIds:  subCategoryIdsFromProduct(product),
     price:           product?.price           ?? '',
     originalPrice:   product?.originalPrice   || '',
     stock:           product?.stock           ?? 0,
@@ -416,6 +452,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
   const [errors,       setErrors]       = useState<Record<string, string>>({});
   const [saving,       setSaving]       = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [productCategoryFilter,    setProductCategoryFilter]    = useState('');
+  const [productSubCategoryFilter, setProductSubCategoryFilter] = useState('');
 
   // ── Fetch categories (add/edit only) ──
   useEffect(() => {
@@ -425,13 +463,85 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
       .then(d => { if (d.success) setCategories(d.data); });
   }, [isOpen, mode]);
 
-  // ── Fetch subcategories when category changes ──
+  // ── Reset form when opening add/edit or switching product ──
   useEffect(() => {
-    if (!form.categoryId) { setSubcategories([]); return; }
-    fetch(`/api/admin/subcategories?categoryId=${form.categoryId}`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => { if (d.success) setSubcategories(d.data); });
-  }, [form.categoryId]);
+    if (!isOpen || mode === 'view') return;
+    const p = product;
+    setProductCategoryFilter('');
+    setProductSubCategoryFilter('');
+    setForm({
+      name: p?.name ?? '',
+      categoryIds: categoryIdsFromProduct(p),
+      subCategoryIds: subCategoryIdsFromProduct(p),
+      price: p?.price ?? '',
+      originalPrice: p?.originalPrice ?? '',
+      stock: p?.stock ?? 0,
+      status: (p?.status || 'active') as 'active' | 'inactive',
+      about: p?.about ?? '',
+      specifications: (p?.specifications || {}) as Record<string, string>,
+      metaTitle: p?.metaTitle ?? '',
+      metaDescription: p?.metaDescription ?? '',
+    });
+    setSpecRows(
+      Object.entries((p?.specifications || {}) as Record<string, unknown>).map(([k, v]) => ({
+        id: Math.random().toString(36).slice(2),
+        key: k,
+        value: String(v ?? ''),
+      }))
+    );
+    setImageSlots(initMediaSlots(p?.images || [], p?.imagePublicIds || [], 3));
+    setVideoSlots(initMediaSlots(p?.videos || [], p?.videoPublicIds || [], 2));
+    setErrors({});
+  }, [isOpen, mode, product?._id]);
+
+  // ── Subcategories: union for all selected categories; drop invalid picks ──
+  useEffect(() => {
+    if (!isOpen || mode === 'view') return;
+    const ids = form.categoryIds;
+    if (!ids.length) {
+      setSubcategories([]);
+      setForm(f => (f.subCategoryIds.length ? { ...f, subCategoryIds: [] } : f));
+      return;
+    }
+    let cancelled = false;
+    Promise.all(
+      ids.map(cid =>
+        fetch(`/api/admin/subcategories?categoryId=${cid}`, { credentials: 'include' }).then(r => r.json())
+      )
+    ).then(results => {
+      if (cancelled) return;
+      const map = new Map<string, SubCategory>();
+      results.forEach(d => {
+        if (d.success) (d.data as SubCategory[]).forEach(s => map.set(s._id, s));
+      });
+      const list = Array.from(map.values());
+      setSubcategories(list);
+      const allowed = new Set(list.map(s => s._id));
+      setForm(f => {
+        const next = f.subCategoryIds.filter(id => allowed.has(id));
+        if (next.length === f.subCategoryIds.length) return f;
+        return { ...f, subCategoryIds: next };
+      });
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, mode, form.categoryIds.join('|')]);
+
+  const toggleProductCategory = (id: string) => {
+    setForm(f => ({
+      ...f,
+      categoryIds: f.categoryIds.includes(id)
+        ? f.categoryIds.filter(x => x !== id)
+        : [...f.categoryIds, id],
+    }));
+  };
+  const toggleProductSubCategory = (id: string) => {
+    setForm(f => ({
+      ...f,
+      subCategoryIds: f.subCategoryIds.includes(id)
+        ? f.subCategoryIds.filter(x => x !== id)
+        : [...f.subCategoryIds, id],
+    }));
+  };
 
   // ── Spec helpers ──
   const syncSpecs = (rows: typeof specRows) => {
@@ -469,9 +579,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
   // ── Validate ──
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())                                      e.name          = 'Product name is required';
-    if (!form.categoryId)                                       e.categoryId    = 'Category is required';
-    if (!form.subCategoryId)                                    e.subCategoryId = 'Subcategory is required';
+    if (!form.name.trim())                                      e.name             = 'Product name is required';
+    if (!form.categoryIds.length)                               e.categoryIds    = 'Select at least one category';
+    if (!form.subCategoryIds.length)                            e.subCategoryIds   = 'Select at least one subcategory';
     if (!form.originalPrice || Number(form.originalPrice) <= 0) e.originalPrice = 'Original price is required';
     if (form.price !== '' && Number(form.price) < 0)            e.price         = 'Discounted price cannot be negative';
     if (form.price !== '' && Number(form.originalPrice) > 0 && Number(form.price) > Number(form.originalPrice))
@@ -509,8 +619,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
 
       await onSave?.({
         name:            form.name.trim(),
-        category:        form.categoryId,
-        subCategory:     form.subCategoryId,
+        categories:      form.categoryIds,
+        subCategories:   form.subCategoryIds,
         price:           form.price,
         originalPrice:   form.originalPrice,
         stock:           form.stock,
@@ -686,28 +796,127 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
 
-            {/* Category + SubCategory */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Categories + Subcategories (multi) */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
-                <select value={form.categoryId}
-                  onChange={e => setForm(f => ({ ...f, categoryId: e.target.value, subCategoryId: '' }))}
-                  className={inputCls(!!errors.categoryId)}>
-                  <option value="">— Select category —</option>
-                  {categories.map(c => <option key={c._id} value={c._id}>{c.title}</option>)}
-                </select>
-                {errors.categoryId && <p className="text-red-500 text-xs mt-1">{errors.categoryId}</p>}
+                <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-xs font-medium text-gray-600">
+                    Categories <span className="text-red-500">*</span>
+                    <span className="font-normal text-gray-400"> · multi</span>
+                  </label>
+                  {form.categoryIds.length > 0 && (
+                    <span className="rounded-full bg-[#0F4C69]/10 px-2 py-0.5 text-[11px] font-medium text-[#0F4C69]">
+                      {form.categoryIds.length} selected
+                    </span>
+                  )}
+                </div>
+                {categories.length > 0 && (
+                  <input
+                    type="search"
+                    value={productCategoryFilter}
+                    onChange={e => setProductCategoryFilter(e.target.value)}
+                    placeholder="Filter…"
+                    className="mb-2 w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none placeholder:text-gray-400 focus:border-[#0F4C69]/40 focus:ring-1 focus:ring-[#0F4C69]/20"
+                  />
+                )}
+                <div
+                  className={`max-h-[min(10rem,26svh)] overflow-y-auto overscroll-contain rounded-lg border bg-white sm:max-h-[min(11rem,24svh)] ${
+                    errors.categoryIds ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                >
+                  {categories.length === 0 ? (
+                    <p className="px-3 py-4 text-center text-xs text-gray-400">No categories.</p>
+                  ) : (
+                    (() => {
+                      const q = productCategoryFilter.trim().toLowerCase();
+                      const filtered = q
+                        ? categories.filter(c => c.title.toLowerCase().includes(q))
+                        : categories;
+                      if (!filtered.length) {
+                        return <p className="px-3 py-4 text-center text-xs text-gray-400">No matches.</p>;
+                      }
+                      return (
+                        <ul className="grid grid-cols-1 gap-0.5 p-1.5">
+                          {filtered.map(c => (
+                            <li key={c._id}>
+                              <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-[#0F4C69]/5 sm:text-[13px] sm:py-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={form.categoryIds.includes(c._id)}
+                                  onChange={() => toggleProductCategory(c._id)}
+                                  className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-[#0F4C69] focus:ring-[#0F4C69]/30"
+                                />
+                                <span className="min-w-0 truncate" title={c.title}>{c.title}</span>
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()
+                  )}
+                </div>
+                {errors.categoryIds && <p className="mt-1 text-xs text-red-500">{errors.categoryIds}</p>}
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Subcategory <span className="text-red-500">*</span></label>
-                <select value={form.subCategoryId}
-                  onChange={e => setForm(f => ({ ...f, subCategoryId: e.target.value }))}
-                  disabled={!form.categoryId || subcategories.length === 0}
-                  className={inputCls(!!errors.subCategoryId)}>
-                  <option value="">— Select subcategory —</option>
-                  {subcategories.map(s => <option key={s._id} value={s._id}>{s.title}</option>)}
-                </select>
-                {errors.subCategoryId && <p className="text-red-500 text-xs mt-1">{errors.subCategoryId}</p>}
+                <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-xs font-medium text-gray-600">
+                    Subcategories <span className="text-red-500">*</span>
+                    <span className="font-normal text-gray-400"> · under selected categories</span>
+                  </label>
+                  {form.subCategoryIds.length > 0 && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                      {form.subCategoryIds.length} selected
+                    </span>
+                  )}
+                </div>
+                {subcategories.length > 0 && (
+                  <input
+                    type="search"
+                    value={productSubCategoryFilter}
+                    onChange={e => setProductSubCategoryFilter(e.target.value)}
+                    placeholder="Filter…"
+                    className="mb-2 w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none placeholder:text-gray-400 focus:border-amber-300 focus:ring-1 focus:ring-amber-400/30"
+                  />
+                )}
+                <div
+                  className={`max-h-[min(10rem,26svh)] overflow-y-auto overscroll-contain rounded-lg border bg-white sm:max-h-[min(11rem,24svh)] ${
+                    errors.subCategoryIds ? 'border-red-400' : 'border-gray-200'
+                  }`}
+                >
+                  {!form.categoryIds.length ? (
+                    <p className="px-3 py-4 text-center text-xs text-gray-400">Select categories first.</p>
+                  ) : subcategories.length === 0 ? (
+                    <p className="px-3 py-4 text-center text-xs text-gray-400">No subcategories for this mix.</p>
+                  ) : (
+                    (() => {
+                      const q = productSubCategoryFilter.trim().toLowerCase();
+                      const filtered = q
+                        ? subcategories.filter(s => s.title.toLowerCase().includes(q))
+                        : subcategories;
+                      if (!filtered.length) {
+                        return <p className="px-3 py-4 text-center text-xs text-gray-400">No matches.</p>;
+                      }
+                      return (
+                        <ul className="grid grid-cols-1 gap-0.5 p-1.5">
+                          {filtered.map(s => (
+                            <li key={s._id}>
+                              <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-amber-50/90 sm:text-[13px] sm:py-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={form.subCategoryIds.includes(s._id)}
+                                  onChange={() => toggleProductSubCategory(s._id)}
+                                  className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-amber-600 focus:ring-amber-400/40"
+                                />
+                                <span className="min-w-0 truncate" title={s.title}>{s.title}</span>
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()
+                  )}
+                </div>
+                {errors.subCategoryIds && <p className="mt-1 text-xs text-red-500">{errors.subCategoryIds}</p>}
               </div>
             </div>
           </div>

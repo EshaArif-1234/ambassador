@@ -14,6 +14,7 @@ interface Category {
   image: string;
   imagePublicId: string;
   status: 'active' | 'inactive';
+  metaTitle?: string;
   subcategoryCount: number;
   createdAt: string;
 }
@@ -24,8 +25,9 @@ interface SubCategory {
   slug: string;
   image: string;
   imagePublicId: string;
-  categoryId: { _id: string; title: string } | string;
+  categoryIds: Array<{ _id: string; title: string } | string>;
   status: 'active' | 'inactive';
+  metaTitle?: string;
   createdAt: string;
 }
 
@@ -36,6 +38,7 @@ interface CategoryForm {
   imageUrl: string;
   imagePublicId: string;
   status: 'active' | 'inactive';
+  metaTitle: string;
 }
 
 interface SubCategoryForm {
@@ -44,16 +47,19 @@ interface SubCategoryForm {
   imagePreview: string;
   imageUrl: string;
   imagePublicId: string;
-  categoryId: string;
+  categoryIds: string[];
   status: 'active' | 'inactive';
+  metaTitle: string;
 }
 
 const emptyCategoryForm = (): CategoryForm => ({
   title: '', imageFile: null, imagePreview: '', imageUrl: '', imagePublicId: '', status: 'active',
+  metaTitle: '',
 });
 
 const emptySubCategoryForm = (): SubCategoryForm => ({
-  title: '', imageFile: null, imagePreview: '', imageUrl: '', imagePublicId: '', categoryId: '', status: 'active',
+  title: '', imageFile: null, imagePreview: '', imageUrl: '', imagePublicId: '', categoryIds: [], status: 'active',
+  metaTitle: '',
 });
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -89,6 +95,7 @@ const AdminCategoriesPage = () => {
   const [saving,          setSaving]          = useState(false);
   const [uploading,       setUploading]       = useState(false);
   const [actionLoading,   setActionLoading]   = useState<string | null>(null);
+  const [subCategoryParentSearch, setSubCategoryParentSearch] = useState('');
 
   // ── Auto-clear banners ──
   const showSuccess = (msg: string) => {
@@ -116,6 +123,20 @@ const AdminCategoriesPage = () => {
       showError('Failed to load categories.');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const refreshLists = useCallback(async () => {
+    try {
+      const [catRes, subRes] = await Promise.all([
+        fetch('/api/admin/categories', { credentials: 'include' }),
+        fetch('/api/admin/subcategories', { credentials: 'include' }),
+      ]);
+      const [catData, subData] = await Promise.all([catRes.json(), subRes.json()]);
+      if (catData.success)  setCategories(catData.data);
+      if (subData.success) setSubcategories(subData.data);
+    } catch {
+      showError('Failed to refresh lists.');
     }
   }, []);
 
@@ -149,6 +170,7 @@ const AdminCategoriesPage = () => {
       title: cat.title, imageFile: null,
       imagePreview: cat.image, imageUrl: cat.image,
       imagePublicId: cat.imagePublicId, status: cat.status,
+      metaTitle: cat.metaTitle ?? '',
     });
     setCatErrors({});
     setShowCategoryModal(true);
@@ -181,7 +203,10 @@ const AdminCategoriesPage = () => {
         setUploading(false);
       }
 
-      const payload = { title: categoryForm.title, image: imageUrl, imagePublicId, status: categoryForm.status };
+      const payload = {
+        title: categoryForm.title, image: imageUrl, imagePublicId, status: categoryForm.status,
+        metaTitle: categoryForm.metaTitle.trim(),
+      };
 
       if (modalMode === 'add') {
         const res  = await fetch('/api/admin/categories', {
@@ -245,6 +270,7 @@ const AdminCategoriesPage = () => {
     setModalMode('add');
     setSelectedSubCategory(null);
     setSubCategoryForm(emptySubCategoryForm());
+    setSubCategoryParentSearch('');
     setSubErrors({});
     setShowSubCategoryModal(true);
   };
@@ -252,11 +278,13 @@ const AdminCategoriesPage = () => {
   const handleEditSubCategory = (sub: SubCategory) => {
     setModalMode('edit');
     setSelectedSubCategory(sub);
-    const parentId = typeof sub.categoryId === 'string' ? sub.categoryId : sub.categoryId._id;
+    setSubCategoryParentSearch('');
+    const parentIds = (sub.categoryIds ?? []).map((c) => (typeof c === 'string' ? c : c._id));
     setSubCategoryForm({
       title: sub.title, imageFile: null,
       imagePreview: sub.image, imageUrl: sub.image,
-      imagePublicId: sub.imagePublicId, categoryId: parentId, status: sub.status,
+      imagePublicId: sub.imagePublicId, categoryIds: parentIds, status: sub.status,
+      metaTitle: sub.metaTitle ?? '',
     });
     setSubErrors({});
     setShowSubCategoryModal(true);
@@ -271,8 +299,8 @@ const AdminCategoriesPage = () => {
 
   const handleSaveSubCategory = async () => {
     const errors: Record<string, string> = {};
-    if (!subCategoryForm.title.trim())   errors.title      = 'Subcategory title is required.';
-    if (!subCategoryForm.categoryId)     errors.categoryId = 'Parent category is required.';
+    if (!subCategoryForm.title.trim()) errors.title = 'Subcategory title is required.';
+    if (subCategoryForm.categoryIds.length < 1) errors.categoryIds = 'Select at least one parent category.';
     if (modalMode === 'add' && !subCategoryForm.imageFile) errors.image = 'Subcategory image is required.';
     setSubErrors(errors);
     if (Object.keys(errors).length) return;
@@ -292,7 +320,8 @@ const AdminCategoriesPage = () => {
 
       const payload = {
         title: subCategoryForm.title, image: imageUrl, imagePublicId,
-        categoryId: subCategoryForm.categoryId, status: subCategoryForm.status,
+        categoryIds: subCategoryForm.categoryIds, status: subCategoryForm.status,
+        metaTitle: subCategoryForm.metaTitle.trim(),
       };
 
       if (modalMode === 'add') {
@@ -303,12 +332,7 @@ const AdminCategoriesPage = () => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-        setSubcategories(prev => [data.data, ...prev]);
-        setCategories(prev => prev.map(c =>
-          c._id === subCategoryForm.categoryId
-            ? { ...c, subcategoryCount: c.subcategoryCount + 1 }
-            : c
-        ));
+        await refreshLists();
         showSuccess('Subcategory created successfully.');
       } else if (selectedSubCategory) {
         const res  = await fetch(`/api/admin/subcategories/${selectedSubCategory._id}`, {
@@ -318,9 +342,7 @@ const AdminCategoriesPage = () => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-        setSubcategories(prev => prev.map(s =>
-          s._id === selectedSubCategory._id ? data.data : s
-        ));
+        await refreshLists();
         showSuccess('Subcategory updated successfully.');
       }
       setShowSubCategoryModal(false);
@@ -370,27 +392,7 @@ const AdminCategoriesPage = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      if (type === 'category') {
-        const deletedCat = categories.find(c => c._id === id);
-        setCategories(prev => prev.filter(c => c._id !== id));
-        // Remove all subcategories that belonged to this category
-        if (deletedCat) {
-          setSubcategories(prev => prev.filter(s => {
-            const parentId = typeof s.categoryId === 'string' ? s.categoryId : s.categoryId._id;
-            return parentId !== id;
-          }));
-        }
-      } else {
-        const deletedSub = subcategories.find(s => s._id === id);
-        setSubcategories(prev => prev.filter(s => s._id !== id));
-        if (deletedSub) {
-          const parentId = typeof deletedSub.categoryId === 'string'
-            ? deletedSub.categoryId : deletedSub.categoryId._id;
-          setCategories(prev => prev.map(c =>
-            c._id === parentId ? { ...c, subcategoryCount: Math.max(0, c.subcategoryCount - 1) } : c
-          ));
-        }
-      }
+      await refreshLists();
       showSuccess(`${type === 'category' ? 'Category' : 'Subcategory'} deleted successfully.`);
     } catch (err) {
       showError((err as Error).message);
@@ -416,10 +418,24 @@ const AdminCategoriesPage = () => {
     return matchSearch && matchStatus && matchType;
   });
 
-  const getParentTitle = (sub: SubCategory) =>
-    typeof sub.categoryId === 'string'
-      ? (categories.find(c => c._id === sub.categoryId)?.title ?? 'Unknown')
-      : sub.categoryId.title;
+  const getParentTitles = (sub: SubCategory) => {
+    const ids = sub.categoryIds ?? [];
+    if (!ids.length) return '—';
+    return ids
+      .map((c) =>
+        typeof c === 'string' ? (categories.find((x) => x._id === c)?.title ?? 'Unknown') : c.title
+      )
+      .join(', ');
+  };
+
+  const toggleSubCategoryParent = (categoryId: string) => {
+    setSubCategoryForm((f) => ({
+      ...f,
+      categoryIds: f.categoryIds.includes(categoryId)
+        ? f.categoryIds.filter((x) => x !== categoryId)
+        : [...f.categoryIds, categoryId],
+    }));
+  };
 
   // ── Shared UI fragments ─────────────────────────────────────────────────────
 
@@ -620,7 +636,7 @@ const AdminCategoriesPage = () => {
                     <tr>
                       <th className="px-6 py-3 text-left">Image</th>
                       <th className="px-6 py-3 text-left">Title</th>
-                      <th className="px-6 py-3 text-left">Parent Category</th>
+                      <th className="px-6 py-3 text-left">Parent categories</th>
                       <th className="px-6 py-3 text-left">Status</th>
                       <th className="px-6 py-3 text-left">Toggle</th>
                       <th className="px-6 py-3 text-left">Actions</th>
@@ -634,7 +650,25 @@ const AdminCategoriesPage = () => {
                           <span className="font-medium text-gray-900">{sub.title}</span>
                           <div className="text-xs text-gray-400 mt-0.5">{sub.slug}</div>
                         </td>
-                        <td className="px-6 py-4 text-gray-600">{getParentTitle(sub)}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {(sub.categoryIds ?? []).map((c) => {
+                              const label =
+                                typeof c === 'string'
+                                  ? categories.find((x) => x._id === c)?.title ?? '—'
+                                  : c.title;
+                              const key = typeof c === 'string' ? c : c._id;
+                              return (
+                                <span
+                                  key={key}
+                                  className="inline-flex px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium"
+                                >
+                                  {label}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </td>
                         <td className="px-6 py-4"><StatusBadge status={sub.status} /></td>
                         <td className="px-6 py-4">
                           <Toggle
@@ -671,96 +705,129 @@ const AdminCategoriesPage = () => {
         {/* ── Category Modal ── */}
         {showCategoryModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col">
 
-              {/* Modal header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {modalMode === 'add' ? 'Add Category' : 'Edit Category'}
-                  </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {modalMode === 'add' ? 'Create a new product category' : 'Update the saved category details'}
-                  </p>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-[#0F4C69]/10 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-[#0F4C69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">
+                      {modalMode === 'add' ? 'Add Category' : 'Edit Category'}
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {modalMode === 'add' ? 'Title, image, and optional meta title' : 'Update details — meta title is title-only (no description)'}
+                    </p>
+                  </div>
                 </div>
-                <button onClick={() => setShowCategoryModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">✕</button>
+                <button type="button" onClick={() => setShowCategoryModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               </div>
 
-              {/* Saved data summary — edit mode only */}
-              {modalMode === 'edit' && selectedCategory && (
-                <div className="mx-6 mt-5 rounded-xl border border-[#0F4C69]/20 bg-[#0F4C69]/5 overflow-hidden">
-                  <div className="flex items-center gap-4 p-4">
-                    {/* Current image */}
-                    <div className="w-16 h-16 rounded-lg overflow-hidden border border-[#0F4C69]/20 bg-white flex-shrink-0">
-                      {selectedCategory.image ? (
-                        <img src={selectedCategory.image} alt={selectedCategory.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+              <div className="overflow-y-auto flex-1">
+                {modalMode === 'edit' && selectedCategory && (
+                  <div className="mx-6 mt-5 rounded-xl border border-[#0F4C69]/20 bg-[#0F4C69]/5 overflow-hidden">
+                    <div className="flex items-center gap-4 p-4">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden border border-[#0F4C69]/20 bg-white flex-shrink-0">
+                        {selectedCategory.image ? (
+                          <img src={selectedCategory.image} alt={selectedCategory.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-[#0F4C69] font-semibold uppercase tracking-wide mb-1">Saved in database</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">{selectedCategory.title}</p>
+                        <p className="text-xs text-gray-400 font-mono mt-0.5 truncate">/{selectedCategory.slug}</p>
+                        {selectedCategory.metaTitle?.trim() ? (
+                          <p className="text-xs text-gray-600 mt-1.5">
+                            <span className="text-gray-500">Meta title: </span>{selectedCategory.metaTitle}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 mt-1.5 italic">No custom meta title — page will use category name</p>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <StatusBadge status={selectedCategory.status} />
+                        <p className="text-xs text-gray-400 mt-1.5">
+                          {new Date(selectedCategory.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-6 space-y-5">
+                  <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                      <span className="w-1 h-4 bg-[#0F4C69] rounded-full" />
+                      Basic details
+                    </h3>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        {modalMode === 'edit' ? 'New title' : 'Title'} <span className="text-red-500">*</span>
+                      </label>
+                      <input type="text" value={categoryForm.title}
+                        onChange={e => setCategoryForm(f => ({ ...f, title: e.target.value }))}
+                        placeholder="e.g. Kitchen Cabinets"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0F4C69]/30 ${catErrors.title ? 'border-red-400' : 'border-gray-300 bg-white'}`} />
+                      {catErrors.title && <p className="text-red-500 text-xs mt-1">{catErrors.title}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        {modalMode === 'edit' ? 'Replace image' : 'Image'}
+                        {modalMode === 'add' && <span className="text-red-500"> *</span>}
+                        {modalMode === 'edit' && <span className="text-gray-400 font-normal"> — optional</span>}
+                        <span className="text-gray-400 font-normal"> · JPEG/PNG/WebP, max 5 MB</span>
+                      </label>
+                      <input type="file" accept="image/*" onChange={handleCategoryImageChange}
+                        className={`w-full text-sm text-gray-600 border rounded-lg px-3 py-2 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-[#0F4C69] file:text-white hover:file:bg-[#0d3d55] outline-none bg-white ${catErrors.image ? 'border-red-400' : 'border-gray-300'}`} />
+                      {catErrors.image && <p className="text-red-500 text-xs mt-1">{catErrors.image}</p>}
+                      {categoryForm.imageFile && categoryForm.imagePreview && (
+                        <div className="mt-2 rounded-lg overflow-hidden border border-gray-200">
+                          <img src={categoryForm.imagePreview} alt="Preview" className="w-full h-32 object-cover" />
                         </div>
                       )}
                     </div>
-                    {/* Meta */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-[#0F4C69] font-semibold uppercase tracking-wide mb-1">Currently saved</p>
-                      <p className="text-sm font-semibold text-gray-900 truncate">{selectedCategory.title}</p>
-                      <p className="text-xs text-gray-400 font-mono mt-0.5 truncate">/{selectedCategory.slug}</p>
-                    </div>
-                    {/* Status + date */}
-                    <div className="text-right flex-shrink-0">
-                      <StatusBadge status={selectedCategory.status} />
-                      <p className="text-xs text-gray-400 mt-1.5">
-                        {new Date(selectedCategory.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </p>
-                    </div>
                   </div>
-                </div>
-              )}
 
-              <div className="p-6 space-y-4">
-                {/* Title */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {modalMode === 'edit' ? 'New Title' : 'Title'} <span className="text-red-500">*</span>
-                  </label>
-                  <input type="text" value={categoryForm.title}
-                    onChange={e => setCategoryForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g. Kitchen Cabinets"
-                    className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0F4C69]/30 ${catErrors.title ? 'border-red-400' : 'border-gray-300'}`} />
-                  {catErrors.title && <p className="text-red-500 text-xs mt-1">{catErrors.title}</p>}
-                </div>
-
-                {/* Image */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {modalMode === 'edit' ? 'Replace Image' : 'Image'}
-                    {modalMode === 'add' && <span className="text-red-500"> *</span>}
-                    {modalMode === 'edit' && <span className="text-gray-400 font-normal"> (optional — leave blank to keep current)</span>}
-                    {modalMode === 'add' && <span className="text-gray-400 font-normal ml-1">(JPEG/PNG/WebP, max 5 MB)</span>}
-                  </label>
-                  <input type="file" accept="image/*" onChange={handleCategoryImageChange}
-                    className={`w-full text-sm text-gray-600 border rounded-lg px-3 py-2 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-[#0F4C69] file:text-white hover:file:bg-[#0d3d55] outline-none ${catErrors.image ? 'border-red-400' : 'border-gray-300'}`} />
-                  {catErrors.image && <p className="text-red-500 text-xs mt-1">{catErrors.image}</p>}
-                  {/* New file preview */}
-                  {categoryForm.imageFile && categoryForm.imagePreview && (
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">New image preview:</p>
-                      <div className="rounded-lg overflow-hidden border border-gray-200">
-                        <img src={categoryForm.imagePreview} alt="new preview" className="w-full h-32 object-cover" />
-                      </div>
+                  <div className="rounded-xl border border-[#0F4C69]/15 bg-[#0F4C69]/[0.04] p-4">
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 mb-1">
+                      <svg className="w-4 h-4 text-[#0F4C69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      Meta title only
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-3">Optional. Shown as the HTML &lt;title&gt; for this category page. There is no separate meta description field.</p>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-600">Custom &lt;title&gt; for SEO</label>
+                      <span className={`text-xs ${categoryForm.metaTitle.length > 140 ? 'text-red-500' : 'text-gray-400'}`}>
+                        {categoryForm.metaTitle.length} / 160
+                      </span>
                     </div>
-                  )}
+                    <input type="text" maxLength={160} value={categoryForm.metaTitle}
+                      onChange={e => setCategoryForm(f => ({ ...f, metaTitle: e.target.value }))}
+                      placeholder="Leave empty to use the category name"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0F4C69]/30 bg-white" />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
-                <button onClick={() => setShowCategoryModal(false)}
+              <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-white">
+                <button type="button" onClick={() => setShowCategoryModal(false)}
                   className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                   Cancel
                 </button>
-                <button onClick={handleSaveCategory} disabled={saving}
+                <button type="button" onClick={handleSaveCategory} disabled={saving}
                   className="px-5 py-2 text-sm bg-[#0F4C69] text-white rounded-lg hover:bg-[#0d3d55] transition-colors disabled:opacity-60 flex items-center gap-2">
                   {uploading ? 'Uploading…' : saving ? 'Saving…' : modalMode === 'add' ? 'Add Category' : 'Update Category'}
                 </button>
@@ -771,117 +838,204 @@ const AdminCategoriesPage = () => {
 
         {/* ── SubCategory Modal ── */}
         {showSubCategoryModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+          <div className="fixed inset-0 z-50 overflow-y-auto overscroll-y-contain bg-black/50 backdrop-blur-sm">
+            <div className="flex min-h-full items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
+              <div className="flex min-h-0 w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl max-h-[min(85vh,44rem)]">
 
-              {/* Modal header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {modalMode === 'add' ? 'Add Subcategory' : 'Edit Subcategory'}
-                  </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {modalMode === 'add' ? 'Create a new subcategory under a parent category' : 'Update the saved subcategory details'}
-                  </p>
+              <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3 sm:px-6 sm:py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">
+                      {modalMode === 'add' ? 'Add Subcategory' : 'Edit Subcategory'}
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {modalMode === 'add'
+                        ? 'Parents, title, image, optional meta title'
+                        : 'Update details — meta title only (no description field)'}
+                    </p>
+                  </div>
                 </div>
-                <button onClick={() => setShowSubCategoryModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">✕</button>
+                <button type="button" onClick={() => setShowSubCategoryModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               </div>
 
-              {/* Saved data summary — edit mode only */}
-              {modalMode === 'edit' && selectedSubCategory && (
-                <div className="mx-6 mt-5 rounded-xl border border-orange-200 bg-orange-50 overflow-hidden">
-                  <div className="flex items-center gap-4 p-4">
-                    {/* Current image */}
-                    <div className="w-16 h-16 rounded-lg overflow-hidden border border-orange-200 bg-white flex-shrink-0">
-                      {selectedSubCategory.image ? (
-                        <img src={selectedSubCategory.image} alt={selectedSubCategory.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                {modalMode === 'edit' && selectedSubCategory && (
+                  <div className="mx-5 mt-4 rounded-xl border border-amber-200 bg-amber-50/60 overflow-hidden sm:mx-6 sm:mt-5">
+                    <div className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden border border-amber-200 bg-white flex-shrink-0">
+                        {selectedSubCategory.image ? (
+                          <img src={selectedSubCategory.image} alt={selectedSubCategory.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">Saved in database</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">{selectedSubCategory.title}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          Parents:{' '}
+                          <span className="font-medium text-gray-800">{getParentTitles(selectedSubCategory)}</span>
+                        </p>
+                        <p className="text-xs text-gray-400 font-mono mt-0.5 truncate">/{selectedSubCategory.slug}</p>
+                        {selectedSubCategory.metaTitle?.trim() ? (
+                          <p className="text-xs text-gray-600 mt-1.5">
+                            <span className="text-gray-500">Meta title: </span>{selectedSubCategory.metaTitle}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 mt-1.5 italic">No custom meta title — page will use subcategory name</p>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <StatusBadge status={selectedSubCategory.status} />
+                        <p className="text-xs text-gray-400 mt-1.5">
+                          {new Date(selectedSubCategory.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4 p-5 sm:p-6 sm:space-y-5">
+                  <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-3 sm:space-y-4 sm:p-4">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                      <span className="h-4 w-1 rounded-full bg-amber-500" />
+                      Basic details
+                    </h3>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">
+                        {modalMode === 'edit' ? 'New title' : 'Title'} <span className="text-red-500">*</span>
+                      </label>
+                      <input type="text" value={subCategoryForm.title}
+                        onChange={e => setSubCategoryForm(f => ({ ...f, title: e.target.value }))}
+                        placeholder="e.g. Wall Cabinets"
+                        className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-amber-400/40 ${subErrors.title ? 'border-red-400' : 'border-gray-300 bg-white'}`} />
+                      {subErrors.title && <p className="mt-1 text-xs text-red-500">{subErrors.title}</p>}
+                    </div>
+                    <div>
+                      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                        <label className="text-xs font-medium text-gray-600">
+                          Parent categories <span className="text-red-500">*</span>
+                          <span className="font-normal text-gray-400"> · multi-select</span>
+                        </label>
+                        {subCategoryForm.categoryIds.length > 0 && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                            {subCategoryForm.categoryIds.length} selected
+                          </span>
+                        )}
+                      </div>
+                      {categories.length > 0 && (
+                        <input
+                          type="search"
+                          value={subCategoryParentSearch}
+                          onChange={(e) => setSubCategoryParentSearch(e.target.value)}
+                          placeholder="Filter categories…"
+                          className="mb-2 w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 outline-none placeholder:text-gray-400 focus:border-amber-300 focus:ring-1 focus:ring-amber-400/30"
+                        />
+                      )}
+                      <div
+                        className={`max-h-[min(11rem,30svh)] overflow-y-auto overscroll-contain rounded-lg border bg-white shadow-[inset_0_1px_0_rgba(0,0,0,0.03)] sm:max-h-[min(12.5rem,28svh)] ${
+                          subErrors.categoryIds ? 'border-red-400' : 'border-gray-200'
+                        }`}
+                      >
+                        {categories.length === 0 ? (
+                          <p className="px-3 py-4 text-center text-xs text-gray-400">Add a category first.</p>
+                        ) : (
+                          (() => {
+                            const q = subCategoryParentSearch.trim().toLowerCase();
+                            const filtered = q
+                              ? categories.filter((c) => c.title.toLowerCase().includes(q))
+                              : categories;
+                            if (filtered.length === 0) {
+                              return (
+                                <p className="px-3 py-4 text-center text-xs text-gray-400">No matches.</p>
+                              );
+                            }
+                            return (
+                              <ul className="grid grid-cols-1 gap-0.5 p-1.5 sm:grid-cols-2 sm:gap-1">
+                                {filtered.map((c) => (
+                                  <li key={c._id}>
+                                    <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs text-gray-800 hover:bg-amber-50/90 sm:text-[13px] sm:py-1.5">
+                                      <input
+                                        type="checkbox"
+                                        checked={subCategoryForm.categoryIds.includes(c._id)}
+                                        onChange={() => toggleSubCategoryParent(c._id)}
+                                        className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-amber-600 focus:ring-amber-400/40"
+                                      />
+                                      <span className="min-w-0 truncate" title={c.title}>{c.title}</span>
+                                    </label>
+                                  </li>
+                                ))}
+                              </ul>
+                            );
+                          })()
+                        )}
+                      </div>
+                      {subErrors.categoryIds && (
+                        <p className="mt-1 text-xs text-red-500">{subErrors.categoryIds}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">
+                        {modalMode === 'edit' ? 'Replace image' : 'Image'}
+                        {modalMode === 'add' && <span className="text-red-500"> *</span>}
+                        {modalMode === 'edit' && <span className="font-normal text-gray-400"> — optional</span>}
+                        <span className="font-normal text-gray-400"> · JPEG/PNG/WebP, max 5 MB</span>
+                      </label>
+                      <input type="file" accept="image/*" onChange={handleSubCategoryImageChange}
+                        className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-600 outline-none file:mr-3 file:rounded-md file:border-0 file:bg-amber-500 file:px-3 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-amber-600 ${subErrors.image ? 'border-red-400' : 'border-gray-300'}`} />
+                      {subErrors.image && <p className="mt-1 text-xs text-red-500">{subErrors.image}</p>}
+                      {subCategoryForm.imageFile && subCategoryForm.imagePreview && (
+                        <div className="mt-2 overflow-hidden rounded-lg border border-gray-200">
+                          <img src={subCategoryForm.imagePreview} alt="Preview" className="h-28 w-full object-cover sm:h-32" />
                         </div>
                       )}
                     </div>
-                    {/* Meta */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide mb-1">Currently saved</p>
-                      <p className="text-sm font-semibold text-gray-900 truncate">{selectedSubCategory.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        under <span className="font-medium text-gray-700">{getParentTitle(selectedSubCategory)}</span>
-                      </p>
-                      <p className="text-xs text-gray-400 font-mono mt-0.5 truncate">/{selectedSubCategory.slug}</p>
-                    </div>
-                    {/* Status + date */}
-                    <div className="text-right flex-shrink-0">
-                      <StatusBadge status={selectedSubCategory.status} />
-                      <p className="text-xs text-gray-400 mt-1.5">
-                        {new Date(selectedSubCategory.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </p>
-                    </div>
                   </div>
-                </div>
-              )}
 
-              <div className="p-6 space-y-4">
-                {/* Title */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {modalMode === 'edit' ? 'New Title' : 'Title'} <span className="text-red-500">*</span>
-                  </label>
-                  <input type="text" value={subCategoryForm.title}
-                    onChange={e => setSubCategoryForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g. Wall Cabinets"
-                    className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-orange-400/30 ${subErrors.title ? 'border-red-400' : 'border-gray-300'}`} />
-                  {subErrors.title && <p className="text-red-500 text-xs mt-1">{subErrors.title}</p>}
-                </div>
-
-                {/* Parent Category */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category <span className="text-red-500">*</span></label>
-                  <select value={subCategoryForm.categoryId}
-                    onChange={e => setSubCategoryForm(f => ({ ...f, categoryId: e.target.value }))}
-                    className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-orange-400/30 ${subErrors.categoryId ? 'border-red-400' : 'border-gray-300'}`}>
-                    <option value="">— Select category —</option>
-                    {categories.map(c => (
-                      <option key={c._id} value={c._id}>{c.title}</option>
-                    ))}
-                  </select>
-                  {subErrors.categoryId && <p className="text-red-500 text-xs mt-1">{subErrors.categoryId}</p>}
-                </div>
-
-                {/* Image */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {modalMode === 'edit' ? 'Replace Image' : 'Image'}
-                    {modalMode === 'add' && <span className="text-red-500"> *</span>}
-                    {modalMode === 'edit' && <span className="text-gray-400 font-normal"> (optional — leave blank to keep current)</span>}
-                    {modalMode === 'add' && <span className="text-gray-400 font-normal ml-1">(JPEG/PNG/WebP, max 5 MB)</span>}
-                  </label>
-                  <input type="file" accept="image/*" onChange={handleSubCategoryImageChange}
-                    className={`w-full text-sm text-gray-600 border rounded-lg px-3 py-2 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-orange-500 file:text-white hover:file:bg-orange-600 outline-none ${subErrors.image ? 'border-red-400' : 'border-gray-300'}`} />
-                  {subErrors.image && <p className="text-red-500 text-xs mt-1">{subErrors.image}</p>}
-                  {/* New file preview only */}
-                  {subCategoryForm.imageFile && subCategoryForm.imagePreview && (
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">New image preview:</p>
-                      <div className="rounded-lg overflow-hidden border border-gray-200">
-                        <img src={subCategoryForm.imagePreview} alt="new preview" className="w-full h-32 object-cover" />
-                      </div>
+                  <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-3 sm:p-4">
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 mb-1">
+                      <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      Meta title only
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-3">Optional. Shown as the HTML &lt;title&gt; for this subcategory page. No meta description field.</p>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-600">Custom &lt;title&gt; for SEO</label>
+                      <span className={`text-xs ${subCategoryForm.metaTitle.length > 140 ? 'text-red-500' : 'text-gray-400'}`}>
+                        {subCategoryForm.metaTitle.length} / 160
+                      </span>
                     </div>
-                  )}
+                    <input type="text" maxLength={160} value={subCategoryForm.metaTitle}
+                      onChange={e => setSubCategoryForm(f => ({ ...f, metaTitle: e.target.value }))}
+                      placeholder="Leave empty to use the subcategory name"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-amber-400/40 bg-white" />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
-                <button onClick={() => setShowSubCategoryModal(false)}
-                  className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex shrink-0 justify-end gap-3 border-t border-gray-100 bg-white px-5 py-3 sm:px-6 sm:py-4">
+                <button type="button" onClick={() => setShowSubCategoryModal(false)}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50">
                   Cancel
                 </button>
-                <button onClick={handleSaveSubCategory} disabled={saving}
-                  className="px-5 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-60">
+                <button type="button" onClick={handleSaveSubCategory} disabled={saving}
+                  className="rounded-lg bg-amber-500 px-5 py-2 text-sm text-white transition-colors hover:bg-amber-600 disabled:opacity-60">
                   {uploading ? 'Uploading…' : saving ? 'Saving…' : modalMode === 'add' ? 'Add Subcategory' : 'Update Subcategory'}
                 </button>
+              </div>
               </div>
             </div>
           </div>
@@ -890,28 +1044,51 @@ const AdminCategoriesPage = () => {
         {/* ── View Category Modal ── */}
         {showViewCatModal && selectedCategory && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900">Category Details</h2>
-                <button onClick={() => setShowViewCatModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
-              </div>
-              <div className="p-6 space-y-4">
-                {selectedCategory.image && (
-                  <div className="rounded-xl overflow-hidden border border-gray-200">
-                    <Image src={selectedCategory.image} alt={selectedCategory.title} width={400} height={200} className="w-full h-40 object-cover" />
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-[#0F4C69]/10 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-[#0F4C69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
                   </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">Category</h2>
+                    <p className="text-xs text-gray-400">Read-only · saved data</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setShowViewCatModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="overflow-y-auto p-6 space-y-4">
+                {selectedCategory.image ? (
+                  <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                    <Image src={selectedCategory.image} alt={selectedCategory.title} width={400} height={200} className="w-full h-44 object-cover" />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 h-32 flex items-center justify-center text-xs text-gray-400">No image</div>
                 )}
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-gray-500">Title</span><span className="font-medium text-gray-900">{selectedCategory.title}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Slug</span><span className="font-mono text-gray-600 text-xs">{selectedCategory.slug}</span></div>
+                <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-4 space-y-3 text-sm">
+                  <div className="flex justify-between gap-4"><span className="text-gray-500 shrink-0">Title</span><span className="font-medium text-gray-900 text-right">{selectedCategory.title}</span></div>
+                  <div className="flex justify-between gap-4"><span className="text-gray-500 shrink-0">Slug</span><span className="font-mono text-gray-600 text-xs text-right break-all">{selectedCategory.slug}</span></div>
                   <div className="flex justify-between items-center"><span className="text-gray-500">Status</span><StatusBadge status={selectedCategory.status} /></div>
                   <div className="flex justify-between"><span className="text-gray-500">Subcategories</span><span className="font-medium text-gray-900">{selectedCategory.subcategoryCount}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="text-gray-600">{new Date(selectedCategory.createdAt).toLocaleDateString()}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="text-gray-600">{new Date(selectedCategory.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
+                </div>
+                <div className="rounded-xl border border-[#0F4C69]/15 bg-[#0F4C69]/[0.04] p-4">
+                  <p className="text-xs font-semibold text-[#0F4C69] mb-1">Meta title (SEO)</p>
+                  <p className="text-xs text-gray-500 mb-2">Only the HTML &lt;title&gt; is stored — there is no meta description for categories.</p>
+                  <p className="text-sm text-gray-900 leading-snug">
+                    {selectedCategory.metaTitle?.trim() || <span className="text-gray-400 italic">Not set — storefront can fall back to category name</span>}
+                  </p>
                 </div>
               </div>
-              <div className="flex justify-end px-6 py-4 border-t border-gray-100">
-                <button onClick={() => setShowViewCatModal(false)}
-                  className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+              <div className="flex justify-end px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-white">
+                <button type="button" onClick={() => setShowViewCatModal(false)}
+                  className="px-5 py-2 text-sm font-medium bg-[#0F4C69] text-white rounded-lg hover:bg-[#0d3f59] transition-colors">
                   Close
                 </button>
               </div>
@@ -922,28 +1099,56 @@ const AdminCategoriesPage = () => {
         {/* ── View SubCategory Modal ── */}
         {showViewSubModal && selectedSubCategory && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900">Subcategory Details</h2>
-                <button onClick={() => setShowViewSubModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
-              </div>
-              <div className="p-6 space-y-4">
-                {selectedSubCategory.image && (
-                  <div className="rounded-xl overflow-hidden border border-gray-200">
-                    <Image src={selectedSubCategory.image} alt={selectedSubCategory.title} width={400} height={200} className="w-full h-40 object-cover" />
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
                   </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">Subcategory</h2>
+                    <p className="text-xs text-gray-400">Read-only · saved data</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setShowViewSubModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="overflow-y-auto p-6 space-y-4">
+                {selectedSubCategory.image ? (
+                  <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                    <Image src={selectedSubCategory.image} alt={selectedSubCategory.title} width={400} height={200} className="w-full h-44 object-cover" />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 h-32 flex items-center justify-center text-xs text-gray-400">No image</div>
                 )}
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-gray-500">Title</span><span className="font-medium text-gray-900">{selectedSubCategory.title}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Parent</span><span className="text-gray-600">{getParentTitle(selectedSubCategory)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Slug</span><span className="font-mono text-gray-600 text-xs">{selectedSubCategory.slug}</span></div>
+                <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-4 space-y-3 text-sm">
+                  <div className="flex justify-between gap-4"><span className="text-gray-500 shrink-0">Title</span><span className="font-medium text-gray-900 text-right">{selectedSubCategory.title}</span></div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-500 shrink-0">Parents</span>
+                    <span className="text-gray-700 text-right text-sm leading-snug max-w-[60%]">
+                      {getParentTitles(selectedSubCategory)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4"><span className="text-gray-500 shrink-0">Slug</span><span className="font-mono text-gray-600 text-xs text-right break-all">{selectedSubCategory.slug}</span></div>
                   <div className="flex justify-between items-center"><span className="text-gray-500">Status</span><StatusBadge status={selectedSubCategory.status} /></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="text-gray-600">{new Date(selectedSubCategory.createdAt).toLocaleDateString()}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="text-gray-600">{new Date(selectedSubCategory.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
+                </div>
+                <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-4">
+                  <p className="text-xs font-semibold text-amber-800 mb-1">Meta title (SEO)</p>
+                  <p className="text-xs text-gray-500 mb-2">Only the HTML &lt;title&gt; is stored — there is no meta description for subcategories.</p>
+                  <p className="text-sm text-gray-900 leading-snug">
+                    {selectedSubCategory.metaTitle?.trim() || <span className="text-gray-400 italic">Not set — storefront can fall back to subcategory name</span>}
+                  </p>
                 </div>
               </div>
-              <div className="flex justify-end px-6 py-4 border-t border-gray-100">
-                <button onClick={() => setShowViewSubModal(false)}
-                  className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+              <div className="flex justify-end px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-white">
+                <button type="button" onClick={() => setShowViewSubModal(false)}
+                  className="px-5 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors">
                   Close
                 </button>
               </div>
@@ -959,7 +1164,7 @@ const AdminCategoriesPage = () => {
           title={itemToDelete?.type === 'category' ? 'Delete Category' : 'Delete Subcategory'}
           message={
             itemToDelete?.type === 'category'
-              ? `Are you sure you want to delete "${itemToDelete.name}"? All its subcategories will also be deleted. This cannot be undone.`
+              ? `Are you sure you want to delete "${itemToDelete.name}"? Subcategories that only belonged to it will be removed; subcategories shared with other categories will stay and be unlinked. This cannot be undone.`
               : `Are you sure you want to delete "${itemToDelete?.name}"? This cannot be undone.`
           }
           confirmText="Delete"

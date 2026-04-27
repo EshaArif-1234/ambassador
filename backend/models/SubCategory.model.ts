@@ -5,8 +5,10 @@ export interface ISubCategory extends Document {
   slug: string;
   image: string;
   imagePublicId: string;
-  categoryId: Types.ObjectId;
+  /** Parent categories (many-to-many from subcategory → category). */
+  categoryIds: Types.ObjectId[];
   status: 'active' | 'inactive';
+  metaTitle?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,21 +35,32 @@ const subCategorySchema = new Schema<ISubCategory>(
       type: String,
       default: '',
     },
-    categoryId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Category',
-      required: [true, 'Parent category is required'],
+    categoryIds: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
+      required: [true, 'At least one parent category is required'],
+      validate: {
+        validator(v: unknown[]) {
+          return Array.isArray(v) && v.length >= 1;
+        },
+        message: 'At least one parent category is required',
+      },
     },
     status: {
       type: String,
       enum: ['active', 'inactive'],
       default: 'active',
     },
+    metaTitle: {
+      type: String,
+      trim: true,
+      maxlength: [160, 'Meta title cannot exceed 160 characters'],
+      default: '',
+    },
   },
   { timestamps: true }
 );
 
-// Auto-generate slug from title + categoryId to avoid global collisions
+// Slug from title only (same title in different category trees may share a slug URL-wise; enforce uniqueness in routing if needed)
 subCategorySchema.pre('save', function () {
   if (this.isModified('title')) {
     this.slug = this.title

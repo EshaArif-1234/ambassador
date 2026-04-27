@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
+import { migrateLegacyProductTaxonomy } from '@/backend/lib/migrateProductTaxonomy';
+import {
+  resolveProductCategoryIds,
+  resolveProductSubCategoryIds,
+  validateProductTaxonomy,
+  toObjectIdArray,
+} from '@/backend/lib/productTaxonomy';
 import { requireAdmin } from '@/backend/lib/adminAuth';
 
 /** GET /api/admin/products — list all products with optional filters */
@@ -11,6 +18,8 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectDB();
+    await migrateLegacyProductTaxonomy(Product.collection);
+
     const { searchParams } = new URL(req.url);
     const search     = searchParams.get('search')   ?? '';
     const status     = searchParams.get('status')   ?? 'all';
@@ -19,11 +28,11 @@ export async function GET(req: NextRequest) {
     const filter: Record<string, unknown> = {};
     if (search)              filter.name     = { $regex: search, $options: 'i' };
     if (status !== 'all')    filter.status   = status;
-    if (categoryId)          filter.category = categoryId;
+    if (categoryId)          filter.categories = categoryId;
 
     const products = await Product.find(filter)
-      .populate('category',    'title')
-      .populate('subCategory', 'title')
+      .populate('categories',    'title')
+      .populate('subCategories', 'title')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -55,22 +64,31 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectDB();
+    await migrateLegacyProductTaxonomy(Product.collection);
     const body = await req.json();
     const {
-      name, category, subCategory,
+      name,
       price, originalPrice, stock, status, about,
       images, imagePublicIds, videos, videoPublicIds,
       specifications, metaTitle, metaDescription,
     } = body;
 
+    const categoryIds    = resolveProductCategoryIds(body);
+    const subCategoryIds = resolveProductSubCategoryIds(body);
+
     if (!name?.trim()) {
       return NextResponse.json({ success: false, message: 'Product name is required.' }, { status: 400 });
     }
-    if (!category) {
-      return NextResponse.json({ success: false, message: 'Category is required.' }, { status: 400 });
+    if (!categoryIds) {
+      return NextResponse.json({ success: false, message: 'At least one category is required.' }, { status: 400 });
     }
-    if (!subCategory) {
-      return NextResponse.json({ success: false, message: 'Subcategory is required.' }, { status: 400 });
+    if (!subCategoryIds) {
+      return NextResponse.json({ success: false, message: 'At least one subcategory is required.' }, { status: 400 });
+    }
+
+    const tax = await validateProductTaxonomy(categoryIds, subCategoryIds);
+    if (!tax.ok) {
+      return NextResponse.json({ success: false, message: tax.message }, { status: tax.status });
     }
     if (!originalPrice || Number(originalPrice) <= 0) {
       return NextResponse.json({ success: false, message: 'A valid original price is required.' }, { status: 400 });
@@ -84,8 +102,8 @@ export async function POST(req: NextRequest) {
 
     const product = await Product.create({
       name:            name.trim(),
-      category,
-      subCategory,
+      categories:      toObjectIdArray(categoryIds),
+      subCategories:   toObjectIdArray(subCategoryIds),
       ...(price ? { price: Number(price) } : {}),
       originalPrice:   Number(originalPrice),
       stock:           Number(stock ?? 0),
@@ -101,8 +119,8 @@ export async function POST(req: NextRequest) {
     });
 
     const populated = await product.populate([
-      { path: 'category',    select: 'title' },
-      { path: 'subCategory', select: 'title' },
+      { path: 'categories',    select: 'title' },
+      { path: 'subCategories', select: 'title' },
     ]);
 
     return NextResponse.json(

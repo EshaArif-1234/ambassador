@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Types } from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
 import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
+import { migrateLegacyProductTaxonomy } from '@/backend/lib/migrateProductTaxonomy';
+import {
+  resolveProductCategoryIds,
+  resolveProductSubCategoryIds,
+  validateProductTaxonomy,
+  toObjectIdArray,
+} from '@/backend/lib/productTaxonomy';
 import { requireAdmin } from '@/backend/lib/adminAuth';
 
 cloudinary.config({
@@ -20,6 +28,7 @@ export async function PATCH(
 
   try {
     await connectDB();
+    await migrateLegacyProductTaxonomy(Product.collection);
     const { id }  = await params;
     const body    = await req.json();
 
@@ -29,15 +38,41 @@ export async function PATCH(
     }
 
     const {
-      name, category, subCategory,
+      name,
       price, originalPrice, stock, status, about,
       images, imagePublicIds, videos, videoPublicIds,
       specifications, metaTitle, metaDescription,
     } = body;
 
     if (name             !== undefined) product.name            = name.trim();
-    if (category         !== undefined) product.category        = category;
-    if (subCategory      !== undefined) product.subCategory     = subCategory;
+
+    const nextCategoryIds =
+      body.categories !== undefined || body.category !== undefined
+        ? resolveProductCategoryIds(body)
+        : (product.categories ?? []).map((c: Types.ObjectId) => String(c));
+    const nextSubCategoryIds =
+      body.subCategories !== undefined || body.subCategory !== undefined
+        ? resolveProductSubCategoryIds(body)
+        : (product.subCategories ?? []).map((c: Types.ObjectId) => String(c));
+
+    if (!nextCategoryIds?.length) {
+      return NextResponse.json(
+        { success: false, message: 'At least one category is required.' },
+        { status: 400 }
+      );
+    }
+    if (!nextSubCategoryIds?.length) {
+      return NextResponse.json(
+        { success: false, message: 'At least one subcategory is required.' },
+        { status: 400 }
+      );
+    }
+    const tax = await validateProductTaxonomy(nextCategoryIds, nextSubCategoryIds);
+    if (!tax.ok) {
+      return NextResponse.json({ success: false, message: tax.message }, { status: tax.status });
+    }
+    product.categories    = toObjectIdArray(nextCategoryIds);
+    product.subCategories = toObjectIdArray(nextSubCategoryIds);
     if (price            !== undefined) product.price           = price === '' || price === null ? undefined : Number(price);
     if (originalPrice    !== undefined) product.originalPrice   = Number(originalPrice);
     if (stock            !== undefined) product.stock           = Number(stock);
@@ -69,8 +104,8 @@ export async function PATCH(
 
     await product.save();
     const populated = await product.populate([
-      { path: 'category',    select: 'title' },
-      { path: 'subCategory', select: 'title' },
+      { path: 'categories',    select: 'title' },
+      { path: 'subCategories', select: 'title' },
     ]);
 
     return NextResponse.json(

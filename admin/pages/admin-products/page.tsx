@@ -11,8 +11,8 @@ interface Product {
   _id: string;
   name: string;
   slug: string;
-  category:    { _id: string; title: string } | string;
-  subCategory: { _id: string; title: string } | string;
+  categories:    Array<{ _id: string; title: string } | string>;
+  subCategories: Array<{ _id: string; title: string } | string>;
   price: number;
   originalPrice: number;
   stock: number;
@@ -33,6 +33,13 @@ interface Category { _id: string; title: string; }
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const getTitle = (v: any): string => (v && typeof v === 'object' && v.title) ? v.title : String(v || '—');
+
+const taxonomyList = (p: Product, key: 'categories' | 'subCategories', legacy: 'category' | 'subCategory') => {
+  const arr = p[key];
+  if (Array.isArray(arr) && arr.length) return arr;
+  const one = (p as unknown as Record<string, unknown>)[legacy];
+  return one ? [one] : [];
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -142,9 +149,12 @@ const ProductsPage = () => {
   // ── Filtered list ──────────────────────────────────────────────────────────
 
   const filtered = products.filter(p => {
-    const title = getTitle(p.category);
     const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchCat    = filterCat    === 'all' || (typeof p.category === 'object' ? p.category._id : p.category) === filterCat;
+    const matchCat =
+      filterCat === 'all' ||
+      taxonomyList(p, 'categories', 'category').some(
+        c => (typeof c === 'object' && c && '_id' in c ? c._id : c) === filterCat
+      );
     const matchStatus = filterStatus === 'all' || p.status === filterStatus;
     return matchSearch && matchCat && matchStatus;
   });
@@ -239,8 +249,8 @@ const ProductsPage = () => {
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500 tracking-wider">
                   <tr>
                     <th className="px-6 py-3 text-left">Product</th>
-                    <th className="px-6 py-3 text-left">Category</th>
-                    <th className="px-6 py-3 text-left">Subcategory</th>
+                    <th className="px-6 py-3 text-left">Categories</th>
+                    <th className="px-6 py-3 text-left">Subcategories</th>
                     <th className="px-6 py-3 text-left">Price</th>
                     <th className="px-6 py-3 text-left">Stock</th>
                     <th className="px-6 py-3 text-left">Rating</th>
@@ -276,17 +286,31 @@ const ProductsPage = () => {
 
                       {/* Category */}
                       <td className="px-6 py-4">
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                          {getTitle(product.category)}
-                        </span>
+                        <div className="flex flex-wrap gap-1 max-w-[220px]">
+                          {taxonomyList(product, 'categories', 'category').map((c, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
+                            >
+                              {getTitle(c)}
+                            </span>
+                          ))}
+                        </div>
                       </td>
 
-                      {/* SubCategory */}
-                      <td className="px-6 py-4 text-gray-600">{getTitle(product.subCategory)}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1 max-w-[220px] text-gray-600">
+                          {taxonomyList(product, 'subCategories', 'subCategory').map((c, i) => (
+                            <span key={i} className="inline-flex px-2 py-0.5 text-xs bg-slate-100 text-slate-700 rounded-md">
+                              {getTitle(c)}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
 
                       {/* Price */}
                       <td className="px-6 py-4">
-                        <p className="font-semibold text-gray-900">PKR {Number(product.price).toLocaleString()}</p>
+                        <p className="font-semibold text-gray-900">PKR {Number(product.price ?? product.originalPrice).toLocaleString()}</p>
                         {product.originalPrice > product.price && (
                           <p className="text-xs text-gray-400 line-through">PKR {Number(product.originalPrice).toLocaleString()}</p>
                         )}
@@ -373,6 +397,7 @@ const ProductsPage = () => {
         {/* Modal */}
         {modalMode && modalMode !== null && (
           <ProductModal
+            key={`${modalMode}-${selectedProduct?._id ?? 'new'}`}
             isOpen
             onClose={() => { setModalMode(null); setSelectedProduct(null); }}
             mode={modalMode}

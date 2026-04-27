@@ -3,8 +3,8 @@ import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 export interface IProduct extends Document {
   name: string;
   slug: string;
-  category: Types.ObjectId;
-  subCategory: Types.ObjectId;
+  categories: Types.ObjectId[];
+  subCategories: Types.ObjectId[];
   price?: number;
   originalPrice: number;
   stock: number;
@@ -36,15 +36,25 @@ const productSchema = new Schema<IProduct>(
       lowercase: true,
       trim: true,
     },
-    category: {
-      type: Schema.Types.ObjectId,
-      ref: 'Category',
-      required: [true, 'Category is required'],
+    categories: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
+      required: [true, 'At least one category is required'],
+      validate: {
+        validator(v: unknown[]) {
+          return Array.isArray(v) && v.length >= 1;
+        },
+        message: 'At least one category is required',
+      },
     },
-    subCategory: {
-      type: Schema.Types.ObjectId,
-      ref: 'SubCategory',
-      required: [true, 'Subcategory is required'],
+    subCategories: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'SubCategory' }],
+      required: [true, 'At least one subcategory is required'],
+      validate: {
+        validator(v: unknown[]) {
+          return Array.isArray(v) && v.length >= 1;
+        },
+        message: 'At least one subcategory is required',
+      },
     },
     price: {
       type: Number,
