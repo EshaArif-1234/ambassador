@@ -58,8 +58,12 @@ subCategorySchema.pre('save', function () {
   }
 });
 
+if (process.env.NODE_ENV !== 'production' && mongoose.models.SubCategory) {
+  delete (mongoose.models as Record<string, unknown>).SubCategory;
+}
+
 const SubCategory: Model<ISubCategory> =
-  mongoose.models.SubCategory ||
+  mongoose.models.SubCategory ??
   mongoose.model<ISubCategory>('SubCategory', subCategorySchema);
 
 export default SubCategory;

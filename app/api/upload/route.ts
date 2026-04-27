@@ -30,18 +30,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedImages = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+    const allowedVideos = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/avi'];
+    const isVideo = allowedVideos.includes(file.type);
+    const isImage = allowedImages.includes(file.type);
+
+    if (!isImage && !isVideo) {
       return NextResponse.json(
-        { success: false, message: 'Only JPEG, PNG, WebP, GIF, and AVIF images are allowed.' },
+        { success: false, message: 'Only JPEG, PNG, WebP images or MP4, WebM, MOV videos are allowed.' },
         { status: 400 }
       );
     }
 
-    // 5 MB size limit
-    if (file.size > 5 * 1024 * 1024) {
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) {
       return NextResponse.json(
-        { success: false, message: 'File size must be under 5 MB.' },
+        { success: false, message: isVideo ? 'Video must be under 50 MB.' : 'Image must be under 5 MB.' },
         { status: 400 }
       );
     }
@@ -51,12 +55,16 @@ export async function POST(req: NextRequest) {
 
     const result = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        {
-          folder:        'ambassador/categories',
-          resource_type: 'image',
-          // Auto-convert to WebP and limit to 800px wide for fast loading
-          transformation: [{ width: 800, crop: 'limit', fetch_format: 'auto', quality: 'auto' }],
-        },
+        isVideo
+          ? {
+              folder:        'ambassador/products/videos',
+              resource_type: 'video',
+            }
+          : {
+              folder:        'ambassador/products/images',
+              resource_type: 'image',
+              transformation: [{ width: 1000, crop: 'limit', fetch_format: 'auto', quality: 'auto' }],
+            },
         (error, uploadResult) => {
           if (error || !uploadResult) return reject(error ?? new Error('Upload failed'));
           resolve(uploadResult);

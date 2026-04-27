@@ -54,7 +54,11 @@ categorySchema.pre('save', function () {
   }
 });
 
+if (process.env.NODE_ENV !== 'production' && mongoose.models.Category) {
+  delete (mongoose.models as Record<string, unknown>).Category;
+}
+
 const Category: Model<ICategory> =
-  mongoose.models.Category || mongoose.model<ICategory>('Category', categorySchema);
+  mongoose.models.Category ?? mongoose.model<ICategory>('Category', categorySchema);
 
 export default Category;
