@@ -3,6 +3,19 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+/** Public routes — keep in sync with main site navigation */
+const SERVICE_LINKS = [
+  { label: 'Products', href: '/products' },
+  { label: 'Custom kitchen', href: '/custom-kitchen' },
+  { label: 'Gallery', href: '/gallery' },
+  { label: 'About', href: '/about' },
+  { label: 'Contact us', href: '/contact-us' },
+  { label: 'Our branches', href: '/branches' },
+  { label: 'Orders', href: '/orders' },
+] as const;
+
+const linkClass = 'text-white/60 hover:text-[#E36630] transition-colors text-sm';
+
 const Footer = () => {
   return (
     <footer className="bg-[#0F4C69] text-white">
@@ -24,35 +37,17 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* Our Services Column */}
+          {/* Our Services — same destinations as live site pages */}
           <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4">Our Services</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="#" className="text-white/60 hover:text-[#E36630] transition-colors text-sm">
-                  Kitchen Equipment
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-white/60 hover:text-[#E36630] transition-colors text-sm">
-                  Restaurant Solutions
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-white/60 hover:text-[#E36630] transition-colors text-sm">
-                  Hotel Supplies
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-white/60 hover:text-[#E36630] transition-colors text-sm">
-                  Commercial Appliances
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-white/60 hover:text-[#E36630] transition-colors text-sm">
-                  Custom Installations
-                </Link>
-              </li>
+              {SERVICE_LINKS.map(({ label, href }) => (
+                <li key={href}>
+                  <Link href={href} className={linkClass}>
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -66,16 +61,36 @@ const Footer = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <div>
-                  <p className="text-sm text-white/60">123 Business Street</p>
-                  <p className="text-sm text-white/60">City, State 12345</p>
+                  <p className="text-sm text-white/60 leading-snug">
+                    5-A Fazal Elahi Road, Rehman <br></br> Pura Link Ferozpur Road, Lahore, Pakistan.
+                  </p>
                 </div>
               </div>
-              
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-[#E36630] mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-[#E36630] mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-                <p className="text-sm text-white/60">+1 (555) 123-4567</p>
+                <div className="space-y-1.5 text-sm">
+                  <p className="text-white/60">
+                    <span className="text-white/45">Pak: </span>
+                    <a
+                      href="tel:+923314937412"
+                      className="text-white/70 hover:text-[#E36630] transition-colors"
+                    >
+                      +92 331 4937412
+                    </a>
+                  </p>
+                  <p className="text-white/60">
+                    <span className="text-white/45">UAN: </span>
+                    <a
+                      href="tel:+9242111313106"
+                      className="text-white/70 hover:text-[#E36630] transition-colors"
+                    >
+                      042-111-313-106
+                    </a>
+                  </p>
+                </div>
               </div>
               
               <div className="flex items-center">
