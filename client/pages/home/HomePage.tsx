@@ -8,6 +8,7 @@ import WhyChooseUs from '../../../components/home page/WhyChooseUs';
 import SignupSection from '../../../components/home page/SignupSection';
 import CTASection from '../../../components/home page/CTASection';
 import ClientLogosSlider from '../../../components/about/ClientLogosSlider';
+import CustomKitchenHighlight from '../../../components/home page/CustomKitchenHighlight';
 
 interface StorefrontCategory {
   _id: string;
@@ -44,6 +45,7 @@ const HomePage = () => {
       {/* ── 1. Hero Banner Slider ─────────────────────────── */}
       <ImageSlider />
       <ClientLogosSlider />
+      <CustomKitchenHighlight />
 
       {/* ── 2. Stats / Trust Bar ─────────────────────────── */}
 

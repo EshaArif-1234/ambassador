@@ -3,28 +3,37 @@
 import React from 'react';
 import Image from 'next/image';
 
-const HeroSection: React.FC = () => {
+interface HeroSectionProps {
+  title: string;
+  subtitle: string;
+  imageSrc: string;
+  imageAlt: string;
+}
+
+const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle, imageSrc, imageAlt }) => {
   return (
-    <div className="relative h-96 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80"></div>
+    <div className="relative min-h-[22rem] overflow-hidden md:h-[28rem] lg:h-[32rem]">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/50" />
       <Image
-        src="/Images/home/ratio.jpg"
-        alt="Custom Kitchen Solutions"
+        src={imageSrc}
+        alt={imageAlt}
         fill
         className="object-cover"
         priority
-        style={{
-          objectPosition: 'center center'
-        }}
+        sizes="100vw"
+        style={{ objectPosition: 'center center' }}
       />
-      <div className="absolute inset-0 bg-black opacity-50"></div>
-      <div className="relative z-10 h-full flex items-center justify-center text-white">
-        <div className="max-w-4xl mx-auto px-6">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">
-            Fast Food Kitchen Installation
+      <div className="absolute inset-0 bg-black/45" />
+      <div className="relative z-10 flex h-full min-h-[22rem] items-center justify-center px-6 text-white md:min-h-0 md:py-16">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#E36630] md:text-sm">
+            Case study
+          </p>
+          <h1 className="mb-4 text-3xl font-bold leading-tight drop-shadow-lg md:text-5xl">
+            {title}
           </h1>
-          <p className="text-xl md:text-2xl text-orange-100 drop-shadow-lg">
-            Professional design, manufacturing, and installation of commercial kitchens
+          <p className="mx-auto max-w-2xl text-lg text-white/85 drop-shadow-md md:text-xl md:leading-relaxed">
+            {subtitle}
           </p>
         </div>
       </div>

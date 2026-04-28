@@ -2,16 +2,29 @@
 
 import React from 'react';
 
-const OverviewSection: React.FC = () => {
+interface OverviewSectionProps {
+  body: string;
+  heading?: string;
+  kicker?: string;
+}
+
+const OverviewSection: React.FC<OverviewSectionProps> = ({
+  body,
+  heading = 'Executive summary',
+  kicker = 'Overview',
+}) => {
   return (
-    <div className="container mx-auto px-6 py-16 bg-gray-50">
-      <div className="p-8">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-          Overview
-        </h2>
-        <p className="text-gray-700 leading-relaxed text-lg">
-          Complete turnkey solution for a high-volume fast food kitchen serving 500+ customers daily. The project included full kitchen redesign, equipment manufacturing, and installation to optimize workflow and increase efficiency. Our expert team delivered a state-of-the-art kitchen solution that meets all industry standards and exceeds client expectations.
-        </p>
+    <div className="bg-gray-50">
+      <div className="container mx-auto px-4 py-12 md:py-16">
+        <div className="max-w-4xl">
+          <span className="mb-3 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-[#0F4C69]">
+            <span className="h-px w-8 bg-[#0F4C69]" />
+            {kicker}
+            <span className="h-px w-8 bg-[#0F4C69]" />
+          </span>
+          <h2 className="mb-6 text-3xl font-bold text-gray-900 md:text-4xl">{heading}</h2>
+          <p className="leading-relaxed text-gray-700 md:text-lg">{body}</p>
+        </div>
       </div>
     </div>
   );

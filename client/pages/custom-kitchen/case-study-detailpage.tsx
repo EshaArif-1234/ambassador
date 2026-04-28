@@ -1,54 +1,52 @@
 'use client';
 
 import React from 'react';
-import HeroSection from '@/components/custom-kitchen/HeroSection';
+import type { CustomKitchenCaseStudy } from '@/client/data/customKitchenCases';
+import CaseStudyHero from '@/components/custom-kitchen/case-study/CaseStudyHero';
+import CaseStudyProjectMeta from '@/components/custom-kitchen/case-study/CaseStudyProjectMeta';
+import CaseStudyMetrics from '@/components/custom-kitchen/case-study/CaseStudyMetrics';
 import OverviewSection from '@/components/custom-kitchen/OverviewSection';
-import StepsSection from '@/components/custom-kitchen/StepsSection';
-import ImageSlider from '@/components/custom-kitchen/ImageSlider';
-import ConsultationSection from '@/components/custom-kitchen/ConsultationSection';
-import ProjectHighlights from '@/components/custom-kitchen/ProjectHighlights';
-import BackToProjects from '@/components/custom-kitchen/BackToProjects';
+import CaseStudyScope from '@/components/custom-kitchen/case-study/CaseStudyScope';
+import CaseStudyChallengeSolution from '@/components/custom-kitchen/case-study/CaseStudyChallengeSolution';
+import CaseStudyGallery from '@/components/custom-kitchen/case-study/CaseStudyGallery';
+import CaseStudyLeadCTA from '@/components/custom-kitchen/case-study/CaseStudyLeadCTA';
 
-interface DetailPageProps {
-  title?: string;
-  description?: string;
-  caseStudySlug?: string;
-  cardColor?: string;
-  icon?: string;
-  params?: { caseStudy: string };
+export interface CaseStudyDetailViewProps {
+  study: CustomKitchenCaseStudy;
 }
 
-const DetailPage: React.FC<DetailPageProps> = ({ params }) => {
-  // Sample data for the case study
-  const kitchenImages = [
-    '/Images/home/card1.jpg',
-    '/Images/home/card2.webp', 
-    '/Images/home/card3.jpg',
-    '/Images/home/ratio.jpg'
-  ];
-
+export default function CaseStudyDetailView({ study }: CaseStudyDetailViewProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <HeroSection />
-      
-        <div className="bg-gray-50">
-        <OverviewSection />
-        </div>
-        <div className="bg-white">
-        <StepsSection />
-        </div>
-        <ImageSlider images={kitchenImages} />
-        <div className="bg-gray-50">
-        <ConsultationSection />
-        </div>
-        <div className="bg-white">
-        <ProjectHighlights />
-        
-        {/* <BackToProjects /> */}
-        </div>
-      </div>
-    
-  );
-};
+    <div className="min-h-screen bg-[#fafafa]">
+      <CaseStudyHero
+        title={study.heroTitle}
+        subtitle={study.heroSubtitle}
+        imageSrc={study.heroImage}
+        imageAlt={study.cardAlt}
+        clientName={study.clientName}
+      />
 
-export default DetailPage;
+      <CaseStudyProjectMeta
+        clientName={study.clientName}
+        location={study.location}
+        sector={study.sector}
+        completedYear={study.completedYear}
+      />
+
+      <CaseStudyMetrics items={study.highlights} />
+
+      <OverviewSection
+        body={study.overview}
+        heading="Executive summary"
+        kicker="Overview"
+      />
+
+      <CaseStudyScope items={study.scope ?? []} />
+      <CaseStudyChallengeSolution challenge={study.challenge} solution={study.solution} />
+
+      <CaseStudyGallery sections={study.gallerySections} />
+
+      <CaseStudyLeadCTA />
+    </div>
+  );
+}

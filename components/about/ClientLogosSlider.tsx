@@ -8,6 +8,9 @@ import Image from 'next/image';
  * First half of the list → top row (scrolls left); second half → bottom row (scrolls right).
  */
 const CLIENT_LOGO_IMAGES: string[] = [
+  '/Images/slider-images-new/BRGR.png',
+  '/Images/slider-images-new/BRIM.png',
+  '/Images/slider-images-new/Butt-karahi.png',
   '/Images/Logo Final/logo1.webp',
   '/Images/Logo Final/logo2.webp',
   '/Images/Logo Final/logo3.webp',
@@ -20,37 +23,37 @@ const CLIENT_LOGO_IMAGES: string[] = [
   '/Images/Logo Final/logo10.webp',
   '/Images/slider-images-new/logo-11.png',
   '/Images/Logo Final/logo12.webp',
-  '/Images/Logo Final/logo13.webp',
+  '/Images/slider-images-new/logo-13.png',
   '/Images/Logo Final/logo14.webp',
   '/Images/Logo Final/logo15.webp',
-  '/Images/Logo Final/logo16.webp',
-  '/Images/Logo Final/logo17.webp',
-  '/Images/Logo Final/logo18.webp',
+  '/Images/slider-images-new/logo-16.png',
+  '/Images/slider-images-new/logo-17.png',
+  '/Images/slider-images-new/logo-18.png',
   '/Images/Logo Final/logo19.webp',
   '/Images/Logo Final/logo20.webp',
   '/Images/Logo Final/logo21.webp',
   '/Images/Logo Final/logo22.webp',
   '/Images/Logo Final/logo23.webp',
-  '/Images/Logo Final/logo24.webp',
+  '/Images/slider-images-new/logo-24.png',
   '/Images/Logo Final/logo25.webp',
-  '/Images/Logo Final/logo26.webp',
+  '/Images/slider-images-new/logo-26.png',
   '/Images/Logo Final/logo27.webp',
   '/Images/Logo Final/logo28.webp',
-  '/Images/Logo Final/logo29.webp',
+  '/Images/slider-images-new/logo-29.png',
   '/Images/Logo Final/logo30.webp',
   '/Images/Logo Final/logo31.webp',
   '/Images/Logo Final/logo32.webp',
   '/Images/Logo Final/logo33.webp',
-  '/Images/Logo Final/logo34.webp',
-  '/Images/Logo Final/logo35.webp',
-  '/Images/Logo Final/logo36.webp',
-  '/Images/Logo Final/logo37.webp',
+  '/Images/slider-images-new/logo-34.png',
+  '/Images/slider-images-new/logo-35.png',
+  '/Images/slider-images-new/logo-36.png',
+  '/Images/slider-images-new/logo-37.png',
   '/Images/Logo Final/logo38.webp',
-  '/Images/Logo Final/logo39.webp',
+  '/Images/slider-images-new/logo-39.png',
   '/Images/Logo Final/logo40.webp',
   '/Images/Logo Final/logo41.webp',
-  '/Images/Logo Final/logo42.webp',
-  '/Images/Logo Final/logo43.webp',
+  '/Images/slider-images-new/logo-42.png',
+  '/Images/slider-images-new/logo-43.png',
   '/Images/Logo Final/logo44.webp',
 ];
 
@@ -69,17 +72,21 @@ interface LogoCardProps {
 }
 
 const LogoCard = ({ logo }: LogoCardProps) => (
-  <div className="group flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 mx-2 sm:mx-3">
-    <div className="relative w-full h-full rounded-full border-2 border-gray-100 bg-white shadow-sm hover:border-[#E36630] hover:shadow-md transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-      <Image
-        src={logo.logo}
-        alt={logo.name}
-        fill
-        className="object-contain transition-transform duration-300 group-hover:scale-110"
-        onError={(e) => {
-          (e.target as HTMLImageElement).src = `https://placehold.co/80x80/E36630/ffffff?text=${logo.id}`;
-        }}
-      />
+  <div className="group flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 xl:w-28 xl:h-28 mx-2 sm:mx-3 md:mx-3.5 lg:mx-4 xl:mx-5">
+    <div className="relative h-full w-full overflow-hidden rounded-full border-2 border-gray-100 bg-white shadow-sm transition-all duration-300 hover:border-[#E36630] hover:shadow-md hover:-translate-y-1">
+      <div className="absolute inset-2 sm:inset-2.5 md:inset-3 lg:inset-[0.875rem] xl:inset-4">
+        <div className="relative h-full w-full">
+          <Image
+            src={logo.logo}
+            alt={logo.name}
+            fill
+            className="object-contain transition-transform duration-300 group-hover:scale-110"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = `https://placehold.co/80x80/E36630/ffffff?text=${logo.id}`;
+            }}
+          />
+        </div>
+      </div>
     </div>
   </div>
 );
