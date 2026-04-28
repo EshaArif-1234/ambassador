@@ -24,7 +24,7 @@ const highlights = [
 
 /** Home-page spotlight for flagship Custom Kitchen — copy stays aligned with `/custom-kitchen`. */
 const CustomKitchenHighlight = () => (
-  <section className="relative overflow-hidden bg-gradient-to-br from-[#0F4C69] via-[#0d3f59] to-[#082f42] text-white border-t border-white/10">
+  <section className="relative overflow-hidden bg-[#0F4C69] text-white border-t border-white/10">
     <div
       className="pointer-events-none absolute -right-32 top-1/2 h-[480px] w-[480px] -translate-y-1/2 rounded-full bg-[#E36630]/10 blur-3xl"
       aria-hidden

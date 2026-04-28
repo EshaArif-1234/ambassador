@@ -13,8 +13,8 @@ const Footer = () => {
           <div className="col-span-1">
             <Link href="/" className="flex items-center mb-4">
               <Image
-                src="/Images/home/logo.webp"
-                alt="Logo"
+                src="/Images/home/Logo-Png.png"
+                alt="Ambassadors Logo"
                 width={150}
                 height={50}
               />
