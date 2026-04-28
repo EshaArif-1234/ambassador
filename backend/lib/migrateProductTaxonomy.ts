@@ -1,6 +1,6 @@
 import type { Collection } from 'mongodb';
 
-/** Move legacy single category / subCategory fields into arrays. Idempotent. */
+/** Move legacy single category / subCategory fields into arrays, then drop subcategory fields. Idempotent. */
 export async function migrateLegacyProductTaxonomy(collection: Collection) {
   await collection.updateMany(
     {
@@ -15,5 +15,9 @@ export async function migrateLegacyProductTaxonomy(collection: Collection) {
       $or: [{ subCategories: { $exists: false } }, { subCategories: { $size: 0 } }],
     },
     [{ $set: { subCategories: ['$subCategory'] } }, { $unset: ['subCategory'] }]
+  );
+  await collection.updateMany(
+    { $or: [{ subCategories: { $exists: true } }, { subCategory: { $exists: true } }] },
+    [{ $unset: ['subCategories', 'subCategory'] }]
   );
 }

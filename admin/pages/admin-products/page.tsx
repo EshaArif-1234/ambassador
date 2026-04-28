@@ -11,8 +11,7 @@ interface Product {
   _id: string;
   name: string;
   slug: string;
-  categories:    Array<{ _id: string; title: string } | string>;
-  subCategories: Array<{ _id: string; title: string } | string>;
+  categories: Array<{ _id: string; title: string } | string>;
   price: number;
   originalPrice: number;
   stock: number;
@@ -34,10 +33,10 @@ interface Category { _id: string; title: string; }
 
 const getTitle = (v: any): string => (v && typeof v === 'object' && v.title) ? v.title : String(v || '—');
 
-const taxonomyList = (p: Product, key: 'categories' | 'subCategories', legacy: 'category' | 'subCategory') => {
-  const arr = p[key];
+const taxonomyList = (p: Product) => {
+  const arr = p.categories;
   if (Array.isArray(arr) && arr.length) return arr;
-  const one = (p as unknown as Record<string, unknown>)[legacy];
+  const one = (p as unknown as Record<string, unknown>).category;
   return one ? [one] : [];
 };
 
@@ -152,7 +151,7 @@ const ProductsPage = () => {
     const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchCat =
       filterCat === 'all' ||
-      taxonomyList(p, 'categories', 'category').some(
+      taxonomyList(p).some(
         c => (typeof c === 'object' && c && '_id' in c ? c._id : c) === filterCat
       );
     const matchStatus = filterStatus === 'all' || p.status === filterStatus;
@@ -250,7 +249,6 @@ const ProductsPage = () => {
                   <tr>
                     <th className="px-6 py-3 text-left">Product</th>
                     <th className="px-6 py-3 text-left">Categories</th>
-                    <th className="px-6 py-3 text-left">Subcategories</th>
                     <th className="px-6 py-3 text-left">Price</th>
                     <th className="px-6 py-3 text-left">Stock</th>
                     <th className="px-6 py-3 text-left">Rating</th>
@@ -287,21 +285,11 @@ const ProductsPage = () => {
                       {/* Category */}
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1 max-w-[220px]">
-                          {taxonomyList(product, 'categories', 'category').map((c, i) => (
+                          {taxonomyList(product).map((c, i) => (
                             <span
                               key={i}
                               className="inline-flex px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
                             >
-                              {getTitle(c)}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1 max-w-[220px] text-gray-600">
-                          {taxonomyList(product, 'subCategories', 'subCategory').map((c, i) => (
-                            <span key={i} className="inline-flex px-2 py-0.5 text-xs bg-slate-100 text-slate-700 rounded-md">
                               {getTitle(c)}
                             </span>
                           ))}

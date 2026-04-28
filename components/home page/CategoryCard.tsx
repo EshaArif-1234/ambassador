@@ -11,7 +11,7 @@ interface CategoryCardProps {
 }
 
 const CategoryCard = ({ title, image, category, children }: CategoryCardProps) => {
-  const href = category ? `/subcategories?category=${encodeURIComponent(category)}` : '/subcategories';
+  const href = category ? `/products?category=${encodeURIComponent(category)}` : '/products';
   
   return (
     <Link href={href} className="block">

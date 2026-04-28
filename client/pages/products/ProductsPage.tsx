@@ -13,7 +13,6 @@ interface Product {
   id: number;
   name: string;
   category: string;
-  subCategory: string;
   price: number;
   image: string;
   featured?: boolean;
@@ -23,7 +22,6 @@ const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedSubCategory, setSelectedSubCategory] = useState('');
   const [priceRange, setPriceRange] = useState({ min: 0, max: 50000 });
   const [sortBy, setSortBy] = useState('name');
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,34 +51,34 @@ const ProductsPage = () => {
   // Sample products data
   const allProducts: Product[] = [
     // Stainless Steel Kitchen Products
-    { id: 1, name: 'Stainless Steel Work Table 6ft', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Work Tables', price: 15000, image: '/Images/home/stainless-steal.webp', featured: true },
-    { id: 2, name: 'Stainless Steel Cabinet 4 Door', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Cabinets', price: 25000, image: '/Images/home/stainless-steal.webp' },
-    { id: 3, name: 'Stainless Steel Wall Shelf', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Wall Shelves', price: 8000, image: '/Images/home/stainless-steal.webp' },
-    { id: 4, name: 'Stainless Steel Sink 2 Compartment', category: 'Stainless Steel Kitchen', subCategory: 'Stainless Steel Sinks', price: 12000, image: '/Images/home/stainless-steal.webp' },
+    { id: 1, name: 'Stainless Steel Work Table 6ft', category: 'Stainless Steel Kitchen', price: 15000, image: '/Images/home/stainless-steal.webp', featured: true },
+    { id: 2, name: 'Stainless Steel Cabinet 4 Door', category: 'Stainless Steel Kitchen', price: 25000, image: '/Images/home/stainless-steal.webp' },
+    { id: 3, name: 'Stainless Steel Wall Shelf', category: 'Stainless Steel Kitchen', price: 8000, image: '/Images/home/stainless-steal.webp' },
+    { id: 4, name: 'Stainless Steel Sink 2 Compartment', category: 'Stainless Steel Kitchen', price: 12000, image: '/Images/home/stainless-steal.webp' },
     
     // Hotel Kitchen Equipment Products
-    { id: 5, name: 'Commercial Cooking Range 6 Burner', category: 'Hotel Kitchen Equipment', subCategory: 'Commercial Cooking Ranges', price: 35000, image: '/Images/home/hotel.avif', featured: true },
-    { id: 6, name: 'Industrial Convection Oven', category: 'Hotel Kitchen Equipment', subCategory: 'Industrial Ovens', price: 45000, image: '/Images/home/hotel.avif' },
-    { id: 7, name: 'Food Preparation Table', category: 'Hotel Kitchen Equipment', subCategory: 'Food Preparation Tables', price: 18000, image: '/Images/home/hotel.avif' },
-    { id: 8, name: 'Hot Holding Equipment', category: 'Hotel Kitchen Equipment', subCategory: 'Hot Holding Equipment', price: 22000, image: '/Images/home/hotel.avif' },
+    { id: 5, name: 'Commercial Cooking Range 6 Burner', category: 'Hotel Kitchen Equipment', price: 35000, image: '/Images/home/hotel.avif', featured: true },
+    { id: 6, name: 'Industrial Convection Oven', category: 'Hotel Kitchen Equipment', price: 45000, image: '/Images/home/hotel.avif' },
+    { id: 7, name: 'Food Preparation Table', category: 'Hotel Kitchen Equipment', price: 18000, image: '/Images/home/hotel.avif' },
+    { id: 8, name: 'Hot Holding Equipment', category: 'Hotel Kitchen Equipment', price: 22000, image: '/Images/home/hotel.avif' },
     
     // Restaurant Equipment Products
-    { id: 9, name: 'Gas Range 4 Burner', category: 'Restaurant Equipment', subCategory: 'Gas Ranges', price: 28000, image: '/Images/home/restaurent.jpg', featured: true },
-    { id: 10, name: 'Griddle Plate 24 inch', category: 'Restaurant Equipment', subCategory: 'Griddles & Charbroilers', price: 15000, image: '/Images/home/restaurent.jpg' },
-    { id: 11, name: 'Deep Fryer 10L', category: 'Restaurant Equipment', subCategory: 'Deep Fryers', price: 32000, image: '/Images/home/restaurent.jpg' },
-    { id: 12, name: 'Pizza Oven Deck', category: 'Restaurant Equipment', subCategory: 'Pizza Ovens', price: 38000, image: '/Images/home/restaurent.jpg' },
+    { id: 9, name: 'Gas Range 4 Burner', category: 'Restaurant Equipment', price: 28000, image: '/Images/home/restaurent.jpg', featured: true },
+    { id: 10, name: 'Griddle Plate 24 inch', category: 'Restaurant Equipment', price: 15000, image: '/Images/home/restaurent.jpg' },
+    { id: 11, name: 'Deep Fryer 10L', category: 'Restaurant Equipment', price: 32000, image: '/Images/home/restaurent.jpg' },
+    { id: 12, name: 'Pizza Oven Deck', category: 'Restaurant Equipment', price: 38000, image: '/Images/home/restaurent.jpg' },
     
     // Bakery Equipment Products
-    { id: 13, name: 'Deck Oven 4 Tray', category: 'Bakery Equipment', subCategory: 'Deck Ovens', price: 42000, image: '/Images/home/bakeries.webp', featured: true },
-    { id: 14, name: 'Dough Mixer 30L', category: 'Bakery Equipment', subCategory: 'Dough Mixers', price: 35000, image: '/Images/home/bakeries.webp' },
-    { id: 15, name: 'Proofing Cabinet', category: 'Bakery Equipment', subCategory: 'Proofing Cabinets', price: 25000, image: '/Images/home/bakeries.webp' },
-    { id: 16, name: 'Bread Slicer', category: 'Bakery Equipment', subCategory: 'Bread Slicers', price: 18000, image: '/Images/home/bakeries.webp' },
+    { id: 13, name: 'Deck Oven 4 Tray', category: 'Bakery Equipment', price: 42000, image: '/Images/home/bakeries.webp', featured: true },
+    { id: 14, name: 'Dough Mixer 30L', category: 'Bakery Equipment', price: 35000, image: '/Images/home/bakeries.webp' },
+    { id: 15, name: 'Proofing Cabinet', category: 'Bakery Equipment', price: 25000, image: '/Images/home/bakeries.webp' },
+    { id: 16, name: 'Bread Slicer', category: 'Bakery Equipment', price: 18000, image: '/Images/home/bakeries.webp' },
     
     // Fast Food Equipment Products
-    { id: 17, name: 'Burger Grill', category: 'Fast Food Equipment', subCategory: 'Burger Grills', price: 22000, image: '/Images/home/fast food.avif', featured: true },
-    { id: 18, name: 'Shawarma Machine', category: 'Fast Food Equipment', subCategory: 'Shawarma Machines', price: 28000, image: '/Images/home/fast food.avif' },
-    { id: 19, name: 'French Fries Warmer', category: 'Fast Food Equipment', subCategory: 'French Fries Warmers', price: 12000, image: '/Images/home/fast food.avif' },
-    { id: 20, name: 'Beverage Dispenser', category: 'Fast Food Equipment', subCategory: 'Beverage Dispensers', price: 15000, image: '/Images/home/fast food.avif' }
+    { id: 17, name: 'Burger Grill', category: 'Fast Food Equipment', price: 22000, image: '/Images/home/fast food.avif', featured: true },
+    { id: 18, name: 'Shawarma Machine', category: 'Fast Food Equipment', price: 28000, image: '/Images/home/fast food.avif' },
+    { id: 19, name: 'French Fries Warmer', category: 'Fast Food Equipment', price: 12000, image: '/Images/home/fast food.avif' },
+    { id: 20, name: 'Beverage Dispenser', category: 'Fast Food Equipment', price: 15000, image: '/Images/home/fast food.avif' }
   ];
 
   const categories = [
@@ -100,42 +98,16 @@ const ProductsPage = () => {
     'Imported Items'
   ];
 
-  const subCategories = [
-    'All Subcategories',
-    'Stainless Steel Work Tables',
-    'Stainless Steel Cabinets',
-    'Stainless Steel Shelving',
-    'Stainless Steel Trolleys',
-    'Stainless Steel Sinks',
-    'Stainless Steel Wall Shelves',
-    'Stainless Steel Exhaust Hoods',
-    'Commercial Cooking Ranges',
-    'Industrial Ovens',
-    'Food Preparation Tables',
-    'Hot Holding Equipment',
-    'Gas Ranges',
-    'Griddles & Charbroilers',
-    'Deep Fryers',
-    'Pizza Ovens',
-    'Deck Ovens',
-    'Dough Mixers',
-    'Proofing Cabinets'
-  ];
-
   useEffect(() => {
     setProducts(allProducts);
     setFilteredProducts(allProducts);
     
     // Handle URL parameters
     const categoryParam = searchParams.get('category');
-    const subCategoryParam = searchParams.get('subcategory');
     const searchParam = searchParams.get('search');
     
     if (categoryParam) {
       setSelectedCategory(categoryParam);
-    }
-    if (subCategoryParam) {
-      setSelectedSubCategory(subCategoryParam);
     }
     if (searchParam) {
       setSearchTerm(searchParam);
@@ -150,11 +122,6 @@ const ProductsPage = () => {
       filtered = filtered.filter(product => product.category === selectedCategory);
     }
 
-    // Filter by subcategory
-    if (selectedSubCategory && selectedSubCategory !== 'All Subcategories') {
-      filtered = filtered.filter(product => product.subCategory === selectedSubCategory);
-    }
-
     // Filter by price range
     filtered = filtered.filter(product => 
       product.price >= priceRange.min && product.price <= priceRange.max
@@ -164,8 +131,7 @@ const ProductsPage = () => {
     if (searchTerm) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.subCategory.toLowerCase().includes(searchTerm.toLowerCase())
+        product.category.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -184,7 +150,7 @@ const ProductsPage = () => {
     }
 
     setFilteredProducts(filtered);
-  }, [products, selectedCategory, selectedSubCategory, priceRange, sortBy, searchTerm, features, brands, availability]);
+  }, [products, selectedCategory, priceRange, sortBy, searchTerm, features, brands, availability]);
 
   const handleRatingChange = (productId: number, rating: string) => {
     setSelectedRatings(prev => ({ ...prev, [productId]: rating }));
@@ -221,7 +187,6 @@ const ProductsPage = () => {
 
   const clearFilters = () => {
     setSelectedCategory('All Categories');
-    setSelectedSubCategory('All Subcategories');
     setPriceRange({ min: 0, max: 50000 });
     setSortBy('name');
     setSearchTerm('');
@@ -286,26 +251,6 @@ const ProductsPage = () => {
                         className="mr-2 text-orange-500 focus:ring-orange-500"
                       />
                       <span className="text-sm text-gray-700">{category}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Subcategory Filter */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Subcategory</h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {subCategories.map(subCategory => (
-                    <label key={subCategory} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="subcategory"
-                        value={subCategory}
-                        checked={selectedSubCategory === subCategory}
-                        onChange={(e) => setSelectedSubCategory(e.target.value)}
-                        className="mr-2 text-orange-500 focus:ring-orange-500"
-                      />
-                      <span className="text-sm text-gray-700">{subCategory}</span>
                     </label>
                   ))}
                 </div>

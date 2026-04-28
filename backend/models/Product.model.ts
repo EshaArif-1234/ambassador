@@ -4,7 +4,6 @@ export interface IProduct extends Document {
   name: string;
   slug: string;
   categories: Types.ObjectId[];
-  subCategories: Types.ObjectId[];
   price?: number;
   originalPrice: number;
   stock: number;
@@ -44,16 +43,6 @@ const productSchema = new Schema<IProduct>(
           return Array.isArray(v) && v.length >= 1;
         },
         message: 'At least one category is required',
-      },
-    },
-    subCategories: {
-      type: [{ type: Schema.Types.ObjectId, ref: 'SubCategory' }],
-      required: [true, 'At least one subcategory is required'],
-      validate: {
-        validator(v: unknown[]) {
-          return Array.isArray(v) && v.length >= 1;
-        },
-        message: 'At least one subcategory is required',
       },
     },
     price: {
