@@ -10,7 +10,6 @@ import Image from 'next/image';
 const CLIENT_LOGO_IMAGES: string[] = [
   '/Images/slider-images-new/BRGR.png',
   '/Images/slider-images-new/BRIM.png',
-  '/Images/slider-images-new/Butt-karahi.png',
   '/Images/Logo Final/logo1.webp',
   '/Images/Logo Final/logo2.webp',
   '/Images/Logo Final/logo3.webp',
@@ -67,12 +66,16 @@ const half = Math.ceil(logos.length / 2);
 const row1 = logos.slice(0, half);
 const row2 = logos.slice(half);
 
+const SEGMENT_GAP  = 'gap-4 sm:gap-5 md:gap-6 lg:gap-7';
+/** Matches gap so the seam between duplicated segments has the same spacing as between logos; keeps -50% loop exact. */
+const SEGMENT_TAIL = 'pr-4 sm:pr-5 md:pr-6 lg:pr-7';
+
 interface LogoCardProps {
   logo: { id: string; logo: string; name: string };
 }
 
 const LogoCard = ({ logo }: LogoCardProps) => (
-  <div className="group flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 xl:w-28 xl:h-28 mx-2 sm:mx-3 md:mx-3.5 lg:mx-4 xl:mx-5">
+  <div className="group h-16 w-16 shrink-0 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 xl:h-28 xl:w-28">
     <div className="relative h-full w-full overflow-hidden rounded-full border-2 border-gray-100 bg-white shadow-sm transition-all duration-300 hover:border-[#E36630] hover:shadow-md hover:-translate-y-1">
       <div className="absolute inset-2 sm:inset-2.5 md:inset-3 lg:inset-[0.875rem] xl:inset-4">
         <div className="relative h-full w-full">
@@ -80,7 +83,9 @@ const LogoCard = ({ logo }: LogoCardProps) => (
             src={logo.logo}
             alt={logo.name}
             fill
+            sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, (max-width: 1024px) 96px, 112px"
             className="object-contain transition-transform duration-300 group-hover:scale-110"
+            draggable={false}
             onError={(e) => {
               (e.target as HTMLImageElement).src = `https://placehold.co/80x80/E36630/ffffff?text=${logo.id}`;
             }}
@@ -91,77 +96,108 @@ const LogoCard = ({ logo }: LogoCardProps) => (
   </div>
 );
 
+function LogoSegment({
+  items,
+  prefix,
+  ariaHidden,
+}: {
+  items: typeof logos;
+  prefix: string;
+  ariaHidden?: boolean;
+}) {
+  return (
+    <div
+      className={`flex shrink-0 flex-nowrap items-center ${SEGMENT_GAP} ${SEGMENT_TAIL}`}
+      aria-hidden={ariaHidden}
+    >
+      {items.map((logo) => (
+        <LogoCard key={`${prefix}-${logo.id}`} logo={logo} />
+      ))}
+    </div>
+  );
+}
+
 const ClientLogosSlider = () => {
   return (
     <>
       <style>{`
-        @keyframes scroll-left {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+        @keyframes marquee-left {
+          from { transform: translate3d(0, 0, 0); }
+          to { transform: translate3d(-50%, 0, 0); }
         }
-        @keyframes scroll-right {
-          0%   { transform: translateX(-50%); }
-          100% { transform: translateX(0); }
+        @keyframes marquee-right {
+          from { transform: translate3d(-50%, 0, 0); }
+          to { transform: translate3d(0, 0, 0); }
         }
-        .marquee-left {
-          animation: scroll-left 30s linear infinite;
+        .marquee-inner {
+          display: flex;
+          width: max-content;
+          flex-wrap: nowrap;
+          align-items: center;
+          will-change: transform;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
         }
-        .marquee-right {
-          animation: scroll-right 30s linear infinite;
+        .marquee-inner-left {
+          animation: marquee-left 45s linear infinite;
         }
-        .marquee-track:hover .marquee-left,
-        .marquee-track:hover .marquee-right {
+        .marquee-inner-right {
+          animation: marquee-right 45s linear infinite;
+        }
+        .marquee-track:hover .marquee-inner {
           animation-play-state: paused;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .marquee-inner-left,
+          .marquee-inner-right {
+            animation: none;
+            transform: none;
+          }
         }
       `}</style>
 
-      <section className="bg-[#FAFAFA] py-10 md:py-16 border-t border-gray-100 overflow-hidden">
+      <section className="border-t border-gray-100 bg-[#FAFAFA] py-10 md:py-16">
         <div className="container mx-auto px-4">
-
-          {/* ── Header ───────────────────────────────────── */}
-          <div className="text-center mb-12">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-4">
-              <span className="w-8 h-px bg-[#0F4C69]" />
+          <div className="mb-12 text-center">
+            <span className="mb-4 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-[#0F4C69]">
+              <span className="h-px w-8 bg-[#0F4C69]" />
               Trusted By
-              <span className="w-8 h-px bg-[#0F4C69]" />
+              <span className="h-px w-8 bg-[#0F4C69]" />
             </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
-              Businesses That{' '}
-              <span className="text-[#E36630]">Rely on Us</span>
+            <h2 className="mb-4 text-3xl font-bold leading-tight text-gray-900 md:text-4xl">
+              Businesses That <span className="text-[#E36630]">Rely on Us</span>
             </h2>
-            <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-              From five-star hotels to fast-food chains — over 1,200 businesses across Pakistan trust Ambassador for their commercial kitchen needs.
+            <p className="mx-auto max-w-2xl text-base leading-relaxed text-gray-500 md:text-lg">
+              From five-star hotels to fast-food chains — over 1,200 businesses across Pakistan trust Ambassador
+              for their commercial kitchen needs.
             </p>
-            <div className="mt-5 w-16 h-1 bg-[#E36630] mx-auto rounded-full" />
-          </div>
-
-        </div>
-
-        {/* ── Row 1 — scrolls left ──────────────────────── */}
-        <div className="marquee-track relative mb-6">
-          {/* Fade edges */}
-          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#FAFAFA] to-transparent z-10 pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#FAFAFA] to-transparent z-10 pointer-events-none" />
-
-          <div className="flex marquee-left">
-            {[...row1, ...row1].map((logo, i) => (
-              <LogoCard key={`r1-${i}-${logo.id}`} logo={logo} />
-            ))}
+            <div className="mx-auto mt-5 h-1 w-16 rounded-full bg-[#E36630]" />
           </div>
         </div>
 
-        {/* ── Row 2 — scrolls right ─────────────────────── */}
-        <div className="marquee-track relative">
-          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#FAFAFA] to-transparent z-10 pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#FAFAFA] to-transparent z-10 pointer-events-none" />
+        <div className="overflow-x-hidden overflow-y-visible">
+          {/* Row 1 — scrolls left */}
+          <div className="marquee-track relative mb-6">
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#FAFAFA] to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#FAFAFA] to-transparent" />
 
-          <div className="flex marquee-right">
-            {[...row2, ...row2].map((logo, i) => (
-              <LogoCard key={`r2-${i}-${logo.id}`} logo={logo} />
-            ))}
+            <div className="marquee-inner marquee-inner-left">
+              <LogoSegment items={row1} prefix="r1a" />
+              <LogoSegment items={row1} prefix="r1b" ariaHidden />
+            </div>
+          </div>
+
+          {/* Row 2 — scrolls right */}
+          <div className="marquee-track relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#FAFAFA] to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#FAFAFA] to-transparent" />
+
+            <div className="marquee-inner marquee-inner-right">
+              <LogoSegment items={row2} prefix="r2a" />
+              <LogoSegment items={row2} prefix="r2b" ariaHidden />
+            </div>
           </div>
         </div>
-
       </section>
     </>
   );
