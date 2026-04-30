@@ -11,6 +11,10 @@ import {
   validateProductTaxonomy,
   toObjectIdArray,
 } from '@/backend/lib/productTaxonomy';
+import {
+  sanitizeProductFeatures,
+  sanitizeProductBrands,
+} from '@/backend/lib/productMarketingFields';
 import { requireAdmin } from '@/backend/lib/adminAuth';
 
 cloudinary.config({
@@ -52,6 +56,8 @@ export async function PATCH(
       specifications,
       metaTitle,
       metaDescription,
+      features,
+      brands,
     } = body;
 
     if (name !== undefined) product.name = name.trim();
@@ -81,6 +87,8 @@ export async function PATCH(
     if (specifications !== undefined) product.specifications = specifications;
     if (metaTitle !== undefined) product.metaTitle = metaTitle?.trim() ?? '';
     if (metaDescription !== undefined) product.metaDescription = metaDescription?.trim() ?? '';
+    if (features !== undefined) product.features = sanitizeProductFeatures(features);
+    if (brands !== undefined) product.brands = sanitizeProductBrands(brands);
 
     if (images !== undefined) {
       const oldIds: string[] = product.imagePublicIds ?? [];

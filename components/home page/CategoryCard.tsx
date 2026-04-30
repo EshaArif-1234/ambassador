@@ -16,7 +16,7 @@ const CategoryCard = ({ title, image, category, children }: CategoryCardProps) =
   return (
     <Link href={href} className="block">
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
-        <div className="h-48 relative">
+        <div className="h-56 sm:h-64 md:h-[358px] relative">
           {image ? (
             <img
               src={image}

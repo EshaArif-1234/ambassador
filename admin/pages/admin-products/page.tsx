@@ -22,6 +22,8 @@ interface Product {
   videos: string[];
   videoPublicIds: string[];
   specifications: Record<string, string>;
+  features?: string[];
+  brands?: string[];
   avgRating: number;
   reviewCount: number;
   createdAt: string;

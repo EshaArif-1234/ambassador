@@ -16,6 +16,10 @@ export interface IProduct extends Document {
   specifications: Record<string, string>;
   metaTitle?: string;
   metaDescription?: string;
+  /** Marketing flags — subset of free_shipping | on_sale | new_arrival | best_seller */
+  features: string[];
+  /** Brand tags — subset of ambassador | imported */
+  brands: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,6 +104,14 @@ const productSchema = new Schema<IProduct>(
       trim: true,
       maxlength: [320, 'Meta description cannot exceed 320 characters'],
       default: '',
+    },
+    features: {
+      type: [String],
+      default: [],
+    },
+    brands: {
+      type: [String],
+      default: [],
     },
   },
   { timestamps: true }

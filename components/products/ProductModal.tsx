@@ -22,6 +22,37 @@ export interface ProductFormData {
   videoPublicIds: string[];
   metaTitle: string;
   metaDescription: string;
+  /** Marketing feature flags (multi-select) */
+  features: string[];
+  /** Brand tags (multi-select) */
+  brands: string[];
+}
+
+export const PRODUCT_FEATURE_OPTIONS = [
+  { id: 'free_shipping', label: 'Free Shipping' },
+  { id: 'on_sale', label: 'On Sale' },
+  { id: 'new_arrival', label: 'New Arrival' },
+  { id: 'best_seller', label: 'Best Seller' },
+] as const;
+
+export const PRODUCT_BRAND_OPTIONS = [
+  { id: 'ambassador', label: 'Ambassador' },
+  { id: 'imported', label: 'Imported' },
+] as const;
+
+const FEATURE_ID_SET: Set<string> = new Set(PRODUCT_FEATURE_OPTIONS.map((o) => o.id));
+const BRAND_ID_SET: Set<string> = new Set(PRODUCT_BRAND_OPTIONS.map((o) => o.id));
+
+function normalizeFeaturesFromProduct(p: any): string[] {
+  const raw = p?.features;
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.filter((x): x is string => typeof x === 'string' && FEATURE_ID_SET.has(x)))];
+}
+
+function normalizeBrandsFromProduct(p: any): string[] {
+  const raw = p?.brands;
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.filter((x): x is string => typeof x === 'string' && BRAND_ID_SET.has(x)))];
 }
 
 interface ProductModalProps {
@@ -73,6 +104,9 @@ const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ pro
   const createdAt = p.createdAt
     ? new Date(p.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
+
+  const viewFeatures = normalizeFeaturesFromProduct(p);
+  const viewBrands = normalizeBrandsFromProduct(p);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -336,6 +370,37 @@ const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ pro
                 </div>
               </div>
 
+              {/* Features & brand */}
+              <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Features & brand</p>
+                <div>
+                  <span className="text-sm text-gray-500 block mb-1.5">Features</span>
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {viewFeatures.length ? viewFeatures.map((id) => {
+                      const label = PRODUCT_FEATURE_OPTIONS.find((o) => o.id === id)?.label ?? id;
+                      return (
+                        <span key={id} className="px-2.5 py-0.5 bg-orange-50 text-[#E36630] text-xs font-medium rounded-full">
+                          {label}
+                        </span>
+                      );
+                    }) : <span className="text-xs text-gray-400">None selected</span>}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500 block mb-1.5">Brand</span>
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {viewBrands.length ? viewBrands.map((id) => {
+                      const label = PRODUCT_BRAND_OPTIONS.find((o) => o.id === id)?.label ?? id;
+                      return (
+                        <span key={id} className="px-2.5 py-0.5 bg-[#0F4C69]/10 text-[#0F4C69] text-xs font-medium rounded-full">
+                          {label}
+                        </span>
+                      );
+                    }) : <span className="text-xs text-gray-400">None selected</span>}
+                  </div>
+                </div>
+              </div>
+
               {/* Media Count */}
               <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
                 <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">Media</p>
@@ -409,6 +474,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
     specifications:  (product?.specifications || {}) as Record<string, string>,
     metaTitle:       product?.metaTitle       || '',
     metaDescription: product?.metaDescription || '',
+    features:        normalizeFeaturesFromProduct(product),
+    brands:          normalizeBrandsFromProduct(product),
   });
 
   // ── Specs ──
@@ -448,6 +515,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
       specifications: (p?.specifications || {}) as Record<string, string>,
       metaTitle: p?.metaTitle ?? '',
       metaDescription: p?.metaDescription ?? '',
+      features: normalizeFeaturesFromProduct(p),
+      brands: normalizeBrandsFromProduct(p),
     });
     setSpecRows(
       Object.entries((p?.specifications || {}) as Record<string, unknown>).map(([k, v]) => ({
@@ -467,6 +536,20 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
       categoryIds: f.categoryIds.includes(id)
         ? f.categoryIds.filter(x => x !== id)
         : [...f.categoryIds, id],
+    }));
+  };
+
+  const toggleFormFeature = (id: (typeof PRODUCT_FEATURE_OPTIONS)[number]['id']) => {
+    setForm((f) => ({
+      ...f,
+      features: f.features.includes(id) ? f.features.filter((x) => x !== id) : [...f.features, id],
+    }));
+  };
+
+  const toggleFormBrand = (id: (typeof PRODUCT_BRAND_OPTIONS)[number]['id']) => {
+    setForm((f) => ({
+      ...f,
+      brands: f.brands.includes(id) ? f.brands.filter((x) => x !== id) : [...f.brands, id],
     }));
   };
 
@@ -558,6 +641,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
         videoPublicIds:  videoResults.map(r => r.publicId),
         metaTitle:       form.metaTitle.trim(),
         metaDescription: form.metaDescription.trim(),
+        features:        form.features,
+        brands:          form.brands,
       });
       onClose();
     } catch (err) {
@@ -768,9 +853,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
                                 type="checkbox"
                                 checked={form.categoryIds.includes(c._id)}
                                 onChange={() => toggleProductCategory(c._id)}
-                                className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-[#0F4C69] focus:ring-[#0F4C69]/30"
+                                className="h-3.5 w-3.5 shrink-0 rounded border-gray-400 text-[#0F4C69] focus:ring-[#0F4C69]/30"
                               />
-                              <span className="min-w-0 truncate" title={c.title}>
+                              <span className="min-w-0 text-gray-400 truncate" title={c.title}>
                                 {c.title}
                               </span>
                             </label>
@@ -782,6 +867,48 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
                 )}
               </div>
               {errors.categoryIds && <p className="mt-1 text-xs text-red-500">{errors.categoryIds}</p>}
+            </div>
+
+            {/* Features & brand (multi-select) */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-xs font-medium text-gray-600">Features</label>
+                <p className="mb-2 text-[11px] text-gray-400">Select any that apply</p>
+                <ul className="space-y-1.5 rounded-lg border border-gray-200 bg-white p-2">
+                  {PRODUCT_FEATURE_OPTIONS.map((opt) => (
+                    <li key={opt.id}>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-[#0F4C69]/5 sm:text-[13px]">
+                        <input
+                          type="checkbox"
+                          checked={form.features.includes(opt.id)}
+                          onChange={() => toggleFormFeature(opt.id)}
+                          className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-[#0F4C69] focus:ring-[#0F4C69]/30"
+                        />
+                        <span className="text-gray-400">{opt.label}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-medium text-gray-600">Brand</label>
+                <p className="mb-2 text-[11px] text-gray-400">One or both</p>
+                <ul className="space-y-1.5 rounded-lg border border-gray-200 bg-white p-2">
+                  {PRODUCT_BRAND_OPTIONS.map((opt) => (
+                    <li key={opt.id}>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-[#0F4C69]/5 sm:text-[13px]">
+                        <input
+                          type="checkbox"
+                          checked={form.brands.includes(opt.id)}
+                          onChange={() => toggleFormBrand(opt.id)}
+                          className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-[#0F4C69] focus:ring-[#0F4C69]/30"
+                        />
+                        <span className="text-gray-400">{opt.label}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
 

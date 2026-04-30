@@ -8,6 +8,10 @@ import {
   validateProductTaxonomy,
   toObjectIdArray,
 } from '@/backend/lib/productTaxonomy';
+import {
+  sanitizeProductFeatures,
+  sanitizeProductBrands,
+} from '@/backend/lib/productMarketingFields';
 import { requireAdmin } from '@/backend/lib/adminAuth';
 
 /** GET /api/admin/products — list all products with optional filters */
@@ -85,6 +89,8 @@ export async function POST(req: NextRequest) {
       specifications,
       metaTitle,
       metaDescription,
+      features,
+      brands,
     } = body;
 
     const categoryIds = resolveProductCategoryIds(body);
@@ -125,6 +131,8 @@ export async function POST(req: NextRequest) {
       specifications: specifications ?? {},
       metaTitle: metaTitle?.trim() ?? '',
       metaDescription: metaDescription?.trim() ?? '',
+      features: sanitizeProductFeatures(features),
+      brands: sanitizeProductBrands(brands),
     });
 
     const populated = await product.populate([{ path: 'categories', select: 'title' }]);

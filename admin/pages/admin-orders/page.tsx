@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Image from 'next/image';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -13,11 +14,12 @@ interface Order {
   customerPhone: string;
   items: OrderItem[];
   totalAmount: number;
+  currency: string;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
-  paymentMethod: 'online' | 'cash_on_delivery';
   orderDate: string;
   deliveryDate?: string;
+  shippingMethod: string;
   shippingAddress: {
     street: string;
     city: string;
@@ -26,9 +28,12 @@ interface Order {
     country: string;
   };
   notes?: string;
-  codCollectedBy?: string;
-  codCollectionTime?: string;
   failedReason?: string;
+  /** Matches `Payment.id` on the Payments dashboard */
+  paymentId: string;
+  transactionId: string;
+  gatewayMethod: string;
+  paidAt?: string;
 }
 
 interface OrderItem {
@@ -38,12 +43,12 @@ interface OrderItem {
   quantity: number;
   price: number;
   total: number;
+  sku?: string;
 }
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'online' | 'cod'>('online');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -81,7 +86,8 @@ const OrdersPage = () => {
               productImage: '/Images/products/kitchen-cabinet.jpg',
               quantity: 1,
               price: 2500,
-              total: 2500
+              total: 2500,
+              sku: 'KCH-CAB-001'
             },
             {
               id: 2,
@@ -89,15 +95,17 @@ const OrdersPage = () => {
               productImage: '/Images/products/marble-countertop.jpg',
               quantity: 2,
               price: 800,
-              total: 1600
+              total: 1600,
+              sku: 'CTR-MRB-880'
             }
           ],
           totalAmount: 4100,
+          currency: 'USD',
           status: 'delivered',
           paymentStatus: 'paid',
-          paymentMethod: 'online',
           orderDate: '2024-04-01',
           deliveryDate: '2024-04-03',
+          shippingMethod: 'Standard shipping (5–7 business days)',
           shippingAddress: {
             street: '123 Main St',
             city: 'New York',
@@ -105,7 +113,11 @@ const OrdersPage = () => {
             zipCode: '10001',
             country: 'USA'
           },
-          notes: 'Customer requested expedited shipping'
+          notes: 'Leave at front desk if unavailable',
+          paymentId: 'pay_001',
+          transactionId: 'txn_123456789',
+          gatewayMethod: 'Credit card (Visa •••• 4242)',
+          paidAt: '2024-04-01T10:32:00Z'
         },
         {
           id: 2,
@@ -120,50 +132,27 @@ const OrdersPage = () => {
               productImage: '/Images/products/led-lights.jpg',
               quantity: 3,
               price: 150,
-              total: 450
+              total: 450,
+              sku: 'LED-KIT-12V'
             }
           ],
           totalAmount: 450,
+          currency: 'USD',
           status: 'processing',
           paymentStatus: 'paid',
-          paymentMethod: 'online',
           orderDate: '2024-04-02',
+          shippingMethod: 'Express (2 business days)',
           shippingAddress: {
             street: '456 Oak Ave',
             city: 'Los Angeles',
             state: 'CA',
             zipCode: '90001',
             country: 'USA'
-          }
-        },
-        {
-          id: 3,
-          orderNumber: 'ORD-2024-003',
-          customerName: 'Mike Davis',
-          customerEmail: 'mike.davis@email.com',
-          customerPhone: '+1 234-567-8902',
-          items: [
-            {
-              id: 4,
-              productName: 'Stainless Steel Sink',
-              productImage: '/Images/products/sink.jpg',
-              quantity: 1,
-              price: 600,
-              total: 600
-            }
-          ],
-          totalAmount: 600,
-          status: 'pending',
-          paymentStatus: 'pending',
-          paymentMethod: 'cash_on_delivery',
-          orderDate: '2024-04-03',
-          shippingAddress: {
-            street: '789 Pine Rd',
-            city: 'Chicago',
-            state: 'IL',
-            zipCode: '60007',
-            country: 'USA'
-          }
+          },
+          paymentId: 'pay_002',
+          transactionId: 'txn_ord_002',
+          gatewayMethod: 'PayPal',
+          paidAt: '2024-04-02T09:15:00Z'
         },
         {
           id: 4,
@@ -178,14 +167,16 @@ const OrdersPage = () => {
               productImage: '/Images/products/bakery-equipment.jpg',
               quantity: 1,
               price: 3500,
-              total: 3500
+              total: 3500,
+              sku: 'BKR-EQP-PRO'
             }
           ],
           totalAmount: 3500,
+          currency: 'USD',
           status: 'cancelled',
           paymentStatus: 'refunded',
-          paymentMethod: 'online',
           orderDate: '2024-04-01',
+          shippingMethod: 'Standard shipping (5–7 business days)',
           shippingAddress: {
             street: '321 Elm St',
             city: 'Houston',
@@ -193,7 +184,11 @@ const OrdersPage = () => {
             zipCode: '77001',
             country: 'USA'
           },
-          notes: 'Customer cancelled due to budget constraints'
+          notes: 'Customer cancelled due to budget constraints',
+          paymentId: 'pay_004',
+          transactionId: 'txn_ord_004',
+          gatewayMethod: 'Debit card (Mastercard •••• 9921)',
+          paidAt: '2024-04-01T11:00:00Z'
         }
       ];
       
@@ -299,19 +294,6 @@ const OrdersPage = () => {
     setOrders([...updatedOrders]);
   };
 
-  const handleMarkAsPaid = (order: Order) => {
-    setOrders(orders.map(o => 
-      o.id === order.id 
-        ? { 
-            ...o, 
-            paymentStatus: 'paid' as const,
-            codCollectedBy: 'Admin - Manual Update',
-            codCollectionTime: new Date().toISOString()
-          }
-        : o
-    ));
-  };
-
   const handleMarkAsFailed = (order: Order) => {
     setOrderToFail(order);
     setFailedReason('');
@@ -352,18 +334,13 @@ const OrdersPage = () => {
     setShowActionsDropdown(showActionsDropdown === orderNumber ? null : orderNumber);
   };
 
-  // Separate online and COD orders
-  const onlineOrders = orders.filter(o => o.paymentMethod === 'online');
-  const codOrders = orders.filter(o => o.paymentMethod === 'cash_on_delivery');
-
-  // Filter based on active tab
   const getFilteredOrders = () => {
-    const baseOrders = activeTab === 'online' ? onlineOrders : codOrders;
-    
-    return baseOrders.filter(order => {
-      const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    return orders.filter(order => {
+      const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+                           order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           order.paymentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           order.transactionId.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
       const matchesPaymentStatus = filterPaymentStatus === 'all' || order.paymentStatus === filterPaymentStatus;
       
@@ -440,35 +417,7 @@ const OrdersPage = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Management</h1>
-          <p className="text-gray-600">Manage customer orders and track delivery status</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('online')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'online'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Online Payment Orders
-              </button>
-              <button
-                onClick={() => setActiveTab('cod')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'cod'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Cash on Delivery Orders
-              </button>
-            </nav>
-          </div>
+          <p className="text-gray-600">Online checkout orders — payment is captured before fulfillment</p>
         </div>
 
         {/* Stats Cards */}
@@ -520,7 +469,13 @@ const OrdersPage = () => {
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  ${orders.filter(o => o.paymentStatus === 'paid').reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()}
+                  {(() => {
+                    const paidOrders = orders.filter(o => o.paymentStatus === 'paid');
+                    if (paidOrders.length === 0) return '—';
+                    const cur = paidOrders[0].currency;
+                    const sum = paidOrders.reduce((s, o) => s + o.totalAmount, 0);
+                    return `${cur} ${sum.toLocaleString()}`;
+                  })()}
                 </p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -628,7 +583,7 @@ const OrdersPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${order.totalAmount.toLocaleString()}
+                      {order.currency} {order.totalAmount.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(order.status)}`}>
@@ -752,35 +707,19 @@ const OrdersPage = () => {
                 </svg>
                 Cancel Order
               </button>
-              {activeTab === 'cod' && (
-                <>
-                  <button
-                    onClick={() => {
-                      const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                      if (order) handleMarkAsPaid(order);
-                      setShowActionsDropdown(null);
-                    }}
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                  >
-                    <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    Mark as Paid
-                  </button>
-                  <button
-                    onClick={() => {
-                      const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                      if (order) handleMarkAsFailed(order);
-                    }}
-                    className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
-                  >
-                    <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Mark as Failed
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => {
+                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
+                  if (order) handleMarkAsFailed(order);
+                  setShowActionsDropdown(null);
+                }}
+                className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+              >
+                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Mark as Failed
+              </button>
             </div>
           </div>
         )}
@@ -857,77 +796,121 @@ const OrdersPage = () => {
 
         {/* View Order Modal */}
         {showViewModal && selectedOrder && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Order Details</h2>
-                <button 
-                  onClick={() => setShowViewModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Order {selectedOrder.orderNumber}</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Placed {new Date(selectedOrder.orderDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link
+                    href={`/payments?paymentId=${encodeURIComponent(selectedOrder.paymentId)}`}
+                    className="inline-flex items-center px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600"
+                  >
+                    View payment
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowViewModal(false)}
+                    className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                    aria-label="Close"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-6">
-                {/* Order Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Order Information</h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Order Number:</span>
-                        <span className="text-sm font-medium text-gray-900">{selectedOrder.orderNumber}</span>
+              <div className="p-6 space-y-6">
+                {/* Summary row */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(selectedOrder.status)}`}>
+                    {selectedOrder.status}
+                  </span>
+                  <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${getPaymentStatusBadgeColor(selectedOrder.paymentStatus)}`}>
+                    Payment: {selectedOrder.paymentStatus}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {selectedOrder.currency} {selectedOrder.totalAmount.toLocaleString()} total
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="rounded-xl border border-gray-200 p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Order</h3>
+                    <dl className="space-y-2 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-gray-500">Order number</dt>
+                        <dd className="font-medium text-gray-900 text-right">{selectedOrder.orderNumber}</dd>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Order Date:</span>
-                        <span className="text-sm font-medium text-gray-900">{new Date(selectedOrder.orderDate).toLocaleDateString()}</span>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-gray-500">Delivery target</dt>
+                        <dd className="font-medium text-gray-900 text-right">
+                          {selectedOrder.deliveryDate ? new Date(selectedOrder.deliveryDate).toLocaleDateString() : '—'}
+                        </dd>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Delivery Date:</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {selectedOrder.deliveryDate ? new Date(selectedOrder.deliveryDate).toLocaleDateString() : 'Not set'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Status:</span>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(selectedOrder.status)}`}>
-                          {selectedOrder.status}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Payment Status:</span>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getPaymentStatusBadgeColor(selectedOrder.paymentStatus)}`}>
-                          {selectedOrder.paymentStatus}
-                        </span>
-                      </div>
-                    </div>
+                    </dl>
                   </div>
 
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Name:</span>
-                        <span className="text-sm font-medium text-gray-900">{selectedOrder.customerName}</span>
+                  <div className="rounded-xl border border-gray-200 p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Customer</h3>
+                    <dl className="space-y-2 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-gray-500">Name</dt>
+                        <dd className="font-medium text-gray-900 text-right">{selectedOrder.customerName}</dd>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Email:</span>
-                        <span className="text-sm font-medium text-gray-900">{selectedOrder.customerEmail}</span>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-gray-500">Email</dt>
+                        <dd className="font-medium text-gray-900 text-right break-all">{selectedOrder.customerEmail}</dd>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Phone:</span>
-                        <span className="text-sm font-medium text-gray-900">{selectedOrder.customerPhone}</span>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-gray-500">Phone</dt>
+                        <dd className="font-medium text-gray-900 text-right">{selectedOrder.customerPhone}</dd>
                       </div>
-                    </div>
+                    </dl>
                   </div>
                 </div>
 
-                {/* Shipping Address */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Shipping Address</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-900">
+                <div className="rounded-xl border border-gray-200 p-4 bg-gray-50/50">
+                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Payment</h3>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    <div className="flex justify-between gap-4 sm:col-span-2">
+                      <dt className="text-gray-500">Payment record</dt>
+                      <dd className="font-mono text-xs text-gray-900">{selectedOrder.paymentId}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-500">Transaction</dt>
+                      <dd className="font-mono text-xs text-gray-900 truncate max-w-[12rem] sm:max-w-none" title={selectedOrder.transactionId}>
+                        {selectedOrder.transactionId}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-500">Method</dt>
+                      <dd className="font-medium text-gray-900 text-right">{selectedOrder.gatewayMethod}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-500">Amount</dt>
+                      <dd className="font-semibold text-gray-900">{selectedOrder.currency} {selectedOrder.totalAmount.toLocaleString()}</dd>
+                    </div>
+                    {selectedOrder.paidAt && (
+                      <div className="flex justify-between gap-4 sm:col-span-2">
+                        <dt className="text-gray-500">Paid at</dt>
+                        <dd className="text-gray-900 text-right">{new Date(selectedOrder.paidAt).toLocaleString()}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="rounded-xl border border-gray-200 p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Shipping method</h3>
+                    <p className="text-sm text-gray-900">{selectedOrder.shippingMethod}</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Shipping address</h3>
+                    <p className="text-sm text-gray-900 leading-relaxed">
                       {selectedOrder.shippingAddress.street}<br />
                       {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}<br />
                       {selectedOrder.shippingAddress.country}
@@ -935,77 +918,87 @@ const OrdersPage = () => {
                   </div>
                 </div>
 
-                {/* Order Items */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Order Items</h3>
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Line items</h3>
+                  <div className="border border-gray-200 rounded-xl overflow-hidden">
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unit</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Line total</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {selectedOrder.items.map((item) => (
                           <tr key={item.id}>
                             <td className="px-4 py-3">
-                              <div className="flex items-center">
-                                <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden border mr-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-11 h-11 bg-gray-100 rounded-lg overflow-hidden border shrink-0">
                                   {item.productImage ? (
-                                    <Image 
-                                      src={item.productImage} 
+                                    <Image
+                                      src={item.productImage}
                                       alt={item.productName}
-                                      width={40}
-                                      height={40}
+                                      width={44}
+                                      height={44}
                                       className="w-full h-full object-cover"
                                     />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                      </svg>
+                                      <span className="text-[10px] text-gray-400">No img</span>
                                     </div>
                                   )}
                                 </div>
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">{item.productName}</div>
-                                </div>
+                                <span className="text-sm font-medium text-gray-900 truncate">{item.productName}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-900">{item.quantity}</td>
-                            <td className="px-4 py-3 text-sm text-gray-900">${item.price.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">${item.total.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-xs font-mono text-gray-600">{item.sku ?? '—'}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900 text-right">{item.quantity}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                              {selectedOrder.currency} {item.price.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
+                              {selectedOrder.currency} {item.total.toLocaleString()}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot className="bg-gray-50">
                         <tr>
-                          <td colSpan={3} className="px-4 py-3 text-sm font-medium text-gray-900">Total Amount:</td>
-                          <td className="px-4 py-3 text-sm font-bold text-gray-900">${selectedOrder.totalAmount.toLocaleString()}</td>
+                          <td colSpan={4} className="px-4 py-3 text-sm font-medium text-gray-900 text-right">Order total</td>
+                          <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">
+                            {selectedOrder.currency} {selectedOrder.totalAmount.toLocaleString()}
+                          </td>
                         </tr>
                       </tfoot>
                     </table>
                   </div>
                 </div>
 
-                {/* Notes */}
+                {selectedOrder.failedReason && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                    <h3 className="text-sm font-semibold text-red-900 mb-1">Failure reason</h3>
+                    <p className="text-sm text-red-800">{selectedOrder.failedReason}</p>
+                  </div>
+                )}
+
                 {selectedOrder.notes && (
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Notes</h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-900">{selectedOrder.notes}</p>
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Notes</h3>
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedOrder.notes}</p>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="sticky bottom-0 flex justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4">
                 <button
+                  type="button"
                   onClick={() => setShowViewModal(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
                 >
                   Close
                 </button>
