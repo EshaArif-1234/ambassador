@@ -199,12 +199,14 @@ const OrdersPage = () => {
     fetchOrders();
   }, []);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (table trigger uses .relative; menu is portaled fixed — exclude it)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showActionsDropdown && !(event.target as Element).closest('.relative')) {
-        setShowActionsDropdown(null);
-      }
+      if (!showActionsDropdown) return;
+      const el = event.target as Element;
+      if (el.closest('[data-order-actions-menu]')) return;
+      if (el.closest('.order-actions-trigger')) return;
+      setShowActionsDropdown(null);
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -223,21 +225,28 @@ const OrdersPage = () => {
 
   const confirmDeleteOrder = () => {
     if (orderToDelete) {
-      setOrders(orders.filter(o => o.id !== orderToDelete.id));
+      setOrders(prev => prev.filter(o => o.id !== orderToDelete.id));
+      if (selectedOrder?.id === orderToDelete.id) {
+        setSelectedOrder(null);
+        setShowViewModal(false);
+      }
       setOrderToDelete(null);
     }
     setShowDeleteModal(false);
   };
 
   const handleUpdateStatus = (order: Order, newStatus: Order['status']) => {
-    setOrders(orders.map(o => 
-      o.id === order.id 
-        ? { ...o, status: newStatus }
-        : o
-    ));
+    if (isOrderWorkflowLocked(order)) return;
+    setOrders(prev =>
+      prev.map(o => (o.id === order.id ? { ...o, status: newStatus } : o))
+    );
+    setSelectedOrder(sel =>
+      sel?.id === order.id ? { ...sel, status: newStatus } : sel
+    );
   };
 
   const handleCancelOrder = (order: Order) => {
+    if (isOrderWorkflowLocked(order)) return;
     setOrderToCancel(order);
     setCancelReason('');
     setShowCancelModal(true);
@@ -245,16 +254,33 @@ const OrdersPage = () => {
 
   const confirmCancelOrder = () => {
     if (orderToCancel) {
-      setOrders(orders.map(o => 
-        o.id === orderToCancel.id 
-          ? { 
-              ...o, 
-              status: 'cancelled', 
-              paymentStatus: 'refunded' as const,
-              notes: o.notes ? `${o.notes}\n\nCancelled: ${cancelReason}` : `Cancelled: ${cancelReason}`
+      const oid = orderToCancel.id;
+      setOrders(prev =>
+        prev.map(o =>
+          o.id === oid
+            ? {
+                ...o,
+                status: 'cancelled',
+                paymentStatus: 'refunded' as const,
+                notes: o.notes
+                  ? `${o.notes}\n\nCancelled: ${cancelReason}`
+                  : `Cancelled: ${cancelReason}`,
+              }
+            : o
+        )
+      );
+      setSelectedOrder(sel =>
+        sel?.id === oid
+          ? {
+              ...sel,
+              status: 'cancelled',
+              paymentStatus: 'refunded',
+              notes: sel.notes
+                ? `${sel.notes}\n\nCancelled: ${cancelReason}`
+                : `Cancelled: ${cancelReason}`,
             }
-          : o
-      ));
+          : sel
+      );
     }
     setShowCancelModal(false);
     setOrderToCancel(null);
@@ -262,39 +288,43 @@ const OrdersPage = () => {
   };
 
   const handleMarkAsProcessing = (order: Order) => {
-    console.log('Processing order:', order); // Debug log
-    // Create a new array to avoid direct state mutation
-    const updatedOrders = orders.map(o => 
-      o.id === order.id 
-        ? { ...o, status: 'processing' as const }
-        : o
+    if (isOrderWorkflowLocked(order)) return;
+    const oid = order.id;
+    setOrders(prev =>
+      prev.map(o => (o.id === oid ? { ...o, status: 'processing' as const } : o))
     );
-    setOrders([...updatedOrders]); // Force re-render with new array
+    setSelectedOrder(sel =>
+      sel?.id === oid ? { ...sel, status: 'processing' } : sel
+    );
   };
 
   const handleMarkAsShipped = (order: Order) => {
-    const updatedOrders = orders.map(o => 
-      o.id === order.id 
-        ? { ...o, status: 'shipped' as const }
-        : o
+    if (isOrderWorkflowLocked(order)) return;
+    const oid = order.id;
+    setOrders(prev =>
+      prev.map(o => (o.id === oid ? { ...o, status: 'shipped' as const } : o))
     );
-    setOrders([...updatedOrders]);
+    setSelectedOrder(sel => (sel?.id === oid ? { ...sel, status: 'shipped' } : sel));
   };
 
   const handleMarkAsDelivered = (order: Order) => {
-    const updatedOrders = orders.map(o => 
-      o.id === order.id 
-        ? { 
-            ...o, 
-            status: 'delivered' as const,
-            deliveryDate: new Date().toISOString().split('T')[0]
-          }
-        : o
+    if (isOrderWorkflowLocked(order)) return;
+    const oid = order.id;
+    const deliveryDate = new Date().toISOString().split('T')[0];
+    setOrders(prev =>
+      prev.map(o =>
+        o.id === oid
+          ? { ...o, status: 'delivered' as const, deliveryDate }
+          : o
+      )
     );
-    setOrders([...updatedOrders]);
+    setSelectedOrder(sel =>
+      sel?.id === oid ? { ...sel, status: 'delivered', deliveryDate } : sel
+    );
   };
 
   const handleMarkAsFailed = (order: Order) => {
+    if (isOrderWorkflowLocked(order)) return;
     setOrderToFail(order);
     setFailedReason('');
     setShowFailedModal(true);
@@ -303,17 +333,30 @@ const OrdersPage = () => {
 
   const confirmMarkAsFailed = () => {
     if (orderToFail && failedReason.trim()) {
-      const updatedOrders = orders.map(o => 
-        o.id === orderToFail.id 
-          ? { 
-              ...o, 
-              status: 'cancelled' as const,
-              paymentStatus: 'failed' as const,
-              failedReason: failedReason.trim()
-            }
-          : o
+      const oid = orderToFail.id;
+      const reason = failedReason.trim();
+      setOrders(prev =>
+        prev.map(o =>
+          o.id === oid
+            ? {
+                ...o,
+                status: 'cancelled' as const,
+                paymentStatus: 'failed' as const,
+                failedReason: reason,
+              }
+            : o
+        )
       );
-      setOrders(updatedOrders);
+      setSelectedOrder(sel =>
+        sel?.id === oid
+          ? {
+              ...sel,
+              status: 'cancelled',
+              paymentStatus: 'failed',
+              failedReason: reason,
+            }
+          : sel
+      );
       setShowFailedModal(false);
       setOrderToFail(null);
       setFailedReason('');
@@ -322,6 +365,9 @@ const OrdersPage = () => {
 
   // Function to handle dropdown positioning
   const handleActionsClick = (event: React.MouseEvent, orderNumber: string) => {
+    const order = orders.find((o) => o.orderNumber === orderNumber);
+    if (order && isOrderWorkflowLocked(order)) return;
+
     const button = event.currentTarget;
     const rect = button.getBoundingClientRect();
     
@@ -376,6 +422,9 @@ const OrdersPage = () => {
   };
 
   const filteredOrders = getFilteredOrders();
+
+  /** Cancelled orders cannot change fulfillment status (includes cancel + mark as failed). */
+  const isOrderWorkflowLocked = (order: Order) => order.status === 'cancelled';
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -600,15 +649,25 @@ const OrdersPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="relative">
+                        {isOrderWorkflowLocked(order) ? (
+                          <span
+                            className="inline-flex cursor-not-allowed items-center px-3 py-2 text-xs font-medium text-gray-400 bg-gray-50 border border-gray-200 rounded-md"
+                            title="This order is closed — status cannot be changed."
+                          >
+                            Closed
+                          </span>
+                        ) : (
                         <button
+                          type="button"
                           onClick={(e) => handleActionsClick(e, order.orderNumber)}
-                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                          className="order-actions-trigger inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                         >
                           <span>Actions</span>
                           <svg className="ml-2 -mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                           </svg>
                         </button>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -646,6 +705,7 @@ const OrdersPage = () => {
         {/* Actions Dropdown - Positioned outside table */}
         {showActionsDropdown && (
           <div 
+            data-order-actions-menu
             className="fixed z-[9999] w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
             style={{ 
               top: `${dropdownPosition.top}px`, 
@@ -654,10 +714,10 @@ const OrdersPage = () => {
           >
             <div className="py-1">
               <button
+                type="button"
                 onClick={() => {
                   const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  console.log('Found order for processing:', order); // Debug log
-                  if (order) handleMarkAsProcessing(order);
+                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsProcessing(order);
                   setShowActionsDropdown(null);
                 }}
                 className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
@@ -669,9 +729,10 @@ const OrdersPage = () => {
                 Mark as Processing
               </button>
               <button
+                type="button"
                 onClick={() => {
                   const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order) handleMarkAsShipped(order);
+                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsShipped(order);
                   setShowActionsDropdown(null);
                 }}
                 className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
@@ -682,9 +743,10 @@ const OrdersPage = () => {
                 Mark as Shipped
               </button>
               <button
+                type="button"
                 onClick={() => {
                   const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order) handleMarkAsDelivered(order);
+                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsDelivered(order);
                   setShowActionsDropdown(null);
                 }}
                 className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
@@ -695,9 +757,10 @@ const OrdersPage = () => {
                 Mark as Delivered
               </button>
               <button
+                type="button"
                 onClick={() => {
                   const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order) handleCancelOrder(order);
+                  if (order && !isOrderWorkflowLocked(order)) handleCancelOrder(order);
                   setShowActionsDropdown(null);
                 }}
                 className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
@@ -708,9 +771,10 @@ const OrdersPage = () => {
                 Cancel Order
               </button>
               <button
+                type="button"
                 onClick={() => {
                   const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order) handleMarkAsFailed(order);
+                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsFailed(order);
                   setShowActionsDropdown(null);
                 }}
                 className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
