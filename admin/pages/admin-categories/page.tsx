@@ -761,7 +761,9 @@ const AdminCategoriesPage = () => {
           onConfirm={confirmDelete}
           title="Delete category"
           message={
-            itemToDelete ? `Are you sure you want to delete "${itemToDelete.name}"? This cannot be undone.` : ''
+            itemToDelete
+              ? `Are you sure you want to delete "${itemToDelete.name}"? All products assigned to this category will be permanently deleted along with their media and reviews. This cannot be undone.`
+              : ''
           }
           confirmText="Delete"
           cancelText="Cancel"

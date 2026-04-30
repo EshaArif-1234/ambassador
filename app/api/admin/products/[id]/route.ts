@@ -3,7 +3,9 @@ import { Types } from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
 import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
+import Review from '@/backend/models/Review.model';
 import { migrateLegacyProductTaxonomy } from '@/backend/lib/migrateProductTaxonomy';
+import { destroyProductMedia } from '@/backend/lib/destroyProductMedia';
 import {
   resolveProductCategoryIds,
   validateProductTaxonomy,
@@ -130,13 +132,9 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: 'Product not found.' }, { status: 404 });
     }
 
-    const imageIds = (product.imagePublicIds ?? []).filter(Boolean);
-    const videoIds = (product.videoPublicIds ?? []).filter(Boolean);
-    await Promise.allSettled([
-      ...imageIds.map((pid) => cloudinary.uploader.destroy(pid)),
-      ...videoIds.map((pid) => cloudinary.uploader.destroy(pid, { resource_type: 'video' })),
-    ]);
+    await destroyProductMedia(product);
 
+    await Review.deleteMany({ productId: id });
     await Product.findByIdAndDelete(id);
 
     return NextResponse.json(
