@@ -69,11 +69,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const rawStatus = status ?? 'active';
+    const normalizedStatus =
+      String(rawStatus).toLowerCase() === 'inactive' ? 'inactive' : 'active';
+
     const category = await Category.create({
       title: title.trim(),
-      image:           image           ?? '',
-      imagePublicId:   imagePublicId   ?? '',
-      status:          status          ?? 'active',
+      image: image ?? '',
+      imagePublicId: imagePublicId ?? '',
+      status: normalizedStatus,
       metaTitle: metaTitle?.trim() ?? '',
     });
 

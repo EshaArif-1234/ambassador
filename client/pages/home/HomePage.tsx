@@ -25,7 +25,7 @@ const HomePage = () => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/categories');
+        const res = await fetch('/api/categories', { cache: 'no-store' });
         const data = await res.json();
         if (!cancelled && data.success && Array.isArray(data.data)) {
           setCategories(data.data);

@@ -53,7 +53,10 @@ export async function PATCH(
       category.imagePublicId = imagePublicId ?? '';
     }
 
-    if (status !== undefined) category.status = status;
+    if (status !== undefined) {
+      const s = String(status).toLowerCase();
+      category.status = s === 'inactive' ? 'inactive' : 'active';
+    }
     if (metaTitle !== undefined) category.metaTitle = metaTitle?.trim() ?? '';
 
     await category.save();
