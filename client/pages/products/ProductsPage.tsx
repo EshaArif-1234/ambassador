@@ -1,31 +1,93 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import ProductRatings from '@/components/products/ProductRatings';
 import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
 import CartPopup from '@/components/products/CartPopup';
 import { useCart } from '@/contexts/CartContext';
 
-interface Product {
-  id: number;
-  name: string;
-  category: string;
-  price: number;
-  image: string;
-  featured?: boolean;
+interface ApiCategoryRef {
+  _id?: string;
+  title?: string;
+  slug?: string;
 }
 
+interface ApiProductRow {
+  _id: string;
+  name: string;
+  price?: number;
+  originalPrice: number;
+  stock: number;
+  images: string[];
+  features: string[];
+  brands: string[];
+  specifications: Record<string, string>;
+  categories: ApiCategoryRef[];
+  avgRating?: number;
+  reviewCount?: number;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  category: string;
+  categoryTitles: string[];
+  price: number;
+  originalPrice: number;
+  image: string;
+  featured: boolean;
+  stock: number;
+  features: string[];
+  brands: string[];
+  specifications: Record<string, string>;
+  avgRating: number;
+  reviewCount: number;
+}
+
+function mapApiToProduct(p: ApiProductRow): Product {
+  const cats = Array.isArray(p.categories)
+    ? p.categories.map((c) => c.title).filter((t): t is string => Boolean(t))
+    : [];
+  const category = cats[0] ?? 'Uncategorized';
+  const displayPrice =
+    p.price != null && p.price > 0 ? p.price : p.originalPrice ?? 0;
+  const image = p.images?.[0] || '/Images/home/stainless-steal.webp';
+  const featured =
+    Array.isArray(p.features) &&
+    (p.features.includes('best_seller') || p.features.includes('new_arrival'));
+  return {
+    _id: String(p._id),
+    name: p.name,
+    category,
+    categoryTitles: cats,
+    price: displayPrice,
+    originalPrice: p.originalPrice ?? displayPrice,
+    image,
+    featured,
+    stock: p.stock ?? 0,
+    features: p.features ?? [],
+    brands: p.brands ?? [],
+    specifications: p.specifications ?? {},
+    avgRating: p.avgRating ?? 0,
+    reviewCount: p.reviewCount ?? 0,
+  };
+}
+
+const ALL = 'All Categories';
+
 const ProductsPage = () => {
+  const [rawProducts, setRawProducts] = useState<ApiProductRow[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState<string[]>([ALL]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState(ALL);
   const [priceRange, setPriceRange] = useState({ min: 0, max: 50000 });
   const [sortBy, setSortBy] = useState('name');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRatings, setSelectedRatings] = useState<{ [key: number]: string }>({});
   const [showCartPopup, setShowCartPopup] = useState(false);
   const [addedProduct, setAddedProduct] = useState<Product | null>(null);
   const { addToCart } = useCart();
@@ -35,107 +97,123 @@ const ProductsPage = () => {
     onSale: false,
     newArrival: false,
     bestSeller: false,
-    premiumQuality: false
+    premiumQuality: false,
   });
   const [brands, setBrands] = useState({
     ambassador: false,
     imported: false,
-    premiumPlus: false
+    premiumPlus: false,
   });
   const [availability, setAvailability] = useState({
     readyToShip: false,
-    customOrder: false
+    customOrder: false,
   });
   const searchParams = useSearchParams();
 
-  // Sample products data
-  const allProducts: Product[] = [
-    // Stainless Steel Kitchen Products
-    { id: 1, name: 'Stainless Steel Work Table 6ft', category: 'Stainless Steel Kitchen', price: 15000, image: '/Images/home/stainless-steal.webp', featured: true },
-    { id: 2, name: 'Stainless Steel Cabinet 4 Door', category: 'Stainless Steel Kitchen', price: 25000, image: '/Images/home/stainless-steal.webp' },
-    { id: 3, name: 'Stainless Steel Wall Shelf', category: 'Stainless Steel Kitchen', price: 8000, image: '/Images/home/stainless-steal.webp' },
-    { id: 4, name: 'Stainless Steel Sink 2 Compartment', category: 'Stainless Steel Kitchen', price: 12000, image: '/Images/home/stainless-steal.webp' },
-    
-    // Hotel Kitchen Equipment Products
-    { id: 5, name: 'Commercial Cooking Range 6 Burner', category: 'Hotel Kitchen Equipment', price: 35000, image: '/Images/home/hotel.avif', featured: true },
-    { id: 6, name: 'Industrial Convection Oven', category: 'Hotel Kitchen Equipment', price: 45000, image: '/Images/home/hotel.avif' },
-    { id: 7, name: 'Food Preparation Table', category: 'Hotel Kitchen Equipment', price: 18000, image: '/Images/home/hotel.avif' },
-    { id: 8, name: 'Hot Holding Equipment', category: 'Hotel Kitchen Equipment', price: 22000, image: '/Images/home/hotel.avif' },
-    
-    // Restaurant Equipment Products
-    { id: 9, name: 'Gas Range 4 Burner', category: 'Restaurant Equipment', price: 28000, image: '/Images/home/restaurent.jpg', featured: true },
-    { id: 10, name: 'Griddle Plate 24 inch', category: 'Restaurant Equipment', price: 15000, image: '/Images/home/restaurent.jpg' },
-    { id: 11, name: 'Deep Fryer 10L', category: 'Restaurant Equipment', price: 32000, image: '/Images/home/restaurent.jpg' },
-    { id: 12, name: 'Pizza Oven Deck', category: 'Restaurant Equipment', price: 38000, image: '/Images/home/restaurent.jpg' },
-    
-    // Bakery Equipment Products
-    { id: 13, name: 'Deck Oven 4 Tray', category: 'Bakery Equipment', price: 42000, image: '/Images/home/bakeries.webp', featured: true },
-    { id: 14, name: 'Dough Mixer 30L', category: 'Bakery Equipment', price: 35000, image: '/Images/home/bakeries.webp' },
-    { id: 15, name: 'Proofing Cabinet', category: 'Bakery Equipment', price: 25000, image: '/Images/home/bakeries.webp' },
-    { id: 16, name: 'Bread Slicer', category: 'Bakery Equipment', price: 18000, image: '/Images/home/bakeries.webp' },
-    
-    // Fast Food Equipment Products
-    { id: 17, name: 'Burger Grill', category: 'Fast Food Equipment', price: 22000, image: '/Images/home/fast food.avif', featured: true },
-    { id: 18, name: 'Shawarma Machine', category: 'Fast Food Equipment', price: 28000, image: '/Images/home/fast food.avif' },
-    { id: 19, name: 'French Fries Warmer', category: 'Fast Food Equipment', price: 12000, image: '/Images/home/fast food.avif' },
-    { id: 20, name: 'Beverage Dispenser', category: 'Fast Food Equipment', price: 15000, image: '/Images/home/fast food.avif' }
-  ];
-
-  const categories = [
-    'All Categories',
-    'Stainless Steel Kitchen',
-    'Hotel Kitchen Equipment',
-    'Restaurant Equipment',
-    'Fast Food Equipment',
-    'Bakery Equipment',
-    'Café Equipment',
-    'Banquet Equipment',
-    'Supermarket Equipment',
-    'Hospital Kitchen',
-    'Mess Kitchen (Large Catering)',
-    'University / Institutional Kitchen',
-    'Ambassador Engineering Products',
-    'Imported Items'
-  ];
+  const catalogPriceMax = useMemo(() => {
+    if (!products.length) return 50000;
+    return Math.max(50000, ...products.map((p) => p.price), ...products.map((p) => p.originalPrice));
+  }, [products]);
 
   useEffect(() => {
-    setProducts(allProducts);
-    setFilteredProducts(allProducts);
-    
-    // Handle URL parameters
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const res = await fetch('/api/products', { cache: 'no-store' });
+        const json = await res.json();
+        if (!json?.success || !Array.isArray(json.data)) {
+          throw new Error(json?.message || 'Failed to load products.');
+        }
+        if (cancelled) return;
+        setRawProducts(json.data as ApiProductRow[]);
+      } catch (e) {
+        if (!cancelled) {
+          setLoadError(e instanceof Error ? e.message : 'Failed to load products.');
+          setRawProducts([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/categories', { cache: 'no-store' });
+        const json = await res.json();
+        if (!cancelled && json?.success && Array.isArray(json.data)) {
+          const titles = (json.data as { title: string }[]).map((c) => c.title).filter(Boolean);
+          setCategories([ALL, ...titles]);
+        }
+      } catch {
+        if (!cancelled) setCategories([ALL]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setProducts(rawProducts.map(mapApiToProduct));
+  }, [rawProducts]);
+
+  useEffect(() => {
+    setPriceRange((prev) => ({ ...prev, max: Math.max(prev.max, catalogPriceMax) }));
+  }, [catalogPriceMax]);
+
+  useEffect(() => {
     const categoryParam = searchParams.get('category');
     const searchParam = searchParams.get('search');
-    
-    if (categoryParam) {
-      setSelectedCategory(categoryParam);
-    }
-    if (searchParam) {
-      setSearchTerm(searchParam);
-    }
+    if (categoryParam) setSelectedCategory(categoryParam);
+    if (searchParam) setSearchTerm(searchParam);
   }, [searchParams]);
 
   useEffect(() => {
-    let filtered = products;
+    let filtered = [...products];
 
-    // Filter by category
-    if (selectedCategory && selectedCategory !== 'All Categories') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+    if (selectedCategory && selectedCategory !== ALL) {
+      filtered = filtered.filter((product) => product.categoryTitles.includes(selectedCategory));
     }
 
-    // Filter by price range
-    filtered = filtered.filter(product => 
-      product.price >= priceRange.min && product.price <= priceRange.max
+    filtered = filtered.filter(
+      (product) => product.price >= priceRange.min && product.price <= priceRange.max
     );
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (product) =>
+          product.name.toLowerCase().includes(q) ||
+          product.category.toLowerCase().includes(q) ||
+          product.categoryTitles.some((t) => t.toLowerCase().includes(q))
       );
     }
 
-    // Sort products
+    if (features.inStock) filtered = filtered.filter((p) => p.stock > 0);
+    if (features.freeShipping) filtered = filtered.filter((p) => p.features.includes('free_shipping'));
+    if (features.onSale) filtered = filtered.filter((p) => p.features.includes('on_sale'));
+    if (features.newArrival) filtered = filtered.filter((p) => p.features.includes('new_arrival'));
+    if (features.bestSeller) filtered = filtered.filter((p) => p.features.includes('best_seller'));
+
+    const brandFilters = [
+      brands.ambassador ? 'ambassador' : '',
+      brands.imported ? 'imported' : '',
+    ].filter(Boolean);
+    if (brandFilters.length) {
+      filtered = filtered.filter((p) => brandFilters.some((b) => p.brands.includes(b)));
+    }
+
+    if (availability.readyToShip) filtered = filtered.filter((p) => p.stock > 0);
+    if (availability.customOrder) filtered = filtered.filter((p) => p.stock <= 0);
+
     switch (sortBy) {
       case 'price-low':
         filtered.sort((a, b) => a.price - b.price);
@@ -150,44 +228,48 @@ const ProductsPage = () => {
     }
 
     setFilteredProducts(filtered);
-  }, [products, selectedCategory, priceRange, sortBy, searchTerm, features, brands, availability]);
-
-  const handleRatingChange = (productId: number, rating: string) => {
-    setSelectedRatings(prev => ({ ...prev, [productId]: rating }));
-  };
+  }, [
+    products,
+    selectedCategory,
+    priceRange,
+    sortBy,
+    searchTerm,
+    features,
+    brands,
+    availability,
+  ]);
 
   const handleFeatureChange = (feature: string, checked: boolean) => {
-    setFeatures(prev => ({ ...prev, [feature]: checked }));
+    setFeatures((prev) => ({ ...prev, [feature]: checked }));
   };
 
   const handleBrandChange = (brand: string, checked: boolean) => {
-    setBrands(prev => ({ ...prev, [brand]: checked }));
+    setBrands((prev) => ({ ...prev, [brand]: checked }));
   };
 
-  const handleAvailabilityChange = (availability: string, checked: boolean) => {
-    setAvailability(prev => ({ ...prev, [availability]: checked }));
+  const handleAvailabilityChange = (key: string, checked: boolean) => {
+    setAvailability((prev) => ({ ...prev, [key]: checked }));
   };
 
   const handleAddToCart = (product: Product) => {
-    // Convert product to cart item format
-    const cartItem = {
-      id: product.id.toString(),
+    const code =
+      product.specifications['Product Code'] || product.specifications['product code'] || product._id;
+    addToCart({
+      id: product._id,
       title: product.name,
       price: product.price,
       quantity: 1,
       image: product.image,
-      productCode: `PRD${product.id}`
-    };
-    
-    addToCart(cartItem);
+      productCode: String(code),
+    });
     setAddedProduct(product);
     setShowCartPopup(true);
     setTimeout(() => setShowCartPopup(false), 3000);
   };
 
   const clearFilters = () => {
-    setSelectedCategory('All Categories');
-    setPriceRange({ min: 0, max: 50000 });
+    setSelectedCategory(ALL);
+    setPriceRange({ min: 0, max: catalogPriceMax });
     setSortBy('name');
     setSearchTerm('');
     setFeatures({
@@ -196,35 +278,49 @@ const ProductsPage = () => {
       onSale: false,
       newArrival: false,
       bestSeller: false,
-      premiumQuality: false
+      premiumQuality: false,
     });
     setBrands({
       ambassador: false,
       imported: false,
-      premiumPlus: false
+      premiumPlus: false,
     });
     setAvailability({
       readyToShip: false,
-      customOrder: false
+      customOrder: false,
     });
   };
+
+  if (loadError && !loading && products.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-gray-700 mb-4">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">Our Products</h1>
           <p className="text-lg text-gray-600">Browse our extensive collection of kitchen equipment</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Left Sidebar - Filters */}
           <div className="w-full lg:w-64 flex-shrink-0">
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-6">Filters</h2>
-              
-              {/* Search */}
+
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
                 <input
@@ -236,11 +332,10 @@ const ProductsPage = () => {
                 />
               </div>
 
-              {/* Category Filter */}
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Category</h3>
-                <div className="space-y-2">
-                  {categories.map(category => (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {categories.map((category) => (
                     <label key={category} className="flex items-center">
                       <input
                         type="radio"
@@ -256,159 +351,163 @@ const ProductsPage = () => {
                 </div>
               </div>
 
-              {/* Additional Filters */}
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Features</h3>
                 <div className="space-y-2">
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={features.inStock}
                       onChange={(e) => handleFeatureChange('inStock', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">In Stock</span>
                   </label>
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={features.freeShipping}
                       onChange={(e) => handleFeatureChange('freeShipping', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">Free Shipping</span>
                   </label>
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={features.onSale}
                       onChange={(e) => handleFeatureChange('onSale', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">On Sale</span>
                   </label>
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={features.newArrival}
                       onChange={(e) => handleFeatureChange('newArrival', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">New Arrival</span>
                   </label>
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={features.bestSeller}
                       onChange={(e) => handleFeatureChange('bestSeller', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">Best Seller</span>
                   </label>
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={features.premiumQuality}
                       onChange={(e) => handleFeatureChange('premiumQuality', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">Premium Quality</span>
                   </label>
                 </div>
               </div>
 
-              {/* Brand Filter */}
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Brand</h3>
                 <div className="space-y-2">
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={brands.ambassador}
                       onChange={(e) => handleBrandChange('ambassador', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">Ambassador</span>
                   </label>
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={brands.imported}
                       onChange={(e) => handleBrandChange('imported', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">Imported</span>
                   </label>
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={brands.premiumPlus}
                       onChange={(e) => handleBrandChange('premiumPlus', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">Premium Plus</span>
                   </label>
                 </div>
               </div>
 
-              {/* Availability */}
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Availability</h3>
                 <div className="space-y-2">
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={availability.readyToShip}
                       onChange={(e) => handleAvailabilityChange('readyToShip', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">Ready to Ship</span>
                   </label>
                   <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={availability.customOrder}
                       onChange={(e) => handleAvailabilityChange('customOrder', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500" 
+                      className="mr-2 text-orange-500 focus:ring-orange-500"
                     />
                     <span className="text-sm text-gray-700">Custom Order</span>
                   </label>
                 </div>
               </div>
 
-              {/* Price Range */}
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Price Range</h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-gray-600">Min: ₹{priceRange.min.toLocaleString()}</label>
+                    <label className="text-xs text-gray-600">
+                      Min: ₹{priceRange.min.toLocaleString()}
+                    </label>
                     <input
                       type="range"
-                      min="0"
-                      max="50000"
-                      step="1000"
+                      min={0}
+                      max={catalogPriceMax}
+                      step={Math.max(1000, Math.ceil(catalogPriceMax / 500))}
                       value={priceRange.min}
-                      onChange={(e) => setPriceRange({ ...priceRange, min: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setPriceRange({ ...priceRange, min: parseInt(e.target.value, 10) })
+                      }
                       className="w-full"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600">Max: ₹{priceRange.max.toLocaleString()}</label>
+                    <label className="text-xs text-gray-600">
+                      Max: ₹{priceRange.max.toLocaleString()}
+                    </label>
                     <input
                       type="range"
-                      min="0"
-                      max="50000"
-                      step="1000"
+                      min={0}
+                      max={catalogPriceMax}
+                      step={Math.max(1000, Math.ceil(catalogPriceMax / 500))}
                       value={priceRange.max}
-                      onChange={(e) => setPriceRange({ ...priceRange, max: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setPriceRange({ ...priceRange, max: parseInt(e.target.value, 10) })
+                      }
                       className="w-full"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Clear Filters */}
               <button
+                type="button"
                 onClick={clearFilters}
                 className="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
               >
@@ -417,14 +516,18 @@ const ProductsPage = () => {
             </div>
           </div>
 
-          {/* Right Content - Products */}
           <div className="flex-1">
-            {/* Top Bar with Sort and Results Count */}
             <div className="bg-white rounded-lg shadow-md p-4 mb-6">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="text-gray-600">
-                  Showing <span className="font-semibold">{filteredProducts.length}</span> of{' '}
-                  <span className="font-semibold">{products.length}</span> products
+                  {loading ? (
+                    <span>Loading products…</span>
+                  ) : (
+                    <>
+                      Showing <span className="font-semibold">{filteredProducts.length}</span> of{' '}
+                      <span className="font-semibold">{products.length}</span> products
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-sm text-gray-700">Sort by:</label>
@@ -441,70 +544,86 @@ const ProductsPage = () => {
               </div>
             </div>
 
-            {/* Products Grid */}
-            {filteredProducts.length > 0 ? (
+            {loading ? (
               <div className="space-y-4">
-                {filteredProducts.map((product) => (
-                  <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                    <div className="flex flex-col sm:flex-row">
-                      {/* Left - Image */}
-                      <div className="relative h-48 sm:h-auto sm:w-64 flex-shrink-0">
-                        <Link href={`/products/${product.id}`} className="block h-full">
-                          <Image
-                            src={product.image}
-                            alt={product.name}
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-300"
-                            sizes="(max-width: 640px) 100vw, 256px"
-                            unoptimized
-                          />
-                        </Link>
-                        {product.featured && (
-                          <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
-                            Featured
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Right - Content */}
-                      <div className="flex-1 p-4 sm:p-6">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                          {/* Product Info */}
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-2">{product.name}</h3>
-                            <p className="text-sm text-gray-600 mb-3">{product.category}</p>
-                            
-                            {/* Product Ratings */}
-                            <div className="mb-4">
-                              <ProductRatingDropdown 
-                                averageRating={4.5}
-                                totalReviews={245}
-                                productName={product.name}
-                              />
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-48 animate-pulse rounded-lg bg-gray-200" />
+                ))}
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <div className="space-y-4">
+                {filteredProducts.map((product) => {
+                  const showStrike =
+                    product.originalPrice > product.price &&
+                    product.price > 0;
+                  return (
+                    <div
+                      key={product._id}
+                      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                    >
+                      <div className="flex flex-col sm:flex-row">
+                        <div className="relative h-48 sm:h-auto sm:w-64 flex-shrink-0">
+                          <Link href={`/products/${product._id}`} className="block h-full min-h-[12rem] sm:min-h-[14rem]">
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              fill
+                              className="object-cover hover:scale-105 transition-transform duration-300"
+                              sizes="(max-width: 640px) 100vw, 256px"
+                            />
+                          </Link>
+                          {product.featured && (
+                            <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
+                              Featured
                             </div>
-                            
-                            <div className="flex items-center gap-4 mb-4">
-                              <div>
-                                <span className="text-xl font-bold text-orange-500">₹{product.price.toLocaleString()}</span>
-                                <div className="text-xs text-gray-500 line-through">₹{Math.floor(product.price * 1.2).toLocaleString()}</div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 p-4 sm:p-6">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-gray-800 mb-2">{product.name}</h3>
+                              <p className="text-sm text-gray-600 mb-3">{product.category}</p>
+
+                              <div className="mb-4">
+                                <ProductRatingDropdown
+                                  averageRating={
+                                    product.reviewCount ? product.avgRating : 0
+                                  }
+                                  totalReviews={product.reviewCount}
+                                  productName={product.name}
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-4 mb-4">
+                                <div>
+                                  <span className="text-xl font-bold text-orange-500">
+                                    ₹{product.price.toLocaleString()}
+                                  </span>
+                                  {showStrike && (
+                                    <div className="text-xs text-gray-500 line-through">
+                                      ₹{product.originalPrice.toLocaleString()}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          
-                          {/* Add to Cart Button */}
-                          <div className="flex items-end">
-                            <button 
-                              onClick={() => handleAddToCart(product)}
-                              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-                            >
-                              Add to Cart
-                            </button>
+
+                            <div className="flex items-end">
+                              <button
+                                type="button"
+                                onClick={() => handleAddToCart(product)}
+                                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                              >
+                                Add to Cart
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">
@@ -516,16 +635,24 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      {/* Cart Popup */}
-      <CartPopup 
+      <CartPopup
         show={showCartPopup}
         onClose={() => setShowCartPopup(false)}
-        product={addedProduct ? {
-          title: addedProduct.name,
-          images: [addedProduct.image],
-          specifications: { 'Product Code': `PRD${addedProduct.id}` },
-          price: addedProduct.price
-        } : undefined}
+        product={
+          addedProduct
+            ? {
+                title: addedProduct.name,
+                images: [addedProduct.image],
+                specifications: {
+                  'Product Code':
+                    addedProduct.specifications['Product Code'] ||
+                    addedProduct.specifications['product code'] ||
+                    addedProduct._id,
+                },
+                price: addedProduct.price,
+              }
+            : undefined
+        }
       />
     </div>
   );
