@@ -17,6 +17,7 @@ interface ApiCategoryRef {
 interface ApiProductRow {
   _id: string;
   name: string;
+  about?: string;
   price?: number;
   originalPrice: number;
   stock: number;
@@ -32,6 +33,7 @@ interface ApiProductRow {
 interface Product {
   _id: string;
   name: string;
+  description: string;
   category: string;
   categoryTitles: string[];
   price: number;
@@ -46,6 +48,11 @@ interface Product {
   reviewCount: number;
 }
 
+function normalizeBrandTags(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((x): x is string => typeof x === 'string' && x.length > 0);
+}
+
 function mapApiToProduct(p: ApiProductRow): Product {
   const cats = Array.isArray(p.categories)
     ? p.categories.map((c) => c.title).filter((t): t is string => Boolean(t))
@@ -54,12 +61,13 @@ function mapApiToProduct(p: ApiProductRow): Product {
   const displayPrice =
     p.price != null && p.price > 0 ? p.price : p.originalPrice ?? 0;
   const image = p.images?.[0] || '/Images/home/stainless-steal.webp';
+  const feat = Array.isArray(p.features) ? p.features : [];
   const featured =
-    Array.isArray(p.features) &&
-    (p.features.includes('best_seller') || p.features.includes('new_arrival'));
+    feat.includes('best_seller') || feat.includes('new_arrival');
   return {
     _id: String(p._id),
     name: p.name,
+    description: (p.about ?? '').trim(),
     category,
     categoryTitles: cats,
     price: displayPrice,
@@ -67,13 +75,39 @@ function mapApiToProduct(p: ApiProductRow): Product {
     image,
     featured,
     stock: p.stock ?? 0,
-    features: p.features ?? [],
-    brands: p.brands ?? [],
+    features: feat,
+    brands: normalizeBrandTags(p.brands),
     specifications: p.specifications ?? {},
     avgRating: p.avgRating ?? 0,
     reviewCount: p.reviewCount ?? 0,
   };
 }
+
+type BrandFilterKey = 'ambassador' | 'imported';
+
+const BRAND_FILTERS: { key: BrandFilterKey; label: string; apiSlug: string }[] = [
+  { key: 'ambassador', label: 'Ambassador', apiSlug: 'ambassador' },
+  { key: 'imported', label: 'Imported', apiSlug: 'imported' },
+];
+
+/** Labels for product card / display (order: Ambassador, then Imported) */
+function formatBrandLabels(slugs: string[]): string {
+  if (!slugs.length) return '';
+  const ordered = BRAND_FILTERS.map(({ apiSlug, label }) =>
+    slugs.includes(apiSlug) ? label : null
+  ).filter((x): x is string => x != null);
+  const unknown = slugs.filter((s) => !BRAND_FILTERS.some((b) => b.apiSlug === s));
+  return [...ordered, ...unknown].join(' · ');
+}
+
+type ProductFeatureFilterKey = 'freeShipping' | 'onSale' | 'newArrival' | 'bestSeller';
+
+const FEATURE_FILTERS: { key: ProductFeatureFilterKey; label: string; apiFlag: string }[] = [
+  { key: 'freeShipping', label: 'Free Shipping', apiFlag: 'free_shipping' },
+  { key: 'onSale', label: 'On Sale', apiFlag: 'on_sale' },
+  { key: 'newArrival', label: 'New Arrival', apiFlag: 'new_arrival' },
+  { key: 'bestSeller', label: 'Best Seller', apiFlag: 'best_seller' },
+];
 
 const ALL = 'All Categories';
 
@@ -91,18 +125,15 @@ const ProductsPage = () => {
   const [showCartPopup, setShowCartPopup] = useState(false);
   const [addedProduct, setAddedProduct] = useState<Product | null>(null);
   const { addToCart } = useCart();
-  const [features, setFeatures] = useState({
-    inStock: false,
+  const [features, setFeatures] = useState<Record<ProductFeatureFilterKey, boolean>>({
     freeShipping: false,
     onSale: false,
     newArrival: false,
     bestSeller: false,
-    premiumQuality: false,
   });
-  const [brands, setBrands] = useState({
+  const [brands, setBrands] = useState<Record<BrandFilterKey, boolean>>({
     ambassador: false,
     imported: false,
-    premiumPlus: false,
   });
   const [availability, setAvailability] = useState({
     readyToShip: false,
@@ -197,18 +228,19 @@ const ProductsPage = () => {
       );
     }
 
-    if (features.inStock) filtered = filtered.filter((p) => p.stock > 0);
-    if (features.freeShipping) filtered = filtered.filter((p) => p.features.includes('free_shipping'));
-    if (features.onSale) filtered = filtered.filter((p) => p.features.includes('on_sale'));
-    if (features.newArrival) filtered = filtered.filter((p) => p.features.includes('new_arrival'));
-    if (features.bestSeller) filtered = filtered.filter((p) => p.features.includes('best_seller'));
+    for (const { key, apiFlag } of FEATURE_FILTERS) {
+      if (features[key]) {
+        filtered = filtered.filter((p) => p.features.includes(apiFlag));
+      }
+    }
 
-    const brandFilters = [
-      brands.ambassador ? 'ambassador' : '',
-      brands.imported ? 'imported' : '',
-    ].filter(Boolean);
-    if (brandFilters.length) {
-      filtered = filtered.filter((p) => brandFilters.some((b) => p.brands.includes(b)));
+    const selectedBrandSlugs = BRAND_FILTERS.filter(({ key }) => brands[key]).map(
+      ({ apiSlug }) => apiSlug
+    );
+    if (selectedBrandSlugs.length > 0) {
+      filtered = filtered.filter((p) =>
+        selectedBrandSlugs.some((slug) => p.brands.includes(slug))
+      );
     }
 
     if (availability.readyToShip) filtered = filtered.filter((p) => p.stock > 0);
@@ -239,12 +271,12 @@ const ProductsPage = () => {
     availability,
   ]);
 
-  const handleFeatureChange = (feature: string, checked: boolean) => {
+  const handleFeatureChange = (feature: ProductFeatureFilterKey, checked: boolean) => {
     setFeatures((prev) => ({ ...prev, [feature]: checked }));
   };
 
-  const handleBrandChange = (brand: string, checked: boolean) => {
-    setBrands((prev) => ({ ...prev, [brand]: checked }));
+  const handleBrandChange = (key: BrandFilterKey, checked: boolean) => {
+    setBrands((prev) => ({ ...prev, [key]: checked }));
   };
 
   const handleAvailabilityChange = (key: string, checked: boolean) => {
@@ -273,17 +305,14 @@ const ProductsPage = () => {
     setSortBy('name');
     setSearchTerm('');
     setFeatures({
-      inStock: false,
       freeShipping: false,
       onSale: false,
       newArrival: false,
       bestSeller: false,
-      premiumQuality: false,
     });
     setBrands({
       ambassador: false,
       imported: false,
-      premiumPlus: false,
     });
     setAvailability({
       readyToShip: false,
@@ -299,7 +328,7 @@ const ProductsPage = () => {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600"
+            className="rounded-lg bg-[#E36630] px-4 py-2 text-white hover:bg-[#cc5a2a]"
           >
             Retry
           </button>
@@ -328,7 +357,7 @@ const ProductsPage = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder:text-gray-400"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
                 />
               </div>
 
@@ -343,7 +372,7 @@ const ProductsPage = () => {
                         value={category}
                         checked={selectedCategory === category}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="mr-2 text-orange-500 focus:ring-orange-500"
+                        className="mr-2 accent-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
                       />
                       <span className="text-sm text-gray-700">{category}</span>
                     </label>
@@ -354,93 +383,34 @@ const ProductsPage = () => {
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Features</h3>
                 <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={features.inStock}
-                      onChange={(e) => handleFeatureChange('inStock', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">In Stock</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={features.freeShipping}
-                      onChange={(e) => handleFeatureChange('freeShipping', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">Free Shipping</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={features.onSale}
-                      onChange={(e) => handleFeatureChange('onSale', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">On Sale</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={features.newArrival}
-                      onChange={(e) => handleFeatureChange('newArrival', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">New Arrival</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={features.bestSeller}
-                      onChange={(e) => handleFeatureChange('bestSeller', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">Best Seller</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={features.premiumQuality}
-                      onChange={(e) => handleFeatureChange('premiumQuality', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">Premium Quality</span>
-                  </label>
+                  {FEATURE_FILTERS.map(({ key, label }) => (
+                    <label key={key} className="flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={features[key]}
+                        onChange={(e) => handleFeatureChange(key, e.target.checked)}
+                        className="mr-2 accent-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
+                      />
+                      <span className="text-sm text-gray-700">{label}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Brand</h3>
                 <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={brands.ambassador}
-                      onChange={(e) => handleBrandChange('ambassador', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">Ambassador</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={brands.imported}
-                      onChange={(e) => handleBrandChange('imported', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">Imported</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={brands.premiumPlus}
-                      onChange={(e) => handleBrandChange('premiumPlus', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">Premium Plus</span>
-                  </label>
+                  {BRAND_FILTERS.map(({ key, label }) => (
+                    <label key={key} className="flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={brands[key]}
+                        onChange={(e) => handleBrandChange(key, e.target.checked)}
+                        className="mr-2 accent-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
+                      />
+                      <span className="text-sm text-gray-700">{label}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -452,7 +422,7 @@ const ProductsPage = () => {
                       type="checkbox"
                       checked={availability.readyToShip}
                       onChange={(e) => handleAvailabilityChange('readyToShip', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
+                      className="mr-2 accent-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
                     />
                     <span className="text-sm text-gray-700">Ready to Ship</span>
                   </label>
@@ -461,7 +431,7 @@ const ProductsPage = () => {
                       type="checkbox"
                       checked={availability.customOrder}
                       onChange={(e) => handleAvailabilityChange('customOrder', e.target.checked)}
-                      className="mr-2 text-orange-500 focus:ring-orange-500"
+                      className="mr-2 accent-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
                     />
                     <span className="text-sm text-gray-700">Custom Order</span>
                   </label>
@@ -534,7 +504,7 @@ const ProductsPage = () => {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 outline-none focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
                   >
                     <option value="name">Name</option>
                     <option value="price-low">Price: Low to High</option>
@@ -547,7 +517,10 @@ const ProductsPage = () => {
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-48 animate-pulse rounded-lg bg-gray-200" />
+                  <div
+                    key={i}
+                    className="min-h-[20rem] animate-pulse rounded-lg bg-gray-200 sm:h-64 sm:min-h-0"
+                  />
                 ))}
               </div>
             ) : filteredProducts.length > 0 ? (
@@ -559,34 +532,55 @@ const ProductsPage = () => {
                   return (
                     <div
                       key={product._id}
-                      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                      className="flex min-h-[20rem] flex-col overflow-hidden bg-white rounded-lg shadow-md transition-shadow duration-300 hover:shadow-lg sm:h-64 sm:min-h-0 sm:flex-row"
                     >
-                      <div className="flex flex-col sm:flex-row">
-                        <div className="relative h-48 sm:h-auto sm:w-64 flex-shrink-0">
-                          <Link href={`/products/${product._id}`} className="block h-full min-h-[12rem] sm:min-h-[14rem]">
-                            <Image
-                              src={product.image}
-                              alt={product.name}
-                              fill
-                              className="object-cover hover:scale-105 transition-transform duration-300"
-                              sizes="(max-width: 640px) 100vw, 256px"
-                            />
-                          </Link>
-                          {product.featured && (
-                            <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
-                              Featured
-                            </div>
-                          )}
-                        </div>
+                      <div className="relative h-48 w-full shrink-0 bg-[#E5E5E5] sm:h-full sm:w-64">
+                        <Link
+                          href={`/products/${product._id}`}
+                          className="block absolute inset-0"
+                        >
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            className="object-cover hover:scale-105 transition-transform duration-300"
+                            sizes="(max-width: 640px) 100vw, 256px"
+                          />
+                        </Link>
+                      </div>
 
-                        <div className="flex-1 p-4 sm:p-6">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-gray-800 mb-2">{product.name}</h3>
-                              <p className="text-sm text-gray-600 mb-3">{product.category}</p>
-
-                              <div className="mb-4">
+                      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto p-4 sm:p-5 sm:py-4">
+                        <div className="flex flex-1 flex-col gap-2 min-h-0 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4">
+                          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
+                            <h3 className="text-lg font-semibold leading-snug text-gray-800 line-clamp-2">
+                              {product.name}
+                            </h3>
+                            <p className="text-sm text-gray-600">{product.category}</p>
+                            <p
+                              className="text-sm leading-relaxed text-gray-600 line-clamp-3"
+                              title={
+                                product.description ||
+                                'No description available for this product.'
+                              }
+                            >
+                              {product.description
+                                ? product.description
+                                : 'No description available for this product.'}
+                            </p>
+                            <p className="text-sm">
+                              <span className="text-gray-500">Stock: </span>
+                              {product.stock > 0 ? (
+                                <span className="font-medium text-green-700">
+                                  {product.stock} available
+                                </span>
+                              ) : (
+                                <span className="font-medium text-red-600">Out of stock</span>
+                              )}
+                            </p>
+                            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                              <div className="min-w-0 shrink">
                                 <ProductRatingDropdown
+                                  productId={product._id}
                                   averageRating={
                                     product.reviewCount ? product.avgRating : 0
                                   }
@@ -594,30 +588,33 @@ const ProductsPage = () => {
                                   productName={product.name}
                                 />
                               </div>
-
-                              <div className="flex items-center gap-4 mb-4">
-                                <div>
-                                  <span className="text-xl font-bold text-orange-500">
-                                    ₹{product.price.toLocaleString()}
-                                  </span>
-                                  {showStrike && (
-                                    <div className="text-xs text-gray-500 line-through">
-                                      ₹{product.originalPrice.toLocaleString()}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                              {product.brands.length > 0 ? (
+                                <span className="shrink-0 rounded-full border-2 border-[#E36630] bg-gradient-to-r from-[#E36630]/15 to-[#E36630]/8 px-3 py-1 text-xs font-bold text-[#E36630] shadow-sm">
+                                  {formatBrandLabels(product.brands)}
+                                </span>
+                              ) : null}
                             </div>
-
-                            <div className="flex items-end">
-                              <button
-                                type="button"
-                                onClick={() => handleAddToCart(product)}
-                                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-                              >
-                                Add to Cart
-                              </button>
+                            <div className="flex flex-wrap items-baseline gap-2 pt-1">
+                              <span className="text-xl font-bold text-[#E36630]">
+                                ₹{product.price.toLocaleString()}
+                              </span>
+                              {showStrike && (
+                                <span className="text-sm text-gray-500 line-through">
+                                  ₹{product.originalPrice.toLocaleString()}
+                                </span>
+                              )}
                             </div>
+                          </div>
+
+                          <div className="flex shrink-0 items-end sm:justify-end pt-2 sm:pt-0 sm:pl-2">
+                            <button
+                              type="button"
+                              onClick={() => handleAddToCart(product)}
+                              disabled={product.stock <= 0}
+                              className="w-full rounded-lg bg-[#E36630] px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-[#cc5a2a] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:whitespace-nowrap"
+                            >
+                              Add to Cart
+                            </button>
                           </div>
                         </div>
                       </div>

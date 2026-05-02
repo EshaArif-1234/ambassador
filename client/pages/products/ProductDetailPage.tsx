@@ -3,7 +3,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
+import ProductRatingDropdown, {
+  type RatingBreakdown,
+} from '@/components/products/ProductRatingDropdown';
 import CartPopup from '@/components/products/CartPopup';
 import { useCart } from '@/contexts/CartContext';
 
@@ -48,6 +50,20 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   const [quantity, setQuantity] = useState(1);
   const [showCartPopup, setShowCartPopup] = useState(false);
   const { addToCart } = useCart();
+
+  const ratingBreakdown = useMemo<RatingBreakdown>(() => {
+    const m: RatingBreakdown = {};
+    for (const r of reviews) {
+      const k = Math.min(5, Math.max(1, Math.round(Number(r.rating)))) as
+        | 1
+        | 2
+        | 3
+        | 4
+        | 5;
+      m[k] = (m[k] ?? 0) + 1;
+    }
+    return m;
+  }, [reviews]);
 
   useEffect(() => {
     setMediaIndex(0);
@@ -253,6 +269,8 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
 
               <div className="mb-4">
                 <ProductRatingDropdown
+                  productId={product._id}
+                  ratingBreakdown={ratingBreakdown}
                   averageRating={product.reviewCount ? product.avgRating : 0}
                   totalReviews={product.reviewCount}
                   productName={product.name}
