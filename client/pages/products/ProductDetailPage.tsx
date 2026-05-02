@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import ProductRatingDropdown, {
@@ -23,10 +23,20 @@ interface ProductDetail {
   stock: number;
   images: string[];
   videos: string[];
+  brands?: unknown;
   specifications: Record<string, string>;
   categories: CategoryRef[];
   avgRating: number;
   reviewCount: number;
+}
+
+interface CatalogProductRow {
+  _id: string;
+  name: string;
+  price?: number;
+  originalPrice: number;
+  images: string[];
+  categories?: { title?: string }[];
 }
 
 interface ReviewRow {
@@ -41,14 +51,39 @@ type MediaItem = { kind: 'image' | 'video'; src: string };
 
 const PLACEHOLDER = '/Images/home/stainless-steal.webp';
 
+const BRAND_FILTERS = [
+  { apiSlug: 'ambassador', label: 'Ambassador' },
+  { apiSlug: 'imported', label: 'Imported' },
+] as const;
+
+function normalizeBrandTags(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((x): x is string => typeof x === 'string' && x.length > 0);
+}
+
+function formatBrandLabels(slugs: string[]): string {
+  if (!slugs.length) return '';
+  const ordered = BRAND_FILTERS.filter(({ apiSlug }) => slugs.includes(apiSlug)).map(
+    ({ label }) => label
+  );
+  const unknown = slugs.filter((s) => !BRAND_FILTERS.some((b) => b.apiSlug === s));
+  return [...ordered, ...unknown].join(' · ');
+}
+
+function rowDisplayPrice(p: { price?: number; originalPrice: number }): number {
+  return p.price != null && p.price > 0 ? p.price : p.originalPrice;
+}
+
 const ProductDetailPage = ({ productId }: { productId: string }) => {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<CatalogProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [mediaIndex, setMediaIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showCartPopup, setShowCartPopup] = useState(false);
+  const relatedScrollRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
 
   const ratingBreakdown = useMemo<RatingBreakdown>(() => {
@@ -98,6 +133,39 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
     };
   }, [productId]);
 
+  useEffect(() => {
+    if (!product) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/products', { cache: 'no-store' });
+        const json = await res.json();
+        if (!json?.success || !Array.isArray(json.data) || cancelled) return;
+        const titles = new Set(
+          (product.categories ?? []).map((c) => c.title).filter(Boolean) as string[]
+        );
+        if (titles.size === 0) {
+          if (!cancelled) setRelatedProducts([]);
+          return;
+        }
+        const rows = json.data as CatalogProductRow[];
+        const related = rows
+          .filter(
+            (r) =>
+              String(r._id) !== String(product._id) &&
+              (r.categories ?? []).some((c) => c.title && titles.has(c.title))
+          )
+          .slice(0, 16);
+        if (!cancelled) setRelatedProducts(related);
+      } catch {
+        if (!cancelled) setRelatedProducts([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [product]);
+
   const mediaItems = useMemo<MediaItem[]>(() => {
     if (!product) return [];
     const imgs =
@@ -126,6 +194,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
     product.originalPrice > product.price;
 
   const categoryLine = product?.categories?.map((c) => c.title).filter(Boolean).join(' · ');
+  const brandTags = product ? normalizeBrandTags(product.brands) : [];
 
   const handleAddToCart = () => {
     if (!product || !mediaItems.length) return;
@@ -161,7 +230,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       <div className="min-h-screen bg-gray-50 py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Product not found</h1>
-          <Link href="/products" className="text-orange-600 hover:text-orange-700 font-medium">
+          <Link href="/products" className="font-medium text-[#E36630] hover:text-[#cc5a2a]">
             Back to products
           </Link>
         </div>
@@ -178,11 +247,11 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       <div className="container mx-auto px-4">
         <div className="mb-6">
           <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-            <Link href="/" className="hover:text-orange-500 transition-colors">
+            <Link href="/" className="transition-colors hover:text-[#E36630]">
               Home
             </Link>
             <span>/</span>
-            <Link href="/products" className="hover:text-orange-500 transition-colors">
+            <Link href="/products" className="transition-colors hover:text-[#E36630]">
               Products
             </Link>
             <span>/</span>
@@ -193,13 +262,13 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
-              <div className="relative h-96 mb-4 rounded-lg overflow-hidden bg-gray-100">
+              <div className="relative mb-4 h-96 overflow-hidden rounded-lg bg-[#E5E5E5]">
                 {currentMedia?.kind === 'image' ? (
                   <Image
                     src={currentMedia.src}
                     alt={product.name}
                     fill
-                    className="object-cover"
+                    className="bg-[#E5E5E5] object-cover"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     priority
                   />
@@ -207,7 +276,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                   <video
                     src={currentMedia.src}
                     controls
-                    className="w-full h-full object-contain bg-black"
+                    className="h-full w-full bg-[#E5E5E5] object-contain"
                   >
                     Your browser does not support the video tag.
                   </video>
@@ -222,15 +291,15 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                       key={`img-${item.src}-${index}`}
                       type="button"
                       onClick={() => setMediaIndex(globalIdx)}
-                      className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                        mediaIndex === globalIdx ? 'border-orange-500' : 'border-gray-200'
+                      className={`relative h-20 overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
+                        mediaIndex === globalIdx ? 'border-[#E36630]' : 'border-gray-200'
                       }`}
                     >
                       <Image
                         src={item.src}
                         alt=""
                         fill
-                        className="object-cover hover:scale-105 transition-transform"
+                        className="bg-[#E5E5E5] object-cover transition-transform hover:scale-105"
                         sizes="80px"
                       />
                     </button>
@@ -243,11 +312,11 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                       key={`vid-${item.src}-${index}`}
                       type="button"
                       onClick={() => setMediaIndex(globalIdx)}
-                      className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                        mediaIndex === globalIdx ? 'border-orange-500' : 'border-gray-200'
+                      className={`relative h-20 overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
+                        mediaIndex === globalIdx ? 'border-[#E36630]' : 'border-gray-200'
                       }`}
                     >
-                      <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center justify-center bg-[#E5E5E5]">
                         <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
                         </svg>
@@ -264,22 +333,37 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
               {categoryLine ? (
-                <p className="text-sm text-gray-600 mb-4">{categoryLine}</p>
+                <p className="mb-4 text-sm text-gray-600">{categoryLine}</p>
               ) : null}
 
-              <div className="mb-4">
-                <ProductRatingDropdown
-                  productId={product._id}
-                  ratingBreakdown={ratingBreakdown}
-                  averageRating={product.reviewCount ? product.avgRating : 0}
-                  totalReviews={product.reviewCount}
-                  productName={product.name}
-                />
+              <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+                <div className="min-w-0 shrink">
+                  <ProductRatingDropdown
+                    productId={product._id}
+                    ratingBreakdown={ratingBreakdown}
+                    averageRating={product.reviewCount ? product.avgRating : 0}
+                    totalReviews={product.reviewCount}
+                    productName={product.name}
+                  />
+                </div>
+                {brandTags.length > 0 ? (
+                  <span className="shrink-0 rounded-full border-2 border-[#E36630] bg-gradient-to-r from-[#E36630]/15 to-[#E36630]/8 px-3 py-1 text-xs font-bold text-[#E36630] shadow-sm">
+                    {formatBrandLabels(brandTags)}
+                  </span>
+                ) : null}
+                <p className="shrink-0 text-sm">
+                  <span className="text-gray-500">Stock: </span>
+                  {product.stock > 0 ? (
+                    <span className="font-semibold text-green-700">{product.stock} available</span>
+                  ) : (
+                    <span className="font-semibold text-red-600">Out of stock</span>
+                  )}
+                </p>
               </div>
 
               <div className="mb-6">
-                <div className="flex items-baseline gap-3 flex-wrap">
-                  <span className="text-3xl font-bold text-orange-500">
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <span className="text-3xl font-bold text-[#E36630]">
                     ₹{displayPrice.toLocaleString()}
                   </span>
                   {showDiscount && (
@@ -329,7 +413,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className="flex-1 min-w-[200px] bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  className="min-w-[200px] flex-1 rounded-lg bg-[#E36630] px-6 py-3 font-medium text-white transition-colors hover:bg-[#cc5a2a]"
                 >
                   Add to Cart
                 </button>
@@ -415,8 +499,8 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                               key={i}
                               className={`w-5 h-5 ${
                                 i < Math.floor(review.rating)
-                                  ? 'text-orange-500 fill-current'
-                                  : 'text-gray-300 fill-current'
+                                  ? 'fill-current text-[#E36630]'
+                                  : 'fill-current text-gray-300'
                               }`}
                               viewBox="0 0 20 20"
                             >
@@ -433,6 +517,70 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
             </div>
           )}
         </div>
+
+        {relatedProducts.length > 0 ? (
+          <section className="mt-8 rounded-lg bg-white p-6 shadow-md" aria-label="Related products">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-2xl font-bold text-gray-800">Related products</h2>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  aria-label="Scroll related products left"
+                  onClick={() =>
+                    relatedScrollRef.current?.scrollBy({ left: -320, behavior: 'smooth' })
+                  }
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-lg text-gray-700 shadow-sm transition-colors hover:border-[#E36630] hover:text-[#E36630]"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  aria-label="Scroll related products right"
+                  onClick={() =>
+                    relatedScrollRef.current?.scrollBy({ left: 320, behavior: 'smooth' })
+                  }
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-lg text-gray-700 shadow-sm transition-colors hover:border-[#E36630] hover:text-[#E36630]"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+            <div
+              ref={relatedScrollRef}
+              className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-2"
+            >
+              {relatedProducts.map((r) => {
+                const img = r.images?.[0] || PLACEHOLDER;
+                const price = rowDisplayPrice(r);
+                return (
+                  <Link
+                    key={r._id}
+                    href={`/products/${r._id}`}
+                    className="w-40 shrink-0 snap-start overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-48"
+                  >
+                    <div className="relative h-40 w-full bg-[#E5E5E5] sm:h-44">
+                      <Image
+                        src={img}
+                        alt=""
+                        fill
+                        className="bg-[#E5E5E5] object-cover"
+                        sizes="(max-width: 640px) 160px, 192px"
+                      />
+                    </div>
+                    <div className="p-3">
+                      <p className="line-clamp-2 text-sm font-medium leading-snug text-gray-900">
+                        {r.name}
+                      </p>
+                      <p className="mt-2 text-base font-bold text-[#E36630]">
+                        ₹{price.toLocaleString()}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
       </div>
 
       <CartPopup
