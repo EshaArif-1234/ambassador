@@ -1,24 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
 
 const CheckoutPage = () => {
-  const router = useRouter();
   const { cartItems } = useCart();
-  const [orderData, setOrderData] = useState<any>(null);
-
-  const handleOrderComplete = (data: any) => {
-    setOrderData(data);
-    // Store order data for success page
-    localStorage.setItem('lastOrder', JSON.stringify(data)); 
-    router.push('/order-success');
-  };
-
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -30,7 +18,10 @@ const CheckoutPage = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
           <p className="text-gray-600 mb-6">Add some products to your cart before checkout</p>
-          <Link href="/products" className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors">
+          <Link
+            href="/products"
+            className="rounded-lg bg-[#E36630] px-6 py-3 text-white transition-colors hover:bg-[#cc5a2a]"
+          >
             Continue Shopping
           </Link>
         </div>
@@ -45,7 +36,7 @@ const CheckoutPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             
-            <Link href="/products" className="text-orange-500 hover:text-orange-600">
+            <Link href="/products" className="text-[#E36630] transition-colors hover:text-[#cc5a2a]">
               ← Back to Products
             </Link>
           </div>
@@ -77,7 +68,7 @@ const CheckoutPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Side - Checkout Form (70%) */}
           <div className="lg:col-span-2">
-            <CheckoutForm onOrderComplete={handleOrderComplete} />
+            <CheckoutForm />
           </div>
 
           {/* Right Side - Order Summary (30%) */}

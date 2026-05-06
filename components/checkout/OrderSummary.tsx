@@ -79,7 +79,7 @@ const OrderSummary = () => {
         <div className="pt-3 border-t">
           <div className="flex justify-between">
             <span className="font-semibold text-gray-900">Total</span>
-            <span className="font-bold text-lg text-orange-500">
+            <span className="text-lg font-bold text-[#E36630]">
               ₹{total.toLocaleString()}
             </span>
           </div>

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import AuthModal from '@/components/auth/AuthModal';
 
+const inputFocus =
+  'focus:ring-2 focus:ring-[#E36630] focus:border-[#E36630] outline-none';
+
 interface CheckoutFormData {
   fullName: string;
   email: string;
@@ -12,29 +15,25 @@ interface CheckoutFormData {
   city: string;
   address: string;
   deliveryNotes: string;
-  paymentMethod: 'cod' | 'online';
 }
 
-interface CheckoutFormProps {
-  onOrderComplete: (orderData: any) => void;
-}
+const emptyForm: CheckoutFormData = {
+  fullName: '',
+  email: '',
+  phone: '',
+  city: '',
+  address: '',
+  deliveryNotes: '',
+};
 
-const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
-  const { cartItems, clearCart } = useCart();
+const CheckoutForm = () => {
+  const { cartItems } = useCart();
   const router = useRouter();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  const [formData, setFormData] = useState<CheckoutFormData>({
-    fullName: '',
-    email: '',
-    phone: '',
-    city: '',
-    address: '',
-    deliveryNotes: '',
-    paymentMethod: 'cod'
-  });
+
+  const [formData, setFormData] = useState<CheckoutFormData>(emptyForm);
 
   // Simulate user context (in real app, this would come from UserContext)
   const [user, setUser] = useState<any>(null);
@@ -42,11 +41,11 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
   // Auto-fill if user is logged in
   useEffect(() => {
     if (user) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         fullName: user.name || '',
         email: user.email || '',
-        phone: user.phone || ''
+        phone: user.phone || '',
       }));
     }
   }, [user]);
@@ -54,8 +53,20 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
   // Load saved form data from localStorage
   useEffect(() => {
     const savedData = localStorage.getItem('checkoutFormData');
-    if (savedData) {
-      setFormData(JSON.parse(savedData));
+    if (!savedData) return;
+    try {
+      const parsed = JSON.parse(savedData) as Record<string, unknown>;
+      setFormData({
+        fullName: typeof parsed.fullName === 'string' ? parsed.fullName : '',
+        email: typeof parsed.email === 'string' ? parsed.email : '',
+        phone: typeof parsed.phone === 'string' ? parsed.phone : '',
+        city: typeof parsed.city === 'string' ? parsed.city : '',
+        address: typeof parsed.address === 'string' ? parsed.address : '',
+        deliveryNotes:
+          typeof parsed.deliveryNotes === 'string' ? parsed.deliveryNotes : '',
+      });
+    } catch {
+      /* ignore corrupt storage */
     }
   }, []);
 
@@ -64,7 +75,7 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
     localStorage.setItem('checkoutFormData', JSON.stringify(formData));
   }, [formData]);
 
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const deliveryCharges = subtotal > 0 ? 200 : 0; // Fixed delivery charge
   const total = subtotal + deliveryCharges;
 
@@ -93,25 +104,26 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsProcessing(true);
 
     try {
-      // Create order object
       const orderData = {
         name: formData.fullName,
         email: formData.email,
@@ -123,41 +135,27 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
         subtotal,
         deliveryCharges,
         totalAmount: total,
-        paymentMethod: formData.paymentMethod,
-        paymentStatus: formData.paymentMethod === 'cod' ? 'pending' : 'pending',
+        paymentMethod: 'online' as const,
+        paymentStatus: 'pending',
         orderStatus: 'processing',
         orderDate: new Date().toISOString(),
-        orderId: `ORD-${Date.now()}`
+        orderId: `ORD-${Date.now()}`,
       };
 
-      if (formData.paymentMethod === 'online') {
-        // Store payment data for payment gateway
-        const paymentData = {
-          orderId: orderData.orderId,
-          amount: total,
-          customerInfo: {
-            name: formData.fullName,
-            email: formData.email,
-            phone: formData.phone
-          },
-          orderItems: cartItems,
-          orderData: orderData
-        };
-        
-        localStorage.setItem('paymentData', JSON.stringify(paymentData));
-        
-        // Redirect to payment gateway
-        router.push('/payment');
-      } else {
-        // Cash on Delivery - direct order success
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Clear cart and form
-        clearCart();
-        localStorage.removeItem('checkoutFormData');
-        
-        onOrderComplete(orderData);
-      }
+      const paymentData = {
+        orderId: orderData.orderId,
+        amount: total,
+        customerInfo: {
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+        },
+        orderItems: cartItems,
+        orderData: orderData,
+      };
+
+      localStorage.setItem('paymentData', JSON.stringify(paymentData));
+      router.push('/payment');
     } catch (error) {
       console.error('Order failed:', error);
       setErrors({ submit: 'Failed to place order. Please try again.' });
@@ -170,12 +168,12 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Information */}
-        <div className="bg-white rounded-lg border p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
-          
+        <div className="rounded-lg border bg-white p-6">
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">Customer Information</h3>
+
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Full Name *
               </label>
               <input
@@ -183,7 +181,7 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
                   errors.fullName ? 'border-red-500' : 'border-gray-300'
                 } placeholder:text-gray-400`}
                 placeholder="Enter your full name"
@@ -194,7 +192,7 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Email *
               </label>
               <input
@@ -202,19 +200,17 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 } placeholder:text-gray-400`}
                 placeholder="Enter your email"
                 disabled={!!user}
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Phone Number *
               </label>
               <input
@@ -222,33 +218,29 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
                   errors.phone ? 'border-red-500' : 'border-gray-300'
                 } placeholder:text-gray-400`}
                 placeholder="03XX-XXXXXXX"
                 disabled={!!user}
               />
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-              )}
+              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
             </div>
           </div>
         </div>
 
         {/* Shipping Details */}
-        <div className="bg-white rounded-lg border p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Shipping Details</h3>
-          
+        <div className="rounded-lg border bg-white p-6">
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">Shipping Details</h3>
+
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                City *
-              </label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">City *</label>
               <select
                 name="city"
                 value={formData.city}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
                   errors.city ? 'border-red-500' : 'border-gray-300'
                 }`}
               >
@@ -259,21 +251,17 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
                 <option value="Rawalpindi">Rawalpindi</option>
                 <option value="Faisalabad">Faisalabad</option>
               </select>
-              {errors.city && (
-                <p className="mt-1 text-sm text-red-600">{errors.city}</p>
-              )}
+              {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address *
-              </label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Address *</label>
               <textarea
                 name="address"
                 value={formData.address}
                 onChange={handleInputChange}
                 rows={3}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
                   errors.address ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter your complete address"
@@ -284,7 +272,7 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Delivery Notes (Optional)
               </label>
               <textarea
@@ -292,59 +280,35 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
                 value={formData.deliveryNotes}
                 onChange={handleInputChange}
                 rows={2}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className={`w-full rounded-lg border border-gray-300 px-4 py-3 ${inputFocus}`}
                 placeholder="Special instructions for delivery"
               />
             </div>
           </div>
 
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
             <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> Delivery is currently available only in Lahore, Karachi, Islamabad, Rawalpindi, and Faisalabad.
+              <strong>Note:</strong> Delivery is currently available only in Lahore, Karachi,
+              Islamabad, Rawalpindi, and Faisalabad.
             </p>
           </div>
         </div>
 
-        {/* Payment Method */}
-        <div className="bg-white rounded-lg border p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Method</h3>
-          
-          <div className="space-y-3">
-            <label className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="cod"
-                checked={formData.paymentMethod === 'cod'}
-                onChange={handleInputChange}
-                className="mr-3"
-              />
-              <div>
-                <p className="font-medium text-gray-900">Cash on Delivery</p>
-                <p className="text-sm text-gray-600">Pay when you receive your order</p>
-              </div>
-            </label>
-
-            <label className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="online"
-                checked={formData.paymentMethod === 'online'}
-                onChange={handleInputChange}
-                className="mr-3"
-              />
-              <div>
-                <p className="font-medium text-gray-900">Online Payment</p>
-                <p className="text-sm text-gray-600">Pay securely with credit/debit card, mobile wallet, or bank transfer</p>
-              </div>
-            </label>
+        {/* Payment — online only */}
+        <div className="rounded-lg border bg-white p-6">
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">Payment</h3>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p className="font-medium text-gray-900">Online payment</p>
+            <p className="mt-1 text-sm text-gray-600">
+              After you continue, you will complete payment securely with card, mobile wallet, or bank
+              transfer. Cash on delivery is not available.
+            </p>
           </div>
         </div>
 
         {/* Error Message */}
         {errors.submit && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
             <p className="text-red-800">{errors.submit}</p>
           </div>
         )}
@@ -353,27 +317,40 @@ const CheckoutForm = ({ onOrderComplete }: CheckoutFormProps) => {
         <button
           type="submit"
           disabled={isProcessing || cartItems.length === 0}
-          className="w-full bg-orange-500 text-white py-4 rounded-lg hover:bg-orange-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-lg bg-[#E36630] py-4 font-medium text-white transition-colors hover:bg-[#cc5a2a] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isProcessing ? (
             <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
-              Processing Order...
+              Processing…
             </span>
           ) : (
-            `Place Order • ₹${total.toLocaleString()}`
+            `Continue to payment • ₹${total.toLocaleString()}`
           )}
         </button>
       </form>
 
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-      />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 };
