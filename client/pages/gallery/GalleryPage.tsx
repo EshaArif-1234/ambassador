@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import SignupBanner from '@/components/common/signup-banner';
 
@@ -12,125 +12,71 @@ interface Review {
   videoUrl?: string;
 }
 
+interface GalleryReviewDoc {
+  _id: string;
+  name: string;
+  role: string;
+  review?: string;
+  videoUrl?: string;
+}
+
+function mapDocToReview(doc: GalleryReviewDoc): Review {
+  return {
+    id: String(doc._id),
+    name: doc.name,
+    role: doc.role,
+    review: doc.review ?? '',
+    videoUrl: doc.videoUrl?.trim() || undefined,
+  };
+}
+
+function isYoutubeVideoUrl(url: string): boolean {
+  const u = url.trim().toLowerCase();
+  return (
+    u.includes('youtube.com/') ||
+    u.includes('youtu.be/') ||
+    u.includes('youtube-nocookie.com/')
+  );
+}
+
 const GalleryPage = () => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  /** Requested page; clamped below so it stays in range when the list shrinks */
+  const [pageRequest, setPageRequest] = useState(1);
   const reviewsPerPage = 6;
 
-  const reviews: Review[] = [
-    {
-      id: '1',
-      name: 'Chef Mehboob Khan',
-      role: 'Celebrity Chef',
-      review: 'Ambassador\'s commercial kitchen equipment has transformed my restaurant operations. The quality and durability are unmatched!',
-      videoUrl: 'https://www.youtube.com/watch?v=MQgXy4cYnsw',
-    },
-    {
-      id: '2',
-      name: 'Chef Zakir Qureshi',
-      role: 'Food YouTuber',
-      review: 'I use Ambassador equipment in my kitchen studio. The precision and reliability help me create perfect content every time.',
-      videoUrl: 'https://www.youtube.com/watch?v=rJrKZ6JAexI',
-
-    },
-    {
-      id: '3',
-      name: 'Chef Rahat Ali',
-      role: 'Chef & Entrepreneur',
-      review: 'Great value for money equipment. Has helped scale my catering business effectively.',
-      videoUrl: 'https://www.youtube.com/shorts/HzRnJuGO30E',
-
-    },
-    {
-      id: '4',
-      name: 'Chef Ali Abbas',
-      role: 'Michelin Star Chef',
-      review: 'Ambassador understands the needs of professional chefs. Their equipment is designed with perfection in mind.',
-      videoUrl: 'https://www.youtube.com/shorts/UtiL6m9UPrA',
-
-    },
-    {
-      id: '5',
-      name: 'Chef Faiza Khan',
-      role: 'Chef & TV Personality',
-      review: 'Excellent equipment that meets international standards. Perfect for fusion cuisine restaurants.',
-      videoUrl: 'https://www.youtube.com/shorts/2c4LO14HNzc',
-
-    },
-    {
-      id: '6',
-      name: 'Chef Azam Khan',
-      role: 'Food YouTuber',
-      review: 'The best investment for my food channel. Ambassador equipment delivers consistent results every time.',
-      videoUrl: 'https://www.youtube.com/shorts/vZaYXGl3vwk',
-
-    },
-    {
-      id: '7',
-      name: 'Chef Deniel',
-      role: 'Chef & Food Blogger',
-      review: 'Ambassador equipment has been a game-changer for my restaurant business. The reliability and performance are outstanding.',
-      videoUrl: 'https://www.youtube.com/shorts/oK8_f9tckTo',
-
-    },
-    {
-      id: '8',
-      name: 'Waqas Illyas Khan',
-      role: 'Vice President of Chef Association Of Pakistan',
-      review: 'Ambassador equipment has been a game-changer for my restaurant business. The reliability and performance are outstanding.',
-      videoUrl: 'https://www.youtube.com/watch?v=6x6l5DfMqtQ',
-
-    },
-    {
-      id: '9',
-      name: 'Chef Tippu',
-      role: 'Restaurant Owner',
-      review: 'Ambassador equipment has been a game-changer for my restaurant business. The reliability and performance are outstanding.',       
-      videoUrl: 'https://www.youtube.com/watch?v=oMIb2iGQ0rI',
-    },
-    {
-      id: '10',
-      name: 'Baba Food RRC',
-      role: 'Food Blogger',
-      review: 'Perfect equipment for content creation. Ambassador products help me showcase recipes beautifully.',
-      videoUrl: 'https://www.youtube.com/shorts/YBDcByYdwmk',
-    },
-    {
-      id: '11',
-      name: 'Chef Gulzar',
-      role: 'Catering Manager',
-      review: 'Outstanding quality and service. Ambassador equipment has helped us serve large events efficiently.',
-      videoUrl: 'https://www.youtube.com/watch?v=Gi45aHuShcE',
-    },
-    {
-      id: '12',
-      name: 'Chef Tippu Imran',
-      role: 'Celebrity Chef',
-      review: 'Outstanding quality and service. Ambassador equipment has helped us serve large events efficiently.',
-      videoUrl: 'https://www.youtube.com/watch?v=-jG1agRx0WQ',
-
-    },
-    
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/gallery-reviews');
+        const json = await res.json();
+        if (cancelled) return;
+        if (json.success && Array.isArray(json.data)) {
+          setReviews(json.data.map(mapDocToReview));
+          setPageRequest(1);
+        } else {
+          setReviews([]);
+        }
+      } catch {
+        if (!cancelled) setReviews([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Pagination logic
+  const totalPages = Math.max(1, Math.ceil(reviews.length / reviewsPerPage));
+  const currentPage = Math.min(Math.max(1, pageRequest), totalPages);
   const indexOfLastReview = currentPage * reviewsPerPage;
   const indexOfFirstReview = indexOfLastReview - reviewsPerPage;
   const currentReviews = reviews.slice(indexOfFirstReview, indexOfLastReview);
-  const totalPages = Math.ceil(reviews.length / reviewsPerPage);
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <svg
-        key={i}
-        className={`w-4 h-4 ${i < rating ? 'text-orange-500' : 'text-gray-300'}`}
-        fill="currentColor"
-        viewBox="0 0 20 20"
-      >
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-.755 1.902 0l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.381-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-      </svg>
-    ));
+  const paginate = (pageNumber: number) => {
+    const next = Math.min(Math.max(1, pageNumber), totalPages);
+    setPageRequest(next);
   };
 
   const getYouTubeEmbedUrl = (url: string) => {
@@ -201,12 +147,18 @@ const GalleryPage = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {currentReviews.map(review => {
-            const embedUrl = getYouTubeEmbedUrl(review.videoUrl || '');
+            const url = review.videoUrl?.trim() ?? '';
+            const embedUrl = getYouTubeEmbedUrl(url);
+            const directVideoUrl =
+              embedUrl || !url ? '' : /^https?:\/\//i.test(url) && !isYoutubeVideoUrl(url) ? url : '';
 
             return (
-              <div key={review.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-                {/* Video/Image Section */}
-                <div className="relative h-48 bg-gray-100">
+              <div
+                key={review.id}
+                className="flex h-[520px] flex-col overflow-hidden rounded-xl bg-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
+              >
+                {/* Video/Image Section — taller embed for readability */}
+                <div className="relative h-[14.5rem] shrink-0 bg-gray-100 sm:h-[16rem] md:h-[17.5rem]">
                   {embedUrl ? (
                     <iframe
                       src={embedUrl}
@@ -215,6 +167,13 @@ const GalleryPage = () => {
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
+                    />
+                  ) : directVideoUrl ? (
+                    <video
+                      src={directVideoUrl}
+                      className="h-full w-full object-cover"
+                      controls
+                      preload="metadata"
                     />
                   ) : (
                     <img
@@ -228,15 +187,13 @@ const GalleryPage = () => {
                   )}
                 </div>
 
-                <div className="p-6">
-
-
-                  <blockquote className="text-gray-700 mb-4 italic">
-                    "{review.review}"
+                <div className="flex min-h-0 flex-1 flex-col px-6 pb-6 pt-5">
+                  <blockquote className="line-clamp-3 break-words italic text-gray-700">
+                    &ldquo;{review.review}&rdquo;
                   </blockquote>
 
-                  {/* Chef Section with View Product Button */}
-                  <div className="flex items-center justify-between">
+                  {/* Chef Section with View Product Button — tucked under quote (no flex spacer) */}
+                  <div className="mt-2 flex shrink-0 items-center justify-between gap-3">
                     <div>
                       <h4 className="font-semibold text-gray-900">{review.name}</h4>
                       <p className="text-sm text-gray-500">{review.role}</p>
@@ -263,8 +220,8 @@ const GalleryPage = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => paginate(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${currentPage === 1
+              disabled={currentPage === 1 || reviews.length === 0}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${currentPage === 1 || reviews.length === 0
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-orange-50 hover:border-orange-300'
                 }`}
@@ -289,8 +246,8 @@ const GalleryPage = () => {
 
             <button
               onClick={() => paginate(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${currentPage === totalPages
+              disabled={currentPage === totalPages || reviews.length === 0}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${currentPage === totalPages || reviews.length === 0
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-orange-50 hover:border-orange-300'
                 }`}
@@ -305,7 +262,9 @@ const GalleryPage = () => {
         {/* Page Info */}
         <div className="mt-6 text-center">
           <p className="text-gray-600">
-            Showing {indexOfFirstReview + 1} to {Math.min(indexOfLastReview, reviews.length)} of {reviews.length} reviews
+            Showing{' '}
+            {reviews.length === 0 ? 0 : indexOfFirstReview + 1} to{' '}
+            {reviews.length === 0 ? 0 : Math.min(indexOfLastReview, reviews.length)} of {reviews.length} reviews
           </p>
         </div>
       </div>
