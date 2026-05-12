@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import SignupBanner from '@/components/common/signup-banner';
 
@@ -40,87 +39,96 @@ function isYoutubeVideoUrl(url: string): boolean {
   );
 }
 
-/** Line-clamped quote; hovering shows full text in a portal tooltip (escapes card overflow). */
-function TruncatedReviewQuote({ text }: { text: string }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [tip, setTip] = useState<{ top: number; left: number; width: number } | null>(null);
+interface GalleryReviewCardProps {
+  review: Review;
+  embedUrl: string | null;
+  directVideoUrl: string;
+}
 
-  useEffect(() => () => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-  }, []);
-
-  const measure = () => {
-    const el = wrapRef.current;
-    if (!el || typeof window === 'undefined') return null;
-    const r = el.getBoundingClientRect();
-    const width = Math.min(360, window.innerWidth - 24);
-    const left = Math.max(12, Math.min(r.left, window.innerWidth - width - 12));
-    const top = r.bottom + 8;
-    return { top, left, width };
-  };
-
-  const showTip = () => {
-    if (!text.trim()) return;
-    if (hideTimer.current) {
-      clearTimeout(hideTimer.current);
-      hideTimer.current = null;
-    }
-    const pos = measure();
-    if (pos) setTip(pos);
-  };
-
-  const hideTipSoon = () => {
-    hideTimer.current = setTimeout(() => setTip(null), 200);
-  };
-
-  useEffect(() => {
-    if (!tip) return;
-    const sync = () => {
-      const pos = measure();
-      if (pos) setTip(pos);
-    };
-    window.addEventListener('scroll', sync, true);
-    window.addEventListener('resize', sync);
-    return () => {
-      window.removeEventListener('scroll', sync, true);
-      window.removeEventListener('resize', sync);
-    };
-  }, [tip]);
+function GalleryReviewCard({ review, embedUrl, directVideoUrl }: GalleryReviewCardProps) {
+  const [revealed, setRevealed] = useState(false);
+  const hasQuote = Boolean(review.review?.trim());
 
   return (
-    <>
-      <div
-        ref={wrapRef}
-        className={`${text.trim() ? 'cursor-help' : ''}`}
-        onMouseEnter={showTip}
-        onMouseLeave={hideTipSoon}
-      >
-        <blockquote className="line-clamp-3 break-words italic text-gray-700">
-          &ldquo;{text}&rdquo;
-        </blockquote>
-      </div>
-      {tip &&
-        text.trim() &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            role="tooltip"
-            className="pointer-events-auto fixed z-[9999] max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm leading-relaxed text-gray-800 shadow-xl"
-            style={{ top: tip.top, left: tip.left, width: tip.width }}
-            onMouseEnter={() => {
-              if (hideTimer.current) {
-                clearTimeout(hideTimer.current);
-                hideTimer.current = null;
-              }
+    <div
+      className="relative flex h-[450px] flex-col overflow-hidden rounded-xl bg-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
+      onMouseLeave={() => setRevealed(false)}
+    >
+      {/* Video/Image Section */}
+      <div className={`relative shrink-0 bg-gray-100 h-[14.5rem] sm:h-[16rem] md:h-[17.5rem] ${revealed ? 'pointer-events-none' : ''}`}>
+        {embedUrl ? (
+          <iframe
+            src={embedUrl}
+            title={`${review.name} Review`}
+            className="h-full w-full object-cover"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : directVideoUrl ? (
+          <video src={directVideoUrl} className="h-full w-full object-cover" controls preload="metadata" />
+        ) : (
+          <img
+            src="/Images/gallery/default-avatar.jpg"
+            alt={review.name}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = `https://via.placeholder.com/400x300/E36630/ffffff?text=${encodeURIComponent(review.name)}`;
             }}
-            onMouseLeave={hideTipSoon}
-          >
-            <span className="italic">&ldquo;{text}&rdquo;</span>
-          </div>,
-          document.body
+          />
         )}
-    </>
+      </div>
+
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col bg-white px-6 pt-5">
+        {hasQuote ? (
+          <div className="cursor-pointer" onMouseEnter={() => setRevealed(true)}>
+            <blockquote className="line-clamp-3 break-words italic text-gray-700 transition-opacity duration-300">
+              &ldquo;{review.review}&rdquo;
+            </blockquote>
+          </div>
+        ) : (
+          <blockquote className="line-clamp-3 break-words italic text-gray-400">&mdash;</blockquote>
+        )}
+
+        <div className="mt-2 flex shrink-0 items-center justify-between gap-3">
+          <div>
+            <h4 className="font-semibold text-gray-900">{review.name}</h4>
+            <p className="text-sm text-gray-500">{review.role}</p>
+          </div>
+          <Link
+            href="/products"
+            className={`inline-flex items-center rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 ${revealed ? 'pointer-events-none opacity-50' : ''}`}
+          >
+            View Product
+            <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      </div>
+
+      {/* Sliding dark overlay — bottom → top */}
+      <div
+        className={`absolute inset-0 z-20 flex flex-col justify-center bg-black/70 px-6 py-8 backdrop-blur-[2px] transition-transform duration-500 ease-[cubic-bezier(0.33,1,0.68,1)] motion-reduce:transition-none ${
+          revealed && hasQuote ? 'translate-y-0' : 'translate-y-full'
+        } ${revealed ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        onMouseEnter={() => hasQuote && setRevealed(true)}
+      >
+        {hasQuote ? (
+          <div className="mx-auto max-h-full min-h-0 w-full overflow-y-auto overscroll-contain px-2 [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar]:w-2">
+            <div className="mb-5 flex shrink-0 items-center gap-2 border-b border-white/15 pb-4">
+              <span className="font-serif text-3xl leading-none text-[#E36630]" aria-hidden>
+                &ldquo;
+              </span>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-orange-100/95">
+                Full testimonial
+              </p>
+            </div>
+            <p className="text-[15px] italic leading-relaxed tracking-wide text-white/95">{review.review}</p>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -238,62 +246,12 @@ const GalleryPage = () => {
               embedUrl || !url ? '' : /^https?:\/\//i.test(url) && !isYoutubeVideoUrl(url) ? url : '';
 
             return (
-              <div
+              <GalleryReviewCard
                 key={review.id}
-                className="flex h-[450px] flex-col overflow-hidden rounded-xl bg-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
-              >
-                {/* Video/Image Section — taller embed for readability */}
-                <div className="relative h-[14.5rem] shrink-0 bg-gray-100 sm:h-[16rem] md:h-[17.5rem]">
-                  {embedUrl ? (
-                    <iframe
-                      src={embedUrl}
-                      title={`${review.name} Review`}
-                      className="w-full h-full object-cover"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : directVideoUrl ? (
-                    <video
-                      src={directVideoUrl}
-                      className="h-full w-full object-cover"
-                      controls
-                      preload="metadata"
-                    />
-                  ) : (
-                    <img
-                      src="/Images/gallery/default-avatar.jpg"
-                      alt={review.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = `https://via.placeholder.com/400x300/E36630/ffffff?text=${encodeURIComponent(review.name)}`;
-                      }}
-                    />
-                  )}
-                </div>
-
-                <div className="flex flex-col px-6  pt-5">
-                  <TruncatedReviewQuote text={review.review} />
-
-                  {/* Chef Section with View Product Button — tucked under quote (no flex spacer) */}
-                  <div className="mt-2 flex shrink-0 items-center justify-between gap-3">
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{review.name}</h4>
-                      <p className="text-sm text-gray-500">{review.role}</p>
-                    </div>
-                    <Link
-                      href={`/products`}
-                      className="inline-flex items-center px-3 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
-                    >
-                      View Product
-                      <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
-                  </div>
-
-                </div>
-              </div>
+                review={review}
+                embedUrl={embedUrl}
+                directVideoUrl={directVideoUrl}
+              />
             );
           })}
         </div>

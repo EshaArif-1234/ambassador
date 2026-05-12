@@ -19,6 +19,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
                         pathname?.startsWith('/users') ||
                         pathname?.startsWith('/orders-management') ||
                         pathname?.startsWith('/gallery-management') ||
+                        pathname?.startsWith('/reviews-management') ||
                         pathname?.startsWith('/settings')||
                         pathname?.startsWith('/payments');
                         
