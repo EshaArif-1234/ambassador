@@ -472,9 +472,23 @@ const OrdersPage = () => {
     <DashboardLayout>
       <div className="p-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Management</h1>
-          <p className="text-gray-600">Online checkout orders — payment is captured before fulfillment</p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Management</h1>
+            <p className="text-gray-600">
+              Track orders placed through the storefront. To place an order yourself, open the shop, add items to cart, and use checkout like a customer.
+            </p>
+          </div>
+          <Link
+            href="/products"
+            title="Browse products and checkout"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#0F4C69] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0d3f59]"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            Shop &amp; checkout
+          </Link>
         </div>
 
         {/* Stats Cards */}
