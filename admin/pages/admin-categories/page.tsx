@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
 
 interface Category {
   _id: string;
@@ -381,7 +382,7 @@ const AdminCategoriesPage = () => {
         </div>
 
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
             <h2 className="text-base font-semibold text-gray-900">Categories</h2>
             <span className="text-xs font-medium text-gray-400">{filteredCategories.length} total</span>
           </div>
@@ -393,7 +394,7 @@ const AdminCategoriesPage = () => {
             <div className="p-12 text-center text-sm text-gray-400">No categories found.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                   <tr>
                     <th className="px-6 py-3 text-left">Image</th>
@@ -403,7 +404,7 @@ const AdminCategoriesPage = () => {
                     <th className="px-6 py-3 text-left">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-200 bg-white">
                   {filteredCategories.map((cat) => (
                     <tr key={cat._id} className="transition-colors hover:bg-gray-50">
                       <td className="px-6 py-4">
@@ -424,30 +425,43 @@ const AdminCategoriesPage = () => {
                         />
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1">
                           <button
                             type="button"
+                            title="View category"
+                            aria-label="View category"
                             onClick={() => {
                               setSelectedCategory(cat);
                               setShowViewCatModal(true);
                             }}
-                            className="rounded-lg bg-[#0F4C69] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#0d3f59]"
+                            className={adminIconActionBtn}
                           >
-                            View
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
                           </button>
                           <button
                             type="button"
+                            title="Edit category"
+                            aria-label="Edit category"
                             onClick={() => handleEditCategory(cat)}
-                            className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-600"
+                            className={adminIconActionBtn}
                           >
-                            Edit
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
                           </button>
                           <button
                             type="button"
+                            title="Delete category"
+                            aria-label="Delete category"
                             onClick={() => handleDeleteCategory(cat)}
-                            className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-600"
+                            className={adminIconActionBtnDanger}
                           >
-                            Delete
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           </button>
                         </div>
                       </td>

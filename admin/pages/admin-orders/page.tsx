@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Image from 'next/image';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { adminIconActionBtn } from '@/admin/lib/adminTableActionStyles';
 
 interface Order {
   id: number;
@@ -44,6 +45,13 @@ interface OrderItem {
   price: number;
   total: number;
   sku?: string;
+}
+
+/** Amounts are shown in Pakistani Rupees only (no USD/EUR/etc. in UI). */
+const ORDER_CURRENCY_LABEL = 'PKR';
+
+function formatOrderMoney(amount: number): string {
+  return `${ORDER_CURRENCY_LABEL} ${amount.toLocaleString('en-PK')}`;
 }
 
 const OrdersPage = () => {
@@ -100,7 +108,7 @@ const OrdersPage = () => {
             }
           ],
           totalAmount: 4100,
-          currency: 'USD',
+          currency: 'PKR',
           status: 'delivered',
           paymentStatus: 'paid',
           orderDate: '2024-04-01',
@@ -137,7 +145,7 @@ const OrdersPage = () => {
             }
           ],
           totalAmount: 450,
-          currency: 'USD',
+          currency: 'PKR',
           status: 'processing',
           paymentStatus: 'paid',
           orderDate: '2024-04-02',
@@ -172,7 +180,7 @@ const OrdersPage = () => {
             }
           ],
           totalAmount: 3500,
-          currency: 'USD',
+          currency: 'PKR',
           status: 'cancelled',
           paymentStatus: 'refunded',
           orderDate: '2024-04-01',
@@ -521,9 +529,8 @@ const OrdersPage = () => {
                   {(() => {
                     const paidOrders = orders.filter(o => o.paymentStatus === 'paid');
                     if (paidOrders.length === 0) return '—';
-                    const cur = paidOrders[0].currency;
                     const sum = paidOrders.reduce((s, o) => s + o.totalAmount, 0);
-                    return `${cur} ${sum.toLocaleString()}`;
+                    return formatOrderMoney(sum);
                   })()}
                 </p>
               </div>
@@ -632,7 +639,7 @@ const OrdersPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {order.currency} {order.totalAmount.toLocaleString()}
+                      {formatOrderMoney(order.totalAmount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(order.status)}`}>
@@ -670,17 +677,21 @@ const OrdersPage = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleViewOrder(order)}
-                        className="inline-flex items-center px-3 py-2 border border-blue-300 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        View
-                      </button>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleViewOrder(order)}
+                          className={adminIconActionBtn}
+                          title="View order"
+                          aria-label="View order details"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -897,7 +908,7 @@ const OrdersPage = () => {
                     Payment: {selectedOrder.paymentStatus}
                   </span>
                   <span className="text-sm font-semibold text-gray-900">
-                    {selectedOrder.currency} {selectedOrder.totalAmount.toLocaleString()} total
+                    {formatOrderMoney(selectedOrder.totalAmount)} total
                   </span>
                 </div>
 
@@ -956,7 +967,7 @@ const OrdersPage = () => {
                     </div>
                     <div className="flex justify-between gap-4">
                       <dt className="text-gray-500">Amount</dt>
-                      <dd className="font-semibold text-gray-900">{selectedOrder.currency} {selectedOrder.totalAmount.toLocaleString()}</dd>
+                      <dd className="font-semibold text-gray-900">{formatOrderMoney(selectedOrder.totalAmount)}</dd>
                     </div>
                     {selectedOrder.paidAt && (
                       <div className="flex justify-between gap-4 sm:col-span-2">
@@ -1021,10 +1032,10 @@ const OrdersPage = () => {
                             <td className="px-4 py-3 text-xs font-mono text-gray-600">{item.sku ?? '—'}</td>
                             <td className="px-4 py-3 text-sm text-gray-900 text-right">{item.quantity}</td>
                             <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                              {selectedOrder.currency} {item.price.toLocaleString()}
+                              {formatOrderMoney(item.price)}
                             </td>
                             <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
-                              {selectedOrder.currency} {item.total.toLocaleString()}
+                              {formatOrderMoney(item.total)}
                             </td>
                           </tr>
                         ))}
@@ -1033,7 +1044,7 @@ const OrdersPage = () => {
                         <tr>
                           <td colSpan={4} className="px-4 py-3 text-sm font-medium text-gray-900 text-right">Order total</td>
                           <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">
-                            {selectedOrder.currency} {selectedOrder.totalAmount.toLocaleString()}
+                            {formatOrderMoney(selectedOrder.totalAmount)}
                           </td>
                         </tr>
                       </tfoot>

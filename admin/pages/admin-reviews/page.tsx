@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,10 +41,6 @@ const statusCls: Record<string, string> = {
   rejected: 'bg-red-100 text-red-700',
 };
 
-const iconActionBtn =
-  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:border-[#0F4C69]/35 hover:bg-[#0F4C69]/5 hover:text-[#0F4C69] disabled:pointer-events-none disabled:opacity-40';
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 const ReviewsPage = () => {
   const [reviews,  setReviews]  = useState<Review[]>([]);
@@ -351,7 +348,7 @@ const ReviewsPage = () => {
 
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Reviews</h2>
             <span className="text-xs text-gray-400 font-medium">{reviews.length} total</span>
           </div>
@@ -369,7 +366,7 @@ const ReviewsPage = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500 tracking-wider">
                   <tr>
                     <th className="px-6 py-3 text-left">Product</th>
@@ -381,7 +378,7 @@ const ReviewsPage = () => {
                     <th className="px-6 py-3 text-left">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-200 bg-white">
                   {reviews.map(review => (
                     <tr key={review._id} className="hover:bg-gray-50 transition-colors">
 
@@ -451,7 +448,7 @@ const ReviewsPage = () => {
                               title="View full review"
                               aria-label="View full review"
                               onClick={() => setViewReview(review)}
-                              className={iconActionBtn}
+                              className={adminIconActionBtn}
                             >
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -463,7 +460,7 @@ const ReviewsPage = () => {
                               title="Edit review"
                               aria-label="Edit review"
                               onClick={() => openEdit(review)}
-                              className={iconActionBtn}
+                              className={adminIconActionBtn}
                             >
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -476,7 +473,7 @@ const ReviewsPage = () => {
                                 rel="noopener noreferrer"
                                 title="Open product on website"
                                 aria-label="Open product on website"
-                                className={iconActionBtn}
+                                className={adminIconActionBtn}
                               >
                                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -485,7 +482,7 @@ const ReviewsPage = () => {
                             ) : (
                               <span
                                 title="Product removed"
-                                className={`${iconActionBtn} cursor-not-allowed opacity-40`}
+                                className={`${adminIconActionBtn} cursor-not-allowed opacity-40`}
                                 aria-hidden
                               >
                                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -501,7 +498,7 @@ const ReviewsPage = () => {
                                 setDeleteTarget(review);
                                 setShowDeleteModal(true);
                               }}
-                              className={`${iconActionBtn} hover:border-red-200 hover:bg-red-50 hover:text-red-700`}
+                              className={adminIconActionBtnDanger}
                             >
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

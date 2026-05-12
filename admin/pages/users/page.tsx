@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
 
 interface AdminUser {
   _id: string;
@@ -330,50 +331,80 @@ const UsersPage = () => {
 
                     {/* Actions */}
                     <td className="px-5 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-
-                        {/* View */}
+                      <div className="flex flex-wrap items-center gap-1">
                         <button
-                          onClick={() => { setUserToView(user); setShowViewModal(true); }}
-                          className="px-3 py-1.5 text-xs font-medium bg-[#0F4C69] text-white rounded-lg hover:bg-[#0d3f59] transition-colors"
+                          type="button"
+                          title="View user"
+                          aria-label="View user"
+                          onClick={() => {
+                            setUserToView(user);
+                            setShowViewModal(true);
+                          }}
+                          className={adminIconActionBtn}
                         >
-                          View
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
                         </button>
 
-                        {/* Disable / Enable */}
-                        {user.role !== 'admin' && (
-                          actionLoading === user._id ? (
-                            <div className="px-3 py-1.5 flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
-                              <div className="w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
-                              Loading...
-                            </div>
+                        {user.role !== 'admin' &&
+                          (actionLoading === user._id ? (
+                            <span
+                              className={`${adminIconActionBtn} pointer-events-none`}
+                              title="Working…"
+                              role="status"
+                              aria-label="Working"
+                            >
+                              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#0F4C69] border-t-transparent" />
+                            </span>
                           ) : user.isDisabled ? (
                             <button
+                              type="button"
+                              title="Enable user"
+                              aria-label="Enable user"
                               onClick={() => handleEnableUser(user)}
-                              className="px-3 py-1.5 text-xs font-medium bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                              className={adminIconActionBtn}
                             >
-                              Enable
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
                             </button>
                           ) : (
                             <button
-                              onClick={() => { setUserToDisable(user); setDisableReason(''); setDisableDescription(''); setShowDisableModal(true); }}
-                              className="px-3 py-1.5 text-xs font-medium bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
+                              type="button"
+                              title="Disable user"
+                              aria-label="Disable user"
+                              onClick={() => {
+                                setUserToDisable(user);
+                                setDisableReason('');
+                                setDisableDescription('');
+                                setShowDisableModal(true);
+                              }}
+                              className={adminIconActionBtn}
                             >
-                              Disable
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
                             </button>
-                          )
-                        )}
+                          ))}
 
-                        {/* Delete */}
                         {user.role !== 'admin' && (
                           <button
-                            onClick={() => { setUserToDelete(user); setShowDeleteModal(true); }}
-                            className="px-3 py-1.5 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            type="button"
+                            title="Delete user"
+                            aria-label="Delete user"
+                            onClick={() => {
+                              setUserToDelete(user);
+                              setShowDeleteModal(true);
+                            }}
+                            className={adminIconActionBtnDanger}
                           >
-                            Delete
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           </button>
                         )}
-
                       </div>
                     </td>
                   </tr>
