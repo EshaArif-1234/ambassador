@@ -22,8 +22,6 @@ interface ProductRatingDropdownProps {
   className?: string;
 }
 
-const summaryCache: Record<string, FetchedSummary> = {};
-
 export default function ProductRatingDropdown({
   productId,
   ratingBreakdown,
@@ -44,12 +42,6 @@ export default function ProductRatingDropdown({
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const loadSummary = useCallback(async (id: string) => {
-    if (summaryCache[id]) {
-      setFetched(summaryCache[id]);
-      setFetchError(null);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setFetchError(null);
     try {
@@ -58,9 +50,7 @@ export default function ProductRatingDropdown({
       if (!json?.success || !json.data) {
         throw new Error(json?.message || 'Could not load ratings');
       }
-      const data = json.data as FetchedSummary;
-      summaryCache[id] = data;
-      setFetched(data);
+      setFetched(json.data as FetchedSummary);
     } catch {
       setFetchError('Could not load rating details');
       setFetched(null);
@@ -68,6 +58,11 @@ export default function ProductRatingDropdown({
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    setFetched(null);
+    setFetchError(null);
+  }, [productId]);
 
   useEffect(() => {
     if (!isOpen || !productId || ratingBreakdown) return;

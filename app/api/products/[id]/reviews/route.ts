@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
+import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
+import { sendReviewThankYouEmail } from '@/utils/email.util';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -73,6 +75,80 @@ export async function GET(
     );
   } catch (error) {
     console.error('[GET /api/products/[id]/reviews]', error);
+    return NextResponse.json({ success: false, message: 'Server error.' }, { status: 500 });
+  }
+}
+
+const REVIEW_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** POST /api/products/[id]/reviews — customer submits review (pending moderation) */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Not found.' }, { status: 404 });
+    }
+
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ success: false, message: 'Invalid request.' }, { status: 400 });
+    }
+
+    const reviewerName =
+      typeof body.reviewerName === 'string' ? body.reviewerName.trim() : '';
+    const reviewerEmailRaw =
+      typeof body.reviewerEmail === 'string' ? body.reviewerEmail.trim().toLowerCase() : '';
+    const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, 1000) : '';
+    const ratingNum = Number(body.rating);
+
+    if (!reviewerName) {
+      return NextResponse.json({ success: false, message: 'Name is required.' }, { status: 400 });
+    }
+    if (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return NextResponse.json(
+        { success: false, message: 'Rating must be between 1 and 5.' },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    const product = await Product.findOne({ _id: id, status: 'active' }).select('name').lean();
+    if (!product) {
+      return NextResponse.json({ success: false, message: 'Product not found.' }, { status: 404 });
+    }
+
+    const review = await Review.create({
+      productId: id,
+      reviewerName,
+      reviewerEmail: reviewerEmailRaw,
+      rating: ratingNum,
+      comment,
+      status: 'pending',
+    });
+
+    if (reviewerEmailRaw && REVIEW_EMAIL_RE.test(reviewerEmailRaw)) {
+      await sendReviewThankYouEmail(reviewerEmailRaw, {
+        reviewerName,
+        productName: String(product.name ?? ''),
+        rating: ratingNum,
+        moderationStatus: 'pending',
+      });
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: 'Thanks! Your review was submitted and will appear after a quick check.',
+        data: { _id: String(review._id) },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('[POST /api/products/[id]/reviews]', error);
     return NextResponse.json({ success: false, message: 'Server error.' }, { status: 500 });
   }
 }

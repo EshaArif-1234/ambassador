@@ -272,3 +272,65 @@ export const sendPasswordResetEmail = async (
     html: baseTemplate('Password Reset', body),
   });
 };
+
+function escapeHtmlForEmail(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Thank-you note after submitting a review. Does not throw if SMTP fails. */
+export async function sendReviewThankYouEmail(
+  to: string,
+  opts: {
+    reviewerName: string;
+    productName: string;
+    rating: number;
+    moderationStatus: 'pending' | 'published';
+  }
+): Promise<void> {
+  try {
+    const transporter = createTransporter();
+    const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+    const fromEmail = process.env.SMTP_USER!;
+
+    const nameSafe = escapeHtmlForEmail(opts.reviewerName.trim() || 'there');
+    const productSafe = escapeHtmlForEmail(opts.productName.trim() || 'the product');
+    const ratingRounded = Math.min(5, Math.max(1, Math.round(Number(opts.rating))));
+
+    const moderationLine =
+      opts.moderationStatus === 'published'
+        ? 'Your review is now visible on the product page.'
+        : 'Thanks for submitting your review — it may take a short time to appear once our team checks it for quality and authenticity.';
+
+    const body = `
+    <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
+      Thank You for Your Review
+    </h2>
+    <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
+      Hi <strong>${nameSafe}</strong>,<br/>
+      We appreciate you taking the time to rate <strong>${productSafe}</strong>
+      (${ratingRounded} out of 5 stars).
+    </p>
+
+    <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
+      ${moderationLine}
+    </p>
+
+    <p style="margin:0;color:#999999;font-size:13px;">
+      — Ambassador Kitchen Equipment
+    </p>
+  `;
+
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to,
+      subject: 'Thank you for your review — Ambassador Kitchen Equipment',
+      html: baseTemplate('Thank You for Your Review', body),
+    });
+  } catch (err) {
+    console.warn('[sendReviewThankYouEmail]', err);
+  }
+}

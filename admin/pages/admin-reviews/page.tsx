@@ -40,6 +40,9 @@ const statusCls: Record<string, string> = {
   rejected: 'bg-red-100 text-red-700',
 };
 
+const iconActionBtn =
+  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:border-[#0F4C69]/35 hover:bg-[#0F4C69]/5 hover:text-[#0F4C69] disabled:pointer-events-none disabled:opacity-40';
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ReviewsPage = () => {
@@ -60,11 +63,25 @@ const ReviewsPage = () => {
   const [showAddModal,    setShowAddModal]    = useState(false);
   const [deleteTarget,    setDeleteTarget]    = useState<Review | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [viewReview, setViewReview] = useState<Review | null>(null);
+  const [editReview, setEditReview] = useState<Review | null>(null);
+  const [editForm, setEditForm] = useState({
+    reviewerName: '',
+    reviewerEmail: '',
+    rating: 5,
+    comment: '',
+    status: 'approved' as Review['status'],
+  });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [editSaving, setEditSaving] = useState(false);
 
   // Add form
   const [addForm, setAddForm] = useState({
-    productId: '', reviewerName: '', reviewerEmail: '',
-    rating: 5, comment: '', status: 'approved' as const,
+    productId: '',
+    reviewerName: '',
+    reviewerEmail: '',
+    rating: 5,
+    comment: '',
   });
   const [addErrors, setAddErrors] = useState<Record<string, string>>({});
   const [addSaving, setAddSaving] = useState(false);
@@ -109,8 +126,9 @@ const ReviewsPage = () => {
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      setReviews(prev => prev.map(r => r._id === review._id ? { ...r, status: newStatus } : r));
+      if (!res.ok || !data.success) throw new Error(data.message || 'Update failed.');
+      const updated = data.data as Review;
+      setReviews(prev => prev.map(r => (r._id === review._id ? { ...r, ...updated } : r)));
       showSuccess(`Review marked as ${newStatus}.`);
     } catch (e) {
       showError((e as Error).message);
@@ -125,7 +143,7 @@ const ReviewsPage = () => {
     try {
       const res  = await fetch(`/api/admin/reviews/${deleteTarget._id}`, { method: 'DELETE', credentials: 'include' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok || !data.success) throw new Error(data.message || 'Delete failed.');
       setReviews(prev => prev.filter(r => r._id !== deleteTarget._id));
       showSuccess('Review deleted.');
     } catch (e) {
@@ -146,6 +164,56 @@ const ReviewsPage = () => {
     return Object.keys(e).length === 0;
   };
 
+  const openEdit = (r: Review) => {
+    setEditReview(r);
+    setEditForm({
+      reviewerName: r.reviewerName,
+      reviewerEmail: r.reviewerEmail ?? '',
+      rating: r.rating,
+      comment: r.comment ?? '',
+      status: r.status,
+    });
+    setEditErrors({});
+  };
+
+  const validateEdit = () => {
+    const e: Record<string, string> = {};
+    if (!editForm.reviewerName.trim()) e.reviewerName = 'Name is required';
+    if (editForm.rating < 1 || editForm.rating > 5) e.rating = 'Rating must be 1–5';
+    setEditErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const saveEdit = async () => {
+    if (!editReview || !validateEdit()) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/admin/reviews/${editReview._id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reviewerName: editForm.reviewerName.trim(),
+          reviewerEmail: editForm.reviewerEmail.trim(),
+          rating: editForm.rating,
+          comment: editForm.comment.trim(),
+          status: editForm.status,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Save failed.');
+      const updated = data.data as Review;
+      setReviews(prev => prev.map(r => (r._id === editReview._id ? { ...r, ...updated } : r)));
+      showSuccess('Review updated.');
+      setEditReview(null);
+      setEditErrors({});
+    } catch (err) {
+      setEditErrors({ submit: (err as Error).message });
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleAdd = async () => {
     if (!validateAdd()) return;
     setAddSaving(true);
@@ -156,11 +224,17 @@ const ReviewsPage = () => {
         body: JSON.stringify(addForm),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      setReviews(prev => [data.data, ...prev]);
+      if (!res.ok || !data.success) throw new Error(data.message || 'Could not create review.');
+      setReviews(prev => [data.data as Review, ...prev]);
       showSuccess('Review added successfully.');
       setShowAddModal(false);
-      setAddForm({ productId: '', reviewerName: '', reviewerEmail: '', rating: 5, comment: '', status: 'approved' });
+      setAddForm({
+        productId: '',
+        reviewerName: '',
+        reviewerEmail: '',
+        rating: 5,
+        comment: '',
+      });
       setAddErrors({});
     } catch (e) {
       setAddErrors({ submit: (e as Error).message });
@@ -170,10 +244,14 @@ const ReviewsPage = () => {
   };
 
   // ── Stats ──
-  const totalReviews   = reviews.length;
-  const avgRating      = totalReviews > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / totalReviews).toFixed(1) : '—';
-  const pendingCount   = reviews.filter(r => r.status === 'pending').length;
-  const approvedCount  = reviews.filter(r => r.status === 'approved').length;
+  const approvedReviews = reviews.filter(r => r.status === 'approved');
+  const avgStorefront =
+    approvedReviews.length > 0
+      ? (approvedReviews.reduce((s, r) => s + r.rating, 0) / approvedReviews.length).toFixed(1)
+      : '—';
+  const totalReviews = reviews.length;
+  const pendingCount = reviews.filter(r => r.status === 'pending').length;
+  const approvedCount = approvedReviews.length;
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -199,16 +277,29 @@ const ReviewsPage = () => {
         </div>
 
         {/* Stats */}
+        <p className="text-xs text-gray-500 -mt-2">
+          Dropdown on the site shows <strong className="text-gray-700">approved</strong> reviews only. Figures below reflect your current filters.
+        </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Reviews', value: totalReviews, color: 'bg-blue-50 text-blue-700', icon: '★' },
-            { label: 'Avg Rating',    value: avgRating,    color: 'bg-amber-50 text-amber-700', icon: '⭐' },
-            { label: 'Approved',      value: approvedCount, color: 'bg-green-50 text-green-700', icon: '✓' },
-            { label: 'Pending',       value: pendingCount,  color: 'bg-yellow-50 text-yellow-700', icon: '⏳' },
-          ].map(s => (
+          {(
+            [
+              { label: 'In this list', value: totalReviews, color: 'bg-blue-50 text-blue-700' },
+              {
+                label: 'Avg (approved)',
+                value: avgStorefront,
+                color: 'bg-amber-50 text-amber-700',
+                hint: `${approvedCount} approved in list`,
+              },
+              { label: 'Approved', value: approvedCount, color: 'bg-green-50 text-green-700' },
+              { label: 'Pending', value: pendingCount, color: 'bg-yellow-50 text-yellow-700' },
+            ] as const
+          ).map((s) => (
             <div key={s.label} className={`${s.color} rounded-xl p-4 border border-current/10`}>
               <p className="text-xs font-medium opacity-70 mb-1">{s.label}</p>
               <p className="text-2xl font-bold">{s.value}</p>
+              {'hint' in s && s.hint ? (
+                <p className="text-[11px] opacity-75 mt-0.5">{s.hint}</p>
+              ) : null}
             </div>
           ))}
         </div>
@@ -326,7 +417,7 @@ const ReviewsPage = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5">
                           <Stars rating={review.rating} />
-                          <span className="text-xs font-semibold text-gray-700">{review.rating}.0</span>
+                          <span className="text-xs font-semibold text-gray-700">{Number(review.rating || 0).toFixed(1)}</span>
                         </div>
                       </td>
 
@@ -353,32 +444,92 @@ const ReviewsPage = () => {
 
                       {/* Actions */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {review.status !== 'approved' && (
+                        <div className="flex min-w-[11rem] flex-col gap-2">
+                          <div className="flex flex-wrap items-center gap-1">
                             <button
-                              onClick={() => toggleStatus(review, 'approved')}
-                              disabled={actionLoading === review._id}
-                              className="px-2.5 py-1.5 text-xs font-medium bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-                            >Approve</button>
-                          )}
-                          {review.status !== 'pending' && (
+                              type="button"
+                              title="View full review"
+                              aria-label="View full review"
+                              onClick={() => setViewReview(review)}
+                              className={iconActionBtn}
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </button>
                             <button
-                              onClick={() => toggleStatus(review, 'pending')}
-                              disabled={actionLoading === review._id}
-                              className="px-2.5 py-1.5 text-xs font-medium bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50"
-                            >Pending</button>
-                          )}
-                          {review.status !== 'rejected' && (
+                              type="button"
+                              title="Edit review"
+                              aria-label="Edit review"
+                              onClick={() => openEdit(review)}
+                              className={iconActionBtn}
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            {review.productId?._id ? (
+                              <a
+                                href={`/products/${review.productId._id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open product on website"
+                                aria-label="Open product on website"
+                                className={iconActionBtn}
+                              >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            ) : (
+                              <span
+                                title="Product removed"
+                                className={`${iconActionBtn} cursor-not-allowed opacity-40`}
+                                aria-hidden
+                              >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                              </span>
+                            )}
                             <button
-                              onClick={() => toggleStatus(review, 'rejected')}
+                              type="button"
+                              title="Delete review"
+                              aria-label="Delete review"
+                              onClick={() => {
+                                setDeleteTarget(review);
+                                setShowDeleteModal(true);
+                              }}
+                              className={`${iconActionBtn} hover:border-red-200 hover:bg-red-50 hover:text-red-700`}
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label htmlFor={`review-status-${review._id}`} className="sr-only">
+                              Change status
+                            </label>
+                            <select
+                              id={`review-status-${review._id}`}
+                              value={review.status}
                               disabled={actionLoading === review._id}
-                              className="px-2.5 py-1.5 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
-                            >Reject</button>
-                          )}
-                          <button
-                            onClick={() => { setDeleteTarget(review); setShowDeleteModal(true); }}
-                            className="px-2.5 py-1.5 text-xs font-medium bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors"
-                          >Delete</button>
+                              onChange={(e) => {
+                                const v = e.target.value as Review['status'];
+                                if (v !== review.status) void toggleStatus(review, v);
+                              }}
+                              className="w-full min-w-[8.5rem] rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-800 outline-none focus:border-[#0F4C69] focus:ring-2 focus:ring-[#0F4C69]/20"
+                            >
+                              <option value="approved">Approved</option>
+                              <option value="pending">Pending</option>
+                              <option value="rejected">Rejected</option>
+                            </select>
+                            {actionLoading === review._id ? (
+                              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#0F4C69] border-t-transparent" />
+                            ) : null}
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -388,6 +539,254 @@ const ReviewsPage = () => {
             </div>
           )}
         </div>
+
+        {/* ── View review ── */}
+        {viewReview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div
+              role="dialog"
+              aria-labelledby="review-view-title"
+              className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-100 bg-white shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-6 py-4">
+                <div>
+                  <h2 id="review-view-title" className="text-base font-semibold text-gray-900">
+                    Review detail
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    As shown after moderation ({viewReview.status})
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={() => setViewReview(null)}
+                  className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="space-y-4 px-6 py-5 text-sm">
+                <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    {viewReview.productId?.images?.[0] ? (
+                      <img src={viewReview.productId.images[0]} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-gray-300">
+                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10l8 4" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Product</p>
+                    <p className="font-medium text-gray-900 truncate">
+                      {viewReview.productId?.name ?? 'Removed product'}
+                    </p>
+                    {viewReview.productId?._id ? (
+                      <a
+                        href={`/products/${viewReview.productId._id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-block text-xs font-medium text-[#0F4C69] hover:underline"
+                      >
+                        View on website
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500">Reviewer</p>
+                  <p className="font-medium text-gray-900">{viewReview.reviewerName}</p>
+                  {viewReview.reviewerEmail ? (
+                    <p className="text-xs text-gray-500">{viewReview.reviewerEmail}</p>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-gray-500">Rating</p>
+                    <div className="flex items-center gap-2">
+                      <Stars rating={viewReview.rating} size="md" />
+                      <span className="text-sm font-semibold text-gray-800">
+                        {Number(viewReview.rating || 0).toFixed(1)} / 5
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusCls[viewReview.status] ?? 'bg-gray-100 text-gray-600'}`}
+                  >
+                    {viewReview.status}
+                  </span>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-medium text-gray-500">Comment</p>
+                  <p className="whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-gray-700 leading-relaxed">
+                    {viewReview.comment?.trim() ? viewReview.comment : 'No comment'}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Submitted{' '}
+                  {new Date(viewReview.createdAt).toLocaleString('en-PK', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    openEdit(viewReview);
+                    setViewReview(null);
+                  }}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewReview(null)}
+                  className="rounded-lg bg-[#0F4C69] px-4 py-2 text-sm font-medium text-white hover:bg-[#0d3f59]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Edit review ── */}
+        {editReview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900">Edit review</h2>
+                  <p className="text-xs text-gray-400">Updates apply immediately on the storefront for approved entries.</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={() => {
+                    setEditReview(null);
+                    setEditErrors({});
+                  }}
+                  className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                {editErrors.submit && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{editErrors.submit}</div>
+                )}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">Product</label>
+                  <p className="truncate rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+                    {editReview.productId?.name ?? 'Removed product'}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Reviewer name *</label>
+                    <input
+                      type="text"
+                      value={editForm.reviewerName}
+                      onChange={(e) => setEditForm((f) => ({ ...f, reviewerName: e.target.value }))}
+                      className={inputCls(!!editErrors.reviewerName)}
+                    />
+                    {editErrors.reviewerName && (
+                      <p className="mt-1 text-xs text-red-500">{editErrors.reviewerName}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Email</label>
+                    <input
+                      type="email"
+                      value={editForm.reviewerEmail}
+                      onChange={(e) => setEditForm((f) => ({ ...f, reviewerEmail: e.target.value }))}
+                      className={inputCls(false)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-gray-600">Rating</label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setEditForm((f) => ({ ...f, rating: n }))}
+                        className="focus:outline-none"
+                      >
+                        <svg
+                          className={`h-8 w-8 ${n <= editForm.rating ? 'text-amber-400' : 'text-gray-200'}`}
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                          aria-hidden
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      </button>
+                    ))}
+                    <span className="text-sm font-semibold text-gray-700">{editForm.rating} / 5</span>
+                  </div>
+                  {editErrors.rating && <p className="mt-1 text-xs text-red-500">{editErrors.rating}</p>}
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">Comment</label>
+                  <textarea
+                    rows={4}
+                    value={editForm.comment}
+                    onChange={(e) => setEditForm((f) => ({ ...f, comment: e.target.value }))}
+                    className={inputCls(false)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value as Review['status'] }))}
+                    className={inputCls(false)}
+                  >
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+                <button
+                  type="button"
+                  disabled={editSaving}
+                  onClick={() => {
+                    setEditReview(null);
+                    setEditErrors({});
+                  }}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={editSaving}
+                  onClick={() => void saveEdit()}
+                  className="min-w-[120px] rounded-lg bg-[#0F4C69] px-5 py-2 text-center text-sm font-medium text-white hover:bg-[#0d3f59] disabled:opacity-60"
+                >
+                  {editSaving ? 'Saving…' : 'Save changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Add Review Modal ── */}
         {showAddModal && (
@@ -471,18 +870,6 @@ const ReviewsPage = () => {
                     onChange={e => setAddForm(f => ({ ...f, comment: e.target.value }))}
                     placeholder="Share the customer's feedback…"
                     className={inputCls(false)} />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                  <select value={addForm.status}
-                    onChange={e => setAddForm(f => ({ ...f, status: e.target.value as typeof addForm.status }))}
-                    className={inputCls(false)}>
-                    <option value="approved">Approved</option>
-                    <option value="pending">Pending</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
                 </div>
               </div>
 

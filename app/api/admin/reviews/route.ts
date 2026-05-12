@@ -3,6 +3,9 @@ import connectDB from '@/backend/config/db';
 import Review from '@/backend/models/Review.model';
 import Product from '@/backend/models/Product.model';
 import { requireAdmin } from '@/backend/lib/adminAuth';
+import { sendReviewThankYouEmail } from '@/utils/email.util';
+
+const REVIEW_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** GET /api/admin/reviews — list all reviews with optional filters */
 export async function GET(req: NextRequest) {
@@ -67,6 +70,24 @@ export async function POST(req: NextRequest) {
     });
 
     const populated = await review.populate('productId', 'name images slug');
+
+    const trimmedEmail =
+      typeof reviewerEmail === 'string' ? reviewerEmail.trim().toLowerCase() : '';
+    if (trimmedEmail && REVIEW_EMAIL_RE.test(trimmedEmail)) {
+      const pname =
+        populated.productId &&
+        typeof populated.productId === 'object' &&
+        'name' in populated.productId &&
+        typeof (populated.productId as { name?: string }).name === 'string'
+          ? (populated.productId as { name: string }).name
+          : product.name ?? '';
+      await sendReviewThankYouEmail(trimmedEmail, {
+        reviewerName: reviewerName.trim(),
+        productName: pname,
+        rating: Number(rating),
+        moderationStatus: (status ?? 'approved') === 'approved' ? 'published' : 'pending',
+      });
+    }
 
     return NextResponse.json(
       { success: true, message: 'Review added successfully.', data: populated },
