@@ -182,22 +182,78 @@ const CustomKitchenPage = () => {
             <div className="mt-5 w-16 h-1 bg-[#E36630] mx-auto rounded-full" />
           </div>
 
-          <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {steps.map((s) => (
-              <div
-                key={s.step}
-                className="group relative bg-white border border-gray-100 rounded-xl p-6 text-center hover:border-[#E36630] hover:shadow-md transition-all duration-300"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[#E36630]/10 group-hover:bg-[#E36630] flex items-center justify-center mx-auto mb-4 text-[#E36630] group-hover:text-white transition-colors duration-300">
-                  {s.icon}
-                </div>
-                <p className="text-xs font-bold text-[#0F4C69] uppercase tracking-widest mb-1">{s.step}</p>
-                <h3 className="text-sm font-bold text-gray-800 mb-2 group-hover:text-[#E36630] transition-colors duration-300">
-                  {s.title}
-                </h3>
-                <p className="text-gray-500 text-xs leading-relaxed md:text-[13px]">{s.description}</p>
+          {/* Steps */}
+          <div className="relative mb-10">
+            {/* Connector line */}
+            <div className="absolute top-7 left-0 right-0 hidden md:block">
+              <div className="mx-auto max-w-4xl px-16">
+                <div className="h-0.5 bg-gradient-to-r from-[#E36630]/20 via-[#E36630] to-[#E36630]/20" />
               </div>
-            ))}
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto relative z-10">
+              {[
+                {
+                  step: '01',
+                  title: 'Consultation',
+                  desc: 'Menu analysis, budget review & site briefing',
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  ),
+                },
+                {
+                  step: '02',
+                  title: 'Site Survey',
+                  desc: 'On-site measurements & space planning',
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                  ),
+                },
+                {
+                  step: '03',
+                  title: '2D/3D Approval',
+                  desc: 'Design presentation & client sign-off',
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ),
+                },
+                {
+                  step: '04',
+                  title: 'Install & Commission',
+                  desc: 'Fabrication, installation & handover',
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  ),
+                },
+              ].map((item) => (
+                <div key={item.step} className="flex flex-col items-center text-center gap-3">
+                  {/* Circle */}
+                  <div className="relative w-14 h-14 rounded-full bg-[#0F4C69] text-white flex items-center justify-center shadow-lg border-4 border-white ring-2 ring-[#E36630]">
+                    {item.icon}
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#E36630] rounded-full flex items-center justify-center text-[9px] font-bold text-white shadow">
+                      {item.step}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{item.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 leading-snug max-w-[120px] mx-auto">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Process image */}
+          <div className="w-full flex justify-center items-center">
+            <Image src="/Images/v1.png" alt="Custom Kitchen Design Process" width={1400} height={1000} className="w-full h-auto" />
           </div>
         </div>
       </section>

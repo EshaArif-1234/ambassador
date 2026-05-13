@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Banner from '@/components/about/Banner';
 import MissionVisionSection from '@/components/about/MissionVisionSection';
+import MissionVisionValues from '@/components/about/MissionVisionValues';
 import CompanySection from '@/components/about/CompanySection';
 import TeamSection from '@/components/about/TeamSection';
 import CertificatesSection from '@/components/about/CertificatesSection';
@@ -17,6 +18,9 @@ const AboutPage = () => {
       
       <div className="bg-gray-50">
         <CompanySection />
+      </div>
+      <div className="bg-white">
+        <MissionVisionValues />
       </div>
       {/* <div className="bg-white">
         <TeamSection />

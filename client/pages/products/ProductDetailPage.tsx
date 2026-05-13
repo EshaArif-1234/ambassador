@@ -271,7 +271,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                     className="bg-[#E5E5E5] object-cover"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     priority
-                  />
+                  /> 
                 ) : currentMedia?.kind === 'video' ? (
                   <video
                     src={currentMedia.src}
@@ -291,7 +291,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                       key={`img-${item.src}-${index}`}
                       type="button"
                       onClick={() => setMediaIndex(globalIdx)}
-                      className={`relative h-20 overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
+                      className={`relative w-full aspect-square overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
                         mediaIndex === globalIdx ? 'border-[#E36630]' : 'border-gray-200'
                       }`}
                     >
@@ -312,7 +312,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                       key={`vid-${item.src}-${index}`}
                       type="button"
                       onClick={() => setMediaIndex(globalIdx)}
-                      className={`relative h-20 overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
+                      className={`relative w-full aspect-square overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
                         mediaIndex === globalIdx ? 'border-[#E36630]' : 'border-gray-200'
                       }`}
                     >
