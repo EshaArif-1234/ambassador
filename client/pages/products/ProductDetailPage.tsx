@@ -276,10 +276,10 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
               {/* ── Main image with magnifier ── */}
-              <div className="relative mb-4 group">
+              <div className="relative mb-4  group">
                 <div
                   ref={imgContainerRef}
-                  className={`relative h-[500px] overflow-hidden rounded-lg bg-[#EEF5F9] border-2 border-[#E36630]/40 ${
+                  className={`relative h-[600px] overflow-hidden rounded-lg bg-[#EEF5F9] border-2 border-[#E36630]/40 ${
                     currentMedia?.kind === 'image' ? 'cursor-crosshair' : ''
                   }`}
                   onMouseMove={currentMedia?.kind === 'image' ? handleImageMouseMove : undefined}
