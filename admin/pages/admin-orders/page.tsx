@@ -8,7 +8,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn } from '@/admin/lib/adminTableActionStyles';
 
 interface Order {
-  id: number;
+  id: string;
   orderNumber: string;
   customerName: string;
   customerEmail: string;
@@ -38,7 +38,7 @@ interface Order {
 }
 
 interface OrderItem {
-  id: number;
+  id: string;
   productName: string;
   productImage: string;
   quantity: number;
@@ -74,137 +74,60 @@ const OrdersPage = () => {
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'pending' | 'paid' | 'failed' | 'refunded'>('all');
   const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month' | 'recent'>('all');
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchOrders = async () => {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockOrders: Order[] = [
-        {
-          id: 1,
-          orderNumber: 'ORD-2024-001',
-          customerName: 'John Smith',
-          customerEmail: 'john.smith@email.com',
-          customerPhone: '+1 234-567-8900',
-          items: [
-            {
-              id: 1,
-              productName: 'Kitchen Cabinet Set',
-              productImage: '/Images/products/kitchen-cabinet.jpg',
-              quantity: 1,
-              price: 2500,
-              total: 2500,
-              sku: 'KCH-CAB-001'
-            },
-            {
-              id: 2,
-              productName: 'Marble Countertop',
-              productImage: '/Images/products/marble-countertop.jpg',
-              quantity: 2,
-              price: 800,
-              total: 1600,
-              sku: 'CTR-MRB-880'
-            }
-          ],
-          totalAmount: 4100,
-          currency: 'PKR',
-          status: 'delivered',
-          paymentStatus: 'paid',
-          orderDate: '2024-04-01',
-          deliveryDate: '2024-04-03',
-          shippingMethod: 'Standard shipping (5–7 business days)',
-          shippingAddress: {
-            street: '123 Main St',
-            city: 'New York',
-            state: 'NY',
-            zipCode: '10001',
-            country: 'USA'
-          },
-          notes: 'Leave at front desk if unavailable',
-          paymentId: 'pay_001',
-          transactionId: 'txn_123456789',
-          gatewayMethod: 'Credit card (Visa •••• 4242)',
-          paidAt: '2024-04-01T10:32:00Z'
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/orders', { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load orders.');
+      // Map MongoDB _id to id and normalise fields
+      const mapped: Order[] = (data.data as any[]).map((o: any) => ({
+        id: o._id,
+        orderNumber: o.orderNumber,
+        customerName: o.customerName,
+        customerEmail: o.customerEmail,
+        customerPhone: o.customerPhone,
+        items: (o.items ?? []).map((item: any, idx: number) => ({
+          id: item._id ?? String(idx),
+          productName: item.productName,
+          productImage: item.productImage ?? '',
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total,
+          sku: item.sku,
+        })),
+        totalAmount: o.totalAmount,
+        currency: o.currency ?? 'PKR',
+        status: o.status,
+        paymentStatus: o.paymentStatus,
+        orderDate: o.createdAt ?? o.orderDate,
+        deliveryDate: o.deliveryDate,
+        shippingMethod: o.paymentMethod ?? 'Standard',
+        shippingAddress: {
+          street: o.shippingAddress?.street ?? '',
+          city: o.shippingAddress?.city ?? '',
+          state: o.shippingAddress?.state ?? '',
+          zipCode: o.shippingAddress?.zipCode ?? '',
+          country: o.shippingAddress?.country ?? 'Pakistan',
         },
-        {
-          id: 2,
-          orderNumber: 'ORD-2024-002',
-          customerName: 'Sarah Johnson',
-          customerEmail: 'sarah.j@email.com',
-          customerPhone: '+1 234-567-8901',
-          items: [
-            {
-              id: 3,
-              productName: 'LED Lighting Kit',
-              productImage: '/Images/products/led-lights.jpg',
-              quantity: 3,
-              price: 150,
-              total: 450,
-              sku: 'LED-KIT-12V'
-            }
-          ],
-          totalAmount: 450,
-          currency: 'PKR',
-          status: 'processing',
-          paymentStatus: 'paid',
-          orderDate: '2024-04-02',
-          shippingMethod: 'Express (2 business days)',
-          shippingAddress: {
-            street: '456 Oak Ave',
-            city: 'Los Angeles',
-            state: 'CA',
-            zipCode: '90001',
-            country: 'USA'
-          },
-          paymentId: 'pay_002',
-          transactionId: 'txn_ord_002',
-          gatewayMethod: 'PayPal',
-          paidAt: '2024-04-02T09:15:00Z'
-        },
-        {
-          id: 4,
-          orderNumber: 'ORD-2024-004',
-          customerName: 'Emily Wilson',
-          customerEmail: 'emily.w@email.com',
-          customerPhone: '+1 234-567-8903',
-          items: [
-            {
-              id: 5,
-              productName: 'Bakery Equipment Set',
-              productImage: '/Images/products/bakery-equipment.jpg',
-              quantity: 1,
-              price: 3500,
-              total: 3500,
-              sku: 'BKR-EQP-PRO'
-            }
-          ],
-          totalAmount: 3500,
-          currency: 'PKR',
-          status: 'cancelled',
-          paymentStatus: 'refunded',
-          orderDate: '2024-04-01',
-          shippingMethod: 'Standard shipping (5–7 business days)',
-          shippingAddress: {
-            street: '321 Elm St',
-            city: 'Houston',
-            state: 'TX',
-            zipCode: '77001',
-            country: 'USA'
-          },
-          notes: 'Customer cancelled due to budget constraints',
-          paymentId: 'pay_004',
-          transactionId: 'txn_ord_004',
-          gatewayMethod: 'Debit card (Mastercard •••• 9921)',
-          paidAt: '2024-04-01T11:00:00Z'
-        }
-      ];
-      
-      setOrders(mockOrders);
+        notes: o.notes ?? '',
+        failedReason: o.failedReason,
+        paymentId: o.paymentId ?? '',
+        transactionId: o.transactionId ?? '',
+        gatewayMethod: o.gatewayMethod ?? '',
+        paidAt: o.paidAt,
+      }));
+      setOrders(mapped);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
+  useEffect(() => {
     fetchOrders();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Close dropdown when clicking outside (table trigger uses .relative; menu is portaled fixed — exclude it)
@@ -231,8 +154,14 @@ const OrdersPage = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteOrder = () => {
+  const confirmDeleteOrder = async () => {
     if (orderToDelete) {
+      try {
+        await fetch(`/api/admin/orders?id=${orderToDelete.id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+      } catch { /* non-fatal */ }
       setOrders(prev => prev.filter(o => o.id !== orderToDelete.id));
       if (selectedOrder?.id === orderToDelete.id) {
         setSelectedOrder(null);
@@ -243,8 +172,16 @@ const OrdersPage = () => {
     setShowDeleteModal(false);
   };
 
-  const handleUpdateStatus = (order: Order, newStatus: Order['status']) => {
+  const handleUpdateStatus = async (order: Order, newStatus: Order['status']) => {
     if (isOrderWorkflowLocked(order)) return;
+    try {
+      await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: order.id, status: newStatus }),
+      });
+    } catch { /* non-fatal */ }
     setOrders(prev =>
       prev.map(o => (o.id === order.id ? { ...o, status: newStatus } : o))
     );
@@ -260,33 +197,30 @@ const OrdersPage = () => {
     setShowCancelModal(true);
   };
 
-  const confirmCancelOrder = () => {
+  const confirmCancelOrder = async () => {
     if (orderToCancel) {
       const oid = orderToCancel.id;
+      const newNotes = orderToCancel.notes
+        ? `${orderToCancel.notes}\n\nCancelled: ${cancelReason}`
+        : `Cancelled: ${cancelReason}`;
+      try {
+        await fetch('/api/admin/orders', {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: oid, status: 'cancelled', paymentStatus: 'refunded', notes: newNotes }),
+        });
+      } catch { /* non-fatal */ }
       setOrders(prev =>
         prev.map(o =>
           o.id === oid
-            ? {
-                ...o,
-                status: 'cancelled',
-                paymentStatus: 'refunded' as const,
-                notes: o.notes
-                  ? `${o.notes}\n\nCancelled: ${cancelReason}`
-                  : `Cancelled: ${cancelReason}`,
-              }
+            ? { ...o, status: 'cancelled', paymentStatus: 'refunded' as const, notes: newNotes }
             : o
         )
       );
       setSelectedOrder(sel =>
         sel?.id === oid
-          ? {
-              ...sel,
-              status: 'cancelled',
-              paymentStatus: 'refunded',
-              notes: sel.notes
-                ? `${sel.notes}\n\nCancelled: ${cancelReason}`
-                : `Cancelled: ${cancelReason}`,
-            }
+          ? { ...sel, status: 'cancelled', paymentStatus: 'refunded', notes: newNotes }
           : sel
       );
     }
@@ -295,40 +229,49 @@ const OrdersPage = () => {
     setCancelReason('');
   };
 
-  const handleMarkAsProcessing = (order: Order) => {
+  const handleMarkAsProcessing = async (order: Order) => {
     if (isOrderWorkflowLocked(order)) return;
     const oid = order.id;
-    setOrders(prev =>
-      prev.map(o => (o.id === oid ? { ...o, status: 'processing' as const } : o))
-    );
-    setSelectedOrder(sel =>
-      sel?.id === oid ? { ...sel, status: 'processing' } : sel
-    );
+    try {
+      await fetch('/api/admin/orders', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: oid, status: 'processing' }),
+      });
+    } catch { /* non-fatal */ }
+    setOrders(prev => prev.map(o => (o.id === oid ? { ...o, status: 'processing' as const } : o)));
+    setSelectedOrder(sel => sel?.id === oid ? { ...sel, status: 'processing' } : sel);
   };
 
-  const handleMarkAsShipped = (order: Order) => {
+  const handleMarkAsShipped = async (order: Order) => {
     if (isOrderWorkflowLocked(order)) return;
     const oid = order.id;
-    setOrders(prev =>
-      prev.map(o => (o.id === oid ? { ...o, status: 'shipped' as const } : o))
-    );
-    setSelectedOrder(sel => (sel?.id === oid ? { ...sel, status: 'shipped' } : sel));
+    try {
+      await fetch('/api/admin/orders', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: oid, status: 'shipped' }),
+      });
+    } catch { /* non-fatal */ }
+    setOrders(prev => prev.map(o => (o.id === oid ? { ...o, status: 'shipped' as const } : o)));
+    setSelectedOrder(sel => sel?.id === oid ? { ...sel, status: 'shipped' } : sel);
   };
 
-  const handleMarkAsDelivered = (order: Order) => {
+  const handleMarkAsDelivered = async (order: Order) => {
     if (isOrderWorkflowLocked(order)) return;
     const oid = order.id;
     const deliveryDate = new Date().toISOString().split('T')[0];
+    try {
+      await fetch('/api/admin/orders', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: oid, status: 'delivered', deliveryDate }),
+      });
+    } catch { /* non-fatal */ }
     setOrders(prev =>
-      prev.map(o =>
-        o.id === oid
-          ? { ...o, status: 'delivered' as const, deliveryDate }
-          : o
-      )
+      prev.map(o => o.id === oid ? { ...o, status: 'delivered' as const, deliveryDate } : o)
     );
-    setSelectedOrder(sel =>
-      sel?.id === oid ? { ...sel, status: 'delivered', deliveryDate } : sel
-    );
+    setSelectedOrder(sel => sel?.id === oid ? { ...sel, status: 'delivered', deliveryDate } : sel);
   };
 
   const handleMarkAsFailed = (order: Order) => {
@@ -339,30 +282,27 @@ const OrdersPage = () => {
     setShowActionsDropdown(null);
   };
 
-  const confirmMarkAsFailed = () => {
+  const confirmMarkAsFailed = async () => {
     if (orderToFail && failedReason.trim()) {
       const oid = orderToFail.id;
       const reason = failedReason.trim();
+      try {
+        await fetch('/api/admin/orders', {
+          method: 'PATCH', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: oid, status: 'cancelled', paymentStatus: 'failed', failedReason: reason }),
+        });
+      } catch { /* non-fatal */ }
       setOrders(prev =>
         prev.map(o =>
           o.id === oid
-            ? {
-                ...o,
-                status: 'cancelled' as const,
-                paymentStatus: 'failed' as const,
-                failedReason: reason,
-              }
+            ? { ...o, status: 'cancelled' as const, paymentStatus: 'failed' as const, failedReason: reason }
             : o
         )
       );
       setSelectedOrder(sel =>
         sel?.id === oid
-          ? {
-              ...sel,
-              status: 'cancelled',
-              paymentStatus: 'failed',
-              failedReason: reason,
-            }
+          ? { ...sel, status: 'cancelled', paymentStatus: 'failed', failedReason: reason }
           : sel
       );
       setShowFailedModal(false);

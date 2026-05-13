@@ -15,6 +15,19 @@ interface PaymentData {
   orderItems: any[];
 }
 
+/** Persist the completed order to MongoDB via the API. Fire-and-forget; errors are non-fatal. */
+async function saveOrderToDb(orderPayload: Record<string, unknown>) {
+  try {
+    await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderPayload),
+    });
+  } catch {
+    // Non-fatal — order success page still works via localStorage
+  }
+}
+
 const PaymentGatewayPage = () => {
   const router = useRouter();
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
@@ -178,6 +191,12 @@ const PaymentGatewayPage = () => {
 
       // Store order data for success page
       localStorage.setItem('lastOrder', JSON.stringify(orderData));
+
+      // Save order to database
+      await saveOrderToDb({
+        ...orderData,
+        gatewayMethod: `${formData.walletType === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'} (${formData.walletNumber})`,
+      });
       
       // Clear payment data
       localStorage.removeItem('paymentData');
@@ -253,17 +272,29 @@ const PaymentGatewayPage = () => {
 
       if (paymentSuccess) {
         // Create order with payment success
+        const payId = `PAY-${Date.now()}`;
         const orderData = {
           ...paymentData,
           paymentMethod: 'online',
           paymentStatus: 'paid',
-          paymentId: `PAY-${Date.now()}`,
+          paymentId: payId,
           paidAt: new Date().toISOString()
         };
 
         // Store order data for success page
         localStorage.setItem('lastOrder', JSON.stringify(orderData));
-        
+
+        // Save order to database
+        const gatewayLabel =
+          paymentMethod === 'bank'
+            ? `Bank Transfer (${formData.bankAccount})`
+            : `Credit/Debit Card (•••• ${formData.cardNumber.replace(/\s/g, '').slice(-4)})`;
+        await saveOrderToDb({
+          ...orderData,
+          transactionId: paymentMethod === 'bank' ? formData.transactionId : payId,
+          gatewayMethod: gatewayLabel,
+        });
+
         // Clear payment data
         localStorage.removeItem('paymentData');
         
