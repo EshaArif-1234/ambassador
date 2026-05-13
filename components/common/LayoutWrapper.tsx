@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import Header from './header';
 import NavigationHeader from './NavigationHeader';
 import Footer from './footer';
+import WhatsAppChatWidget from './WhatsAppChat';
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
@@ -36,6 +37,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
       <NavigationHeader />
       {children}
       <Footer />
+      <WhatsAppChatWidget />
     </>
   );
 };
