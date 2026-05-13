@@ -67,7 +67,7 @@ const CartPopup = ({ show, onClose, product, quantity = 1 }: CartPopupProps) => 
             )}
             {product?.price && (
               <p className="text-sm text-green-600 font-medium">
-                Price: ₹{product.price.toLocaleString()}
+                Price: PKR {product.price.toLocaleString()}
               </p>
             )}
           </div>

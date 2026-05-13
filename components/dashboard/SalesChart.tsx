@@ -171,12 +171,12 @@ const SalesChart = () => {
                         opacity: loading ? 0 : 1,
                         transform: loading ? 'translateY(20px)' : 'translateY(0)'
                       }}
-                      title={`${dataType === 'sales' ? '₹' + data.sales.toLocaleString() : data.orders + ' orders'}`}
+                      title={`${dataType === 'sales' ? 'PKR' + data.sales.toLocaleString() : data.orders + ' orders'}`}
                     ></div>
                     
                     {/* Hover tooltip placeholder */}
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                      {dataType === 'sales' ? '₹' + data.sales.toLocaleString() : data.orders + ' orders'}
+                      {dataType === 'sales' ? 'PKR' + data.sales.toLocaleString() : data.orders + ' orders'}
                       <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
                     </div>
                   </div>
@@ -198,7 +198,7 @@ const SalesChart = () => {
           </p>
           <p className="text-xl font-bold text-gray-900">
             {dataType === 'sales' 
-              ? `₹${chartData.reduce((sum, d) => sum + d.sales, 0).toLocaleString()}`
+              ? `PKR ${chartData.reduce((sum, d) => sum + d.sales, 0).toLocaleString()}`
               : chartData.reduce((sum, d) => sum + d.orders, 0)
             }
           </p>

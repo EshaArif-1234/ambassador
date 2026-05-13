@@ -193,7 +193,7 @@ const OrderSuccessPage = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Product Subtotal</span>
                     <span className="text-gray-800">
-                      ₹{orderData.products ? orderData.products.reduce((total, item) => total + (item.price * item.quantity), 0).toLocaleString() : '0'}
+                      PKR {orderData.products ? orderData.products.reduce((total, item) => total + (item.price * item.quantity), 0).toLocaleString() : '0'}
                     </span>
                   </div>
                   
@@ -206,7 +206,7 @@ const OrderSuccessPage = () => {
                     <div className="flex justify-between">
                       <span className="text-lg font-semibold text-gray-800">Total Paid</span>
                       <span className="text-lg font-bold text-orange-500">
-                        ₹{orderData.products ? orderData.products.reduce((total, item) => total + (item.price * item.quantity), 0).toLocaleString() : '0'}
+                        PKR {orderData.products ? orderData.products.reduce((total, item) => total + (item.price * item.quantity), 0).toLocaleString() : '0'}
                       </span>
                     </div>
                   </div>

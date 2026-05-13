@@ -350,7 +350,7 @@ const OrdersPage = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-orange-500 mb-2">
-                        ₹{order.totalAmount.toLocaleString()}
+                        PKR {order.totalAmount.toLocaleString()}
                       </p>
                       <button
                         onClick={() => toggleOrderExpansion(order.id)}
@@ -390,7 +390,7 @@ const OrdersPage = () => {
                               <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold text-gray-800">₹{item.price.toLocaleString()}</p>
+                              <p className="font-semibold text-gray-800">PKR {item.price.toLocaleString()}</p>
                               <p className="text-sm text-gray-600">each</p>
                             </div>
                           </div>

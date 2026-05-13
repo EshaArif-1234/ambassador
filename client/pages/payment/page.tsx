@@ -384,7 +384,7 @@ const PaymentGatewayPage = () => {
                     <div className="mt-4 pt-4 border-t">
                       <div className="flex justify-between items-center">
                         <span className="text-lg font-semibold text-gray-900">Total Amount:</span>
-                        <span className="text-2xl font-bold text-orange-500">₹{paymentData?.amount?.toLocaleString() || '0'}</span>
+                        <span className="text-2xl font-bold text-orange-500">PKR {paymentData?.amount?.toLocaleString() || '0'}</span>
                       </div>
                     </div>
                   </>
@@ -715,7 +715,7 @@ const PaymentGatewayPage = () => {
                         <strong>Bank Transfer Instructions:</strong>
                       </p>
                       <ol className="text-sm text-yellow-700 list-decimal list-inside space-y-1">
-                        <li>Transfer ₹{paymentData?.amount?.toLocaleString() || '0'} to our bank account</li>
+                        <li>Transfer PKR {paymentData?.amount?.toLocaleString() || '0'} to our bank account</li>
                         <li>Account: Ambassador Engineering Ltd.</li>
                         <li>Bank: Habib Bank Limited</li>
                         <li>Account #: 1234-5678901-2</li>
@@ -745,7 +745,7 @@ const PaymentGatewayPage = () => {
                       Processing...
                     </span>
                   ) : (
-                    `Pay ₹${paymentData?.amount?.toLocaleString() || '0'}`
+                    `Pay PKR ${paymentData?.amount?.toLocaleString() || '0'}`
                   )}
                 </button>
               </form>
@@ -840,7 +840,7 @@ const PaymentGatewayPage = () => {
                   
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Amount:</span>
-                    <span className="font-medium text-gray-900">₹{paymentData?.amount?.toLocaleString() || '0'}</span>
+                    <span className="font-medium text-gray-900">PKR {paymentData?.amount?.toLocaleString() || '0'}</span>
                   </div>
 
                   {paymentMethod === 'card' && (

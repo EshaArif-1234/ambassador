@@ -443,7 +443,7 @@ const ProductsPage = () => {
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs text-gray-600">
-                      Min: ₹{priceRange.min.toLocaleString()}
+                      Min: PKR {priceRange.min.toLocaleString()}
                     </label>
                     <input
                       type="range"
@@ -459,7 +459,7 @@ const ProductsPage = () => {
                   </div>
                   <div>
                     <label className="text-xs text-gray-600">
-                      Max: ₹{priceRange.max.toLocaleString()}
+                      Max: PKR {priceRange.max.toLocaleString()}
                     </label>
                     <input
                       type="range"
@@ -532,9 +532,9 @@ const ProductsPage = () => {
                   return (
                     <div
                       key={product._id}
-                      className="flex min-h-[20rem] flex-col overflow-hidden bg-white rounded-lg shadow-md transition-shadow duration-300 hover:shadow-lg sm:h-64 sm:min-h-0 sm:flex-row"
+                      className="flex min-h-[20rem] flex-col overflow-hidden bg-white rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.10)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.18)] transition-shadow duration-300 sm:h-64 sm:min-h-0 sm:flex-row"
                     >
-                      <div className="relative h-48 w-full shrink-0 bg-[#E5E5E5] sm:h-full sm:w-64">
+                      <div className="relative h-48 w-full shrink-0 sm:h-full sm:w-64 rounded-l-xl  border-2 border-[#E5E5E5] overflow-hidden bg-[#EEF5F9]">
                         <Link
                           href={`/products/${product._id}`}
                           className="block absolute inset-0"
@@ -549,7 +549,7 @@ const ProductsPage = () => {
                         </Link>
                       </div>
 
-                      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto p-4 sm:p-5 sm:py-4">
+                      <div className="flex min-h-0 min-w-0 flex-1 bg-white flex-col overflow-y-auto p-4 sm:p-5 sm:py-4">
                         <div className="flex flex-1 flex-col gap-2 min-h-0 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4">
                           <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
                             <h3 className="text-lg font-semibold leading-snug text-gray-800 line-clamp-2">
@@ -596,11 +596,11 @@ const ProductsPage = () => {
                             </div>
                             <div className="flex flex-wrap items-baseline gap-2 pt-1">
                               <span className="text-xl font-bold text-[#E36630]">
-                                ₹{product.price.toLocaleString()}
+                                PKR {product.price.toLocaleString()}
                               </span>
                               {showStrike && (
                                 <span className="text-sm text-gray-500 line-through">
-                                  ₹{product.originalPrice.toLocaleString()}
+                                  PKR {product.originalPrice.toLocaleString()}
                                 </span>
                               )}
                             </div>

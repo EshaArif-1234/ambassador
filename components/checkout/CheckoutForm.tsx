@@ -344,7 +344,7 @@ const CheckoutForm = () => {
               Processing…
             </span>
           ) : (
-            `Continue to payment • ₹${total.toLocaleString()}`
+            `Continue to payment • PKR ${total.toLocaleString()}`
           )}
         </button>
       </form>

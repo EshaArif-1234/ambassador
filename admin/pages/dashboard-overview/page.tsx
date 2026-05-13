@@ -72,7 +72,7 @@ const DashboardOverview = () => {
           />
           <StatsCard
             title="Total Revenue"
-            value={`₹${stats.totalRevenue.toLocaleString()}`}
+            value={`PKR ${stats.totalRevenue.toLocaleString()}`}
             change="+8.2%"
             changeType="positive"
             icon="revenue"
@@ -204,7 +204,7 @@ const DashboardOverview = () => {
                   </div>
                   <span className="text-sm font-semibold text-gray-700">Average Order Value</span>
                 </div>
-                <span className="text-lg font-bold text-gray-900">₹2,283</span>
+                <span className="text-lg font-bold text-gray-900">PKR 2,283</span>
               </div>
               
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

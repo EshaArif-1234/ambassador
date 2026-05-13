@@ -246,7 +246,7 @@ const Header = () => {
                             
                             <div className="flex-1 min-w-0">
                               <h4 className="font-medium text-gray-800 text-sm truncate">{item.title}</h4>
-                              <p className="text-xs text-gray-600">Qty: {item.quantity} | ₹{item.price.toLocaleString()}</p>
+                              <p className="text-xs text-gray-600">Qty: {item.quantity} | PKR {item.price.toLocaleString()}</p>
                             </div>
                             
                             <button
@@ -266,7 +266,7 @@ const Header = () => {
                       <div className="flex justify-between items-center mb-3">
                         <span className="font-semibold text-[#000000]">Total:</span>
                         <span className="font-bold text-[#000000] text-lg">
-                          ₹{cartItems.reduce((total, item) => total + (item.price * item.quantity), 0).toLocaleString()}
+                          PKR {cartItems.reduce((total, item) => total + (item.price * item.quantity), 0).toLocaleString()}
                         </span>
                       </div>
                       <button 

@@ -163,7 +163,7 @@ const TopSellingProducts = () => {
             {/* Sales Data */}
             <div className="flex-shrink-0 text-right">
               <p className="font-semibold text-gray-900">{product.sales} sold</p>
-              <p className="text-sm text-gray-500">₹{(product.revenue / 1000).toFixed(1)}K</p>
+              <p className="text-sm text-gray-500">PKR {(product.revenue / 1000).toFixed(1)}K</p>
             </div>
           </div>
         ))}

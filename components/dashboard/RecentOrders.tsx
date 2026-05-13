@@ -173,7 +173,7 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
 
                 {/* Amount */}
                 <div className="min-w-0">
-                  <p className="font-semibold text-gray-900">₹{order.total.toLocaleString()}</p>
+                  <p className="font-semibold text-gray-900">PKR {order.total.toLocaleString()}</p>
                   <p className="text-xs text-gray-500">{order.items} items</p>
                 </div>
 

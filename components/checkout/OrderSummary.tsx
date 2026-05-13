@@ -40,7 +40,7 @@ const OrderSummary = () => {
                   Qty: {item.quantity}
                 </span>
                 <span className="text-sm font-medium text-gray-900">
-                  ₹{item.price.toLocaleString()}
+                  PKR {item.price.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -61,26 +61,26 @@ const OrderSummary = () => {
       <div className="space-y-3 pt-4 border-t">
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Subtotal</span>
-          <span className="text-gray-900">₹{subtotal.toLocaleString()}</span>
+          <span className="text-gray-900">PKR {subtotal.toLocaleString()}</span>
         </div>
         
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Delivery Charges</span>
           <span className="text-gray-900">
-            {deliveryCharges === 0 ? 'FREE' : `₹${deliveryCharges.toLocaleString()}`}
+            {deliveryCharges === 0 ? 'FREE' : `PKR ${deliveryCharges.toLocaleString()}`}
           </span>
         </div>
         
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Tax</span>
-          <span className="text-gray-900">₹0</span>
+          <span className="text-gray-900">PKR 0</span>
         </div>
         
         <div className="pt-3 border-t">
           <div className="flex justify-between">
             <span className="font-semibold text-gray-900">Total</span>
             <span className="text-lg font-bold text-[#E36630]">
-              ₹{total.toLocaleString()}
+              PKR {total.toLocaleString()}
             </span>
           </div>
         </div>
