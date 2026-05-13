@@ -189,7 +189,7 @@ const CustomKitchenPage = () => {
           </div>
 
           {/* Process image */}
-          <div className="w-full flex justify-center items-center">
+          <div className="w-full flex justify-center items-center mt-[-68px]">
             <Image src="/Images/v2.png" alt="Custom Kitchen Design Process" width={1400} height={1000} className="w-full h-auto" />
           </div>
         </div>
