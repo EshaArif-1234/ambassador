@@ -567,7 +567,7 @@ const ProductsPage = () => {
                                 ? product.description
                                 : 'No description available for this product.'}
                             </p>
-                            <p className="text-sm">
+                            {/* <p className="text-sm">
                               <span className="text-gray-500">Stock: </span>
                               {product.stock > 0 ? (
                                 <span className="font-medium text-green-700">
@@ -576,7 +576,7 @@ const ProductsPage = () => {
                               ) : (
                                 <span className="font-medium text-red-600">Out of stock</span>
                               )}
-                            </p>
+                            </p> */}
                             <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
                               <div className="min-w-0 shrink">
                                 <ProductRatingDropdown

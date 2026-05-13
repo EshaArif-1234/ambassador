@@ -470,14 +470,14 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                     {formatBrandLabels(brandTags)}
                   </span>
                 ) : null}
-                <p className="shrink-0 text-sm">
+                {/* <p className="shrink-0 text-sm">
                   <span className="text-gray-500">Stock: </span>
                   {product.stock > 0 ? (
                     <span className="font-semibold text-green-700">{product.stock} available</span>
                   ) : (
                     <span className="font-semibold text-red-600">Out of stock</span>
                   )}
-                </p>
+                </p> */}
               </div>
 
               <div className="mb-6">
@@ -544,7 +544,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {Object.entries(product.specifications).map(([key, value]) => (
                       <div key={key} className="flex justify-between py-2 border-b border-gray-100 gap-2">
-                        <span className="text-sm text-gray-600 shrink-0">{key}:</span>
+                        <span className="text-sm text-[#0F4C69] shrink-0 font-bold">{key}:</span>
                         <span className="text-sm text-gray-800 font-medium text-right">{value}</span>
                       </div>
                     ))}
