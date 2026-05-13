@@ -19,9 +19,22 @@ const WhatsAppChatWidget = () => {
 
   const welcomeTime = useRef(nowTime());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [isOpen]);
+
+  // Close when clicking outside the widget
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
   const sendMessage = () => {
@@ -40,7 +53,7 @@ const WhatsAppChatWidget = () => {
   };
 
   return (
-    <div className="fixed bottom-16 right-10 z-50 flex flex-col items-end gap-3">
+    <div ref={widgetRef} className="fixed bottom-16 right-10 z-50 flex flex-col items-end gap-3">
 
       {/* ── Chat panel ── */}
       <div
