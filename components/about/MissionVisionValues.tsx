@@ -65,7 +65,7 @@ const values = [
 
 const MissionVisionValues = () => {
   return (
-    <section className="py-20 bg-white border-t border-gray-100">
+    <section className="py-20 border-t border-gray-200">
       <div className="container mx-auto px-4">
 
         {/* ── Section label ── */}

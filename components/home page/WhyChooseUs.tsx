@@ -30,7 +30,7 @@ const reasons = [
 ];
 
 const WhyChooseUs = () => (
-  <section className="bg-white py-10 md:py-16 border-t border-gray-100">
+  <section className="bg-[#E3E6E6] py-10 md:py-16 border-t border-gray-200">
     <div className="container mx-auto px-4">
 
       {/* Header */}
@@ -54,7 +54,7 @@ const WhyChooseUs = () => (
         {reasons.map((reason, i) => (
           <div
             key={i}
-            className="group bg-white border border-gray-100 rounded-xl p-6 hover:border-[#E36630] hover:shadow-md transition-all duration-300"
+            className="group bg-white border border-gray-100 rounded-xl p-6 hover:border-[#E36630] shadow-[0_4px_24px_rgba(0,0,0,0.10)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.18)] transition-all duration-300"
           >
             <div className="w-12 h-12 rounded-xl bg-[#E36630]/10 group-hover:bg-[#E36630] flex items-center justify-center mb-4 transition-colors duration-300 text-[#E36630] group-hover:text-white">
               {reason.icon}

@@ -322,7 +322,7 @@ const ProductsPage = () => {
 
   if (loadError && !loading && products.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-gray-100 py-8">
         <div className="container mx-auto px-4 text-center">
           <p className="text-gray-700 mb-4">{loadError}</p>
           <button
@@ -338,8 +338,8 @@ const ProductsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-[#E3E6E6] py-8">
+      <div className="container mx-auto bg-[#E3E6E6] px-4">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">Our Products</h1>
           <p className="text-lg text-gray-600">Browse our extensive collection of kitchen equipment</p>
@@ -532,87 +532,107 @@ const ProductsPage = () => {
                   return (
                     <div
                       key={product._id}
-                      className="flex min-h-[20rem] flex-col overflow-hidden bg-white rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.10)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.18)] transition-shadow duration-300 sm:h-64 sm:min-h-0 sm:flex-row"
+                      className="group relative flex flex-col sm:flex-row overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:border-[#E36630]/30 transition-all duration-300 sm:h-56"
                     >
-                      <div className="relative h-48 w-full shrink-0 sm:h-full sm:w-64 rounded-l-xl  border-2 border-[#E5E5E5] overflow-hidden bg-[#EEF5F9]">
-                        <Link
-                          href={`/products/${product._id}`}
-                          className="block absolute inset-0"
-                        >
+                      {/* ── Image ── */}
+                      <div className="relative h-52 w-full shrink-0 sm:h-full sm:w-56 overflow-hidden bg-[#EEF5F9]">
+                        <Link href={`/products/${product._id}`} className="block absolute inset-0">
                           <Image
                             src={product.image}
                             alt={product.name}
                             fill
-                            className="object-cover hover:scale-105 transition-transform duration-300"
-                            sizes="(max-width: 640px) 100vw, 256px"
+                            className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+                            sizes="(max-width: 640px) 100vw, 224px"
                           />
                         </Link>
+
+                        {/* Orange bottom accent */}
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#E36630] via-[#0F4C69] to-[#E36630] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </div>
 
-                      <div className="flex min-h-0 min-w-0 flex-1 bg-white flex-col overflow-y-auto p-4 sm:p-5 sm:py-4">
-                        <div className="flex flex-1 flex-col gap-2 min-h-0 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4">
-                          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
-                            <h3 className="text-lg font-semibold leading-snug text-gray-800 line-clamp-2">
-                              {product.name}
-                            </h3>
-                            <p className="text-sm text-gray-600">{product.category}</p>
-                            <p
-                              className="text-sm leading-relaxed text-gray-600 line-clamp-3"
-                              title={
-                                product.description ||
-                                'No description available for this product.'
-                              }
-                            >
-                              {product.description
-                                ? product.description
-                                : 'No description available for this product.'}
-                            </p>
-                            {/* <p className="text-sm">
-                              <span className="text-gray-500">Stock: </span>
-                              {product.stock > 0 ? (
-                                <span className="font-medium text-green-700">
-                                  {product.stock} available
-                                </span>
-                              ) : (
-                                <span className="font-medium text-red-600">Out of stock</span>
-                              )}
-                            </p> */}
-                            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-                              <div className="min-w-0 shrink">
-                                <ProductRatingDropdown
-                                  productId={product._id}
-                                  averageRating={
-                                    product.reviewCount ? product.avgRating : 0
-                                  }
-                                  totalReviews={product.reviewCount}
-                                  productName={product.name}
-                                />
-                              </div>
-                              {product.brands.length > 0 ? (
-                                <span className="shrink-0 rounded-full border-2 border-[#E36630] bg-gradient-to-r from-[#E36630]/15 to-[#E36630]/8 px-3 py-1 text-xs font-bold text-[#E36630] shadow-sm">
-                                  {formatBrandLabels(product.brands)}
-                                </span>
-                              ) : null}
+                      {/* ── Content ── */}
+                      <div className="flex flex-1 flex-col justify-between p-4 sm:p-5 min-w-0">
+
+                        {/* Top: name + category + description */}
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <Link href={`/products/${product._id}`} className="flex-1 min-w-0">
+                              <h3 className="text-base font-bold leading-snug text-gray-900 line-clamp-1 group-hover:text-[#E36630] transition-colors duration-200">
+                                {product.name}
+                              </h3>
+                            </Link>
+                            {product.brands.length > 0 && (
+                              <span className="shrink-0 rounded-full border border-[#E36630] bg-[#E36630]/8 px-2.5 py-0.5 text-[10px] font-bold text-[#E36630]">
+                                {formatBrandLabels(product.brands)}
+                              </span>
+                            )}
+                          </div>
+
+                          {product.category && (
+                            <span className="inline-flex items-center gap-1 text-xs text-[#0F4C69] font-medium">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                              </svg>
+                              {product.category}
+                            </span>
+                          )}
+
+                          <p className="text-xs leading-relaxed text-gray-500 line-clamp-2 mt-0.5">
+                            {product.description || 'No description available for this product.'}
+                          </p>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="my-3 h-px bg-gray-100" />
+
+                        {/* Bottom: rating + price + button */}
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex flex-col gap-1">
+                            <div className="shrink-0">
+                              <ProductRatingDropdown
+                                productId={product._id}
+                                averageRating={product.reviewCount ? product.avgRating : 0}
+                                totalReviews={product.reviewCount}
+                                productName={product.name}
+                              />
                             </div>
-                            <div className="flex flex-wrap items-baseline gap-2 pt-1">
-                              <span className="text-xl font-bold text-[#E36630]">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-xl font-extrabold text-[#E36630] tracking-tight">
                                 PKR {product.price.toLocaleString()}
                               </span>
                               {showStrike && (
-                                <span className="text-sm text-gray-500 line-through">
+                                <span className="text-xs text-gray-400 line-through">
                                   PKR {product.originalPrice.toLocaleString()}
+                                </span>
+                              )}
+                              {showStrike && (
+                                <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
+                                  {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
                                 </span>
                               )}
                             </div>
                           </div>
 
-                          <div className="flex shrink-0 items-end sm:justify-end pt-2 sm:pt-0 sm:pl-2">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/products/${product._id}`}
+                              className="hidden sm:flex items-center gap-1.5 rounded-xl border-2 border-[#0F4C69] px-3 py-2 text-xs font-semibold text-[#0F4C69] hover:bg-[#0F4C69] hover:text-white transition-colors duration-200"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View
+                            </Link>
                             <button
                               type="button"
                               onClick={() => handleAddToCart(product)}
                               disabled={product.stock <= 0}
-                              className="w-full rounded-lg bg-[#E36630] px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-[#cc5a2a] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:whitespace-nowrap"
+                              className="flex items-center gap-2 rounded-xl bg-[#E36630] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#cc5a2a] active:scale-95 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-40"
                             >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
                               Add to Cart
                             </button>
                           </div>

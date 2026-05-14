@@ -15,28 +15,37 @@ const AboutPage = () => {
   return (
     <div className="min-h-screen">
       <Banner />
-      
-      <div className="bg-gray-50">
+
+      {/* 1 — white */}
+      <div className="bg-white">
         <CompanySection />
       </div>
-      <div className="bg-white">
+
+      {/* 2 — gray */}
+      <div className="bg-[#E3E6E6]">
         <MissionVisionValues />
       </div>
-      {/* <div className="bg-white">
-        <TeamSection />
-      </div> */}
+
+      {/* 3 — white */}
       <div className="bg-white">
         <CertificatesSection />
       </div>
-      <div className="bg-gray-50">
+
+      {/* 4 — gray */}
+      <div className="bg-[#E3E6E6]">
         <MissionVisionSection />
       </div>
+
+      {/* 5 — white */}
       <div className="bg-white">
         <TestimonialsSection />
       </div>
-      <div className="bg-gray-50">
+
+      {/* 6 — gray */}
+      <div className="bg-[#E3E6E6]">
         <FAQSection />
       </div>
+
       <SignupBanner />
     </div>
   );

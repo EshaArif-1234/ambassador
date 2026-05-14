@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('[/api/upload]', error);
     return NextResponse.json(
-      { success: false, message: 'Image upload failed. Please try again.' },
+      { success: false, message: 'Upload failed. Please try again.' },
       { status: 500 }
     );
   }

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Category    { _id: string; title: string; status: string; }
-interface MediaSlot   { url: string; file: File | null; preview: string; publicId: string; }
+interface MediaSlot   { url: string; file: File | null; preview: string; publicId: string; thumbnail?: string; }
 
 export interface ProductFormData {
   name: string;
@@ -570,20 +570,84 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
   const clearImageSlot = (index: number) =>
     setImageSlots(p => p.map((s, i) => i === index ? { url: '', file: null, preview: '', publicId: '' } : s));
 
-  const setVideoFile = (index: number, file: File) =>
-    setVideoSlots(p => p.map((s, i) => i === index ? { ...s, file, preview: URL.createObjectURL(file) } : s));
+  const generateVideoThumbnail = (file: File): Promise<string> =>
+    new Promise((resolve) => {
+      const video    = document.createElement('video');
+      const objectUrl = URL.createObjectURL(file);
+      video.src       = objectUrl;
+      video.muted     = true;
+      video.playsInline = true;
+      video.crossOrigin = 'anonymous';
+
+      const capture = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width  = 320;
+        canvas.height = 180;
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+
+      video.addEventListener('seeked',  capture, { once: true });
+      video.addEventListener('error',   () => { URL.revokeObjectURL(objectUrl); resolve(''); }, { once: true });
+      video.addEventListener('loadedmetadata', () => { video.currentTime = 0.5; }, { once: true });
+      video.load();
+    });
+
+  const setVideoFile = async (index: number, file: File) => {
+    const preview   = URL.createObjectURL(file);
+    const thumbnail = await generateVideoThumbnail(file);
+    setVideoSlots(p => p.map((s, i) => i === index ? { ...s, file, preview, thumbnail } : s));
+  };
   const clearVideoSlot = (index: number) =>
-    setVideoSlots(p => p.map((s, i) => i === index ? { url: '', file: null, preview: '', publicId: '' } : s));
+    setVideoSlots(p => p.map((s, i) => i === index ? { url: '', file: null, preview: '', publicId: '', thumbnail: '' } : s));
 
   // ── Upload one media slot ──
   const uploadSlot = async (slot: MediaSlot): Promise<{ url: string; publicId: string }> => {
     if (!slot.file) return { url: slot.url, publicId: slot.publicId };
+
+    const isVideo      = slot.file.type.startsWith('video/');
+    const resourceType = isVideo ? 'video' : 'image';
+    const folder       = isVideo
+      ? 'ambassador/products/videos'
+      : 'ambassador/products/images';
+
+    // Step 1 — get a signed credential from our server (tiny JSON request, no body limit issue)
+    const sigRes = await fetch(
+      `/api/upload/signature?folder=${encodeURIComponent(folder)}&resource_type=${resourceType}`,
+      { credentials: 'include' }
+    );
+    const sigData = await sigRes.json().catch(() => ({})) as {
+      success?: boolean; signature?: string; timestamp?: number;
+      apiKey?: string; cloudName?: string;
+    };
+    if (!sigRes.ok || !sigData.success) {
+      throw new Error('Could not get upload signature. Please try again.');
+    }
+
+    const { signature, timestamp, apiKey, cloudName } = sigData;
+
+    // Step 2 — upload directly from the browser to Cloudinary (bypasses Next.js entirely)
     const fd = new FormData();
-    fd.append('file', slot.file);
-    const res  = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: fd });
-    const data = await res.json();
-    if (!res.ok || !data.success) throw new Error(data.message || 'Upload failed');
-    return { url: data.url, publicId: data.publicId };
+    fd.append('file',      slot.file);
+    fd.append('api_key',   apiKey!);
+    fd.append('timestamp', String(timestamp));
+    fd.append('signature', signature!);
+    fd.append('folder',    folder);
+
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+    const res = await fetch(uploadUrl, { method: 'POST', body: fd });
+
+    const data = await res.json().catch(() => ({} as Record<string, unknown>)) as {
+      secure_url?: string; public_id?: string; error?: { message?: string };
+    };
+
+    if (!res.ok || data.error) {
+      throw new Error(data.error?.message || `Upload failed (${res.status})`);
+    }
+
+    return { url: data.secure_url!, publicId: data.public_id! };
   };
 
   // ── Validate ──
@@ -607,22 +671,22 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
     try {
       const activeImages = imageSlots.filter(s => s.file || s.url);
       const activeVideos = videoSlots.filter(s => s.file || s.url);
-      const newFiles = [...activeImages, ...activeVideos].filter(s => s.file).length;
-      let uploaded = 0;
 
-      // Upload images
-      const imageResults: { url: string; publicId: string }[] = [];
-      for (const slot of activeImages) {
-        if (slot.file) { uploaded++; setUploadStatus(`Uploading image ${uploaded} of ${newFiles}…`); }
-        imageResults.push(await uploadSlot(slot));
+      const newImageCount = activeImages.filter(s => s.file).length;
+      const newVideoCount = activeVideos.filter(s => s.file).length;
+      const newTotal      = newImageCount + newVideoCount;
+
+      if (newTotal > 0) {
+        setUploadStatus(
+          `Uploading ${newImageCount > 0 ? `${newImageCount} image${newImageCount > 1 ? 's' : ''}` : ''}${newImageCount > 0 && newVideoCount > 0 ? ' & ' : ''}${newVideoCount > 0 ? `${newVideoCount} video${newVideoCount > 1 ? 's' : ''}` : ''}…`
+        );
       }
 
-      // Upload videos
-      const videoResults: { url: string; publicId: string }[] = [];
-      for (const slot of activeVideos) {
-        if (slot.file) { uploaded++; setUploadStatus(`Uploading video ${uploaded} of ${newFiles}…`); }
-        videoResults.push(await uploadSlot(slot));
-      }
+      // Upload all images and videos in parallel
+      const [imageResults, videoResults] = await Promise.all([
+        Promise.all(activeImages.map(slot => uploadSlot(slot))),
+        Promise.all(activeVideos.map(slot => uploadSlot(slot))),
+      ]);
 
       setUploadStatus('');
 
@@ -750,12 +814,12 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
                     multiple
                     accept="video/*"
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={e => {
+                    onChange={async e => {
                       const files = Array.from(e.target.files || []);
-                      files.forEach(file => {
+                      for (const file of files) {
                         const emptyIdx = videoSlots.findIndex(s => !s.preview);
-                        if (emptyIdx !== -1) setVideoFile(emptyIdx, file);
-                      });
+                        if (emptyIdx !== -1) await setVideoFile(emptyIdx, file);
+                      }
                       e.target.value = '';
                     }}
                   />
@@ -771,21 +835,43 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
                 {/* Video thumbnails */}
                 {videoSlots.some(s => s.preview) && (
                   <div className="mt-3 flex gap-2">
-                    {videoSlots.map((slot, i) => slot.preview ? (
-                      <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-800 flex items-center justify-center group flex-shrink-0">
-                        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                        <span className="absolute bottom-1 left-1 text-xs text-white/70 font-medium truncate w-14 text-center leading-tight">
-                          {slot.file?.name?.split('.').pop()?.toUpperCase() || 'VID'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => clearVideoSlot(i)}
-                          className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                        >✕</button>
-                      </div>
-                    ) : null)}
+                    {videoSlots.map((slot, i) => {
+                      /* For existing Cloudinary videos derive thumbnail from the URL */
+                      const cloudinaryThumb = slot.url && !slot.thumbnail
+                        ? slot.url.replace('/upload/', '/upload/so_0,w_320,h_180,c_fill,f_jpg/')
+                            .replace(/\.[^.]+$/, '.jpg')
+                        : null;
+                      const thumbSrc = slot.thumbnail || cloudinaryThumb || null;
+
+                      return slot.preview ? (
+                        <div key={i} className="relative w-20 h-14 rounded-lg overflow-hidden border border-gray-200 bg-gray-900 flex items-center justify-center group flex-shrink-0">
+                          {thumbSrc ? (
+                            <img
+                              src={thumbSrc}
+                              alt={`video-thumb-${i}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          )}
+                          {/* Play overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <div className="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center shadow">
+                              <svg className="w-3.5 h-3.5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => clearVideoSlot(i)}
+                            className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                          >✕</button>
+                        </div>
+                      ) : null;
+                    })}
                   </div>
                 )}
               </div>

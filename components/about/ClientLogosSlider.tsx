@@ -156,7 +156,7 @@ const ClientLogosSlider = () => {
         }
       `}</style>
 
-      <section className="border-t border-gray-100 bg-[#FAFAFA] py-10 md:py-16">
+      <section className="border-t border-gray-200 bg-[#E3E6E6] py-10 md:py-16">
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
             <span className="mb-4 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-[#0F4C69]">

@@ -50,7 +50,7 @@ const HomePage = () => {
       {/* ── 2. Stats / Trust Bar ─────────────────────────── */}
 
       {/* ── 3. Product Categories ────────────────────────── */}
-      <section className="bg-white border-t border-gray-100">
+      <section className="bg-[#E3E6E6] border-t border-gray-200">
         <div className="container mx-auto px-4 py-10 md:py-16">
           <div className="text-center mb-12">
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-4">

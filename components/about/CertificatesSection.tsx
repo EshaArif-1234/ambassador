@@ -31,7 +31,7 @@ const CertificatesSection = () => {
 
   return (
     <>
-      <section className="bg-[#FAFAFA] py-16 border-t border-gray-100">
+      <section className="py-16 border-t border-gray-200">
         <div className="container mx-auto px-4">
 
           {/* ── Header ───────────────────────────────────── */}
