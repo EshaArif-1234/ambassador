@@ -554,11 +554,11 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Specifications</h3>
                 {Object.keys(product.specifications ?? {}).length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
                     {Object.entries(product.specifications).map(([key, value]) => (
-                      <div key={key} className="flex justify-between py-2 border-b border-gray-100 gap-2">
-                        <span className="text-sm text-[#0F4C69] shrink-0 font-bold">{key}:</span>
-                        <span className="text-sm text-gray-800 font-medium text-right">{value}</span>
+                      <div key={key} className="flex items-baseline gap-3 py-2 border-b border-gray-100">
+                        <span className="text-sm text-[#0F4C69] font-bold shrink-0 min-w-[120px]">{key}:</span>
+                        <span className="text-sm text-gray-700 font-medium">{value}</span>
                       </div>
                     ))}
                   </div>
