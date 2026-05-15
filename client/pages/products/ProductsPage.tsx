@@ -124,6 +124,8 @@ const ProductsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCartPopup, setShowCartPopup] = useState(false);
   const [addedProduct, setAddedProduct] = useState<Product | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 10;
   const { addToCart } = useCart();
   const [features, setFeatures] = useState<Record<ProductFeatureFilterKey, boolean>>({
     freeShipping: false,
@@ -260,6 +262,7 @@ const ProductsPage = () => {
     }
 
     setFilteredProducts(filtered);
+    setCurrentPage(1);
   }, [
     products,
     selectedCategory,
@@ -494,8 +497,11 @@ const ProductsPage = () => {
                     <span>Loading products…</span>
                   ) : (
                     <>
-                      Showing <span className="font-semibold">{filteredProducts.length}</span> of{' '}
-                      <span className="font-semibold">{products.length}</span> products
+                      Showing{' '}
+                      <span className="font-semibold">
+                        {Math.min((currentPage - 1) * PRODUCTS_PER_PAGE + 1, filteredProducts.length)}–{Math.min(currentPage * PRODUCTS_PER_PAGE, filteredProducts.length)}
+                      </span>{' '}
+                      of <span className="font-semibold">{filteredProducts.length}</span> products
                     </>
                   )}
                 </div>
@@ -525,7 +531,7 @@ const ProductsPage = () => {
               </div>
             ) : filteredProducts.length > 0 ? (
               <div className="space-y-4">
-                {filteredProducts.map((product) => {
+                {filteredProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE).map((product) => {
                   const showStrike =
                     product.originalPrice > product.price &&
                     product.price > 0;
@@ -648,6 +654,73 @@ const ProductsPage = () => {
                 <p className="text-gray-400">Try adjusting your filters or search terms</p>
               </div>
             )}
+
+            {/* ── Pagination ── */}
+            {!loading && filteredProducts.length > PRODUCTS_PER_PAGE && (() => {
+              const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+
+              const getPages = (): (number | '…')[] => {
+                if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+                const pages: (number | '…')[] = [1];
+                if (currentPage > 3) pages.push('…');
+                for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+                if (currentPage < totalPages - 2) pages.push('…');
+                pages.push(totalPages);
+                return pages;
+              };
+
+              return (
+                <div className="mt-8 flex items-center justify-center gap-1.5">
+                  {/* Prev */}
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:border-[#E36630] hover:text-[#E36630] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-600"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Prev
+                  </button>
+
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-1">
+                    {getPages().map((page, idx) =>
+                      page === '…' ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 py-2 text-gray-400 text-sm select-none">…</span>
+                      ) : (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => { setCurrentPage(page as number); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className={`min-w-[38px] h-[38px] rounded-xl text-sm font-semibold transition-all ${
+                            currentPage === page
+                              ? 'bg-[#E36630] text-white shadow-md shadow-[#E36630]/30 scale-105'
+                              : 'border border-gray-200 bg-white text-gray-700 hover:bg-[#E36630]/8 hover:border-[#E36630] hover:text-[#E36630]'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  {/* Next */}
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:border-[#E36630] hover:text-[#E36630] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-600"
+                  >
+                    Next
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
