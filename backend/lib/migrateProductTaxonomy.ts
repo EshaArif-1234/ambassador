@@ -1,7 +1,19 @@
 import type { Collection } from 'mongodb';
 
-/** Move legacy single category / subCategory fields into arrays, then drop subcategory fields. Idempotent. */
+/**
+ * Move legacy single category / subCategory fields into arrays, then drop
+ * subcategory fields. Idempotent.
+ *
+ * IMPORTANT: guarded by a module-level flag so it runs at most ONCE per
+ * process lifetime, not on every API request. Before the fix this ran
+ * 3 updateMany calls on every /api/products hit, adding ~200-400 ms.
+ */
+let migrationDone = false;
+
 export async function migrateLegacyProductTaxonomy(collection: Collection) {
+  if (migrationDone) return;
+  migrationDone = true;
+
   await collection.updateMany(
     {
       category: { $exists: true, $ne: null },

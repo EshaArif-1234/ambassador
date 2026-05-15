@@ -61,6 +61,9 @@ categorySchema.pre('save', function () {
   }
 });
 
+// Index for fast status-filtered listing
+categorySchema.index({ status: 1, createdAt: -1 });
+
 if (process.env.NODE_ENV !== 'production' && mongoose.models.Category) {
   delete (mongoose.models as Record<string, unknown>).Category;
 }
