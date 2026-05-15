@@ -94,27 +94,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       finish(NextResponse.json({ success: false, message: 'Upload processing failed.' }, { status: 500 }));
     });
 
-    // Convert the Web ReadableStream (req.body) → Node.js Readable → busboy
-    const reader = req.body!.getReader();
-    const nodeStream = new Readable({
-      async read() {
-        try {
-          const { done, value } = await reader.read();
-          if (done) {
-            this.push(null);
-          } else {
-            this.push(Buffer.from(value));
-          }
-        } catch (err) {
-          this.destroy(err as Error);
-        }
-      },
-    });
-
-    nodeStream.pipe(busboy);
-    nodeStream.on('error', (err) => {
-      console.error('[/api/upload] stream error:', err);
-      finish(NextResponse.json({ success: false, message: 'Stream error.' }, { status: 500 }));
-    });
+    // Read the full body as an ArrayBuffer, then wrap in a Node.js Readable.
+    // This is more reliable in serverless environments (Vercel, etc.) where
+    // req.body may already be buffered and cannot be streamed chunk-by-chunk.
+    req.arrayBuffer()
+      .then(ab => {
+        const nodeStream = Readable.from(Buffer.from(ab));
+        nodeStream.pipe(busboy);
+        nodeStream.on('error', (err) => {
+          console.error('[/api/upload] stream error:', err);
+          finish(NextResponse.json({ success: false, message: 'Stream error.' }, { status: 500 }));
+        });
+      })
+      .catch(err => {
+        console.error('[/api/upload] arrayBuffer error:', err);
+        finish(NextResponse.json({ success: false, message: 'Failed to read uploaded file.' }, { status: 500 }));
+      });
   });
 }
