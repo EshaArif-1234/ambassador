@@ -55,6 +55,8 @@ const ProductsPage = () => {
   const [successMsg,  setSuccessMsg]  = useState('');
   const [error,       setError]       = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [currentPage,   setCurrentPage]   = useState(1);
+  const PRODUCTS_PER_PAGE = 10;
 
   // Modal
   const [modalMode,      setModalMode]      = useState<'add' | 'edit' | 'view' | null>(null);
@@ -161,6 +163,13 @@ const ProductsPage = () => {
     return matchSearch && matchCat && matchStatus;
   });
 
+  const totalPages  = Math.ceil(filtered.length / PRODUCTS_PER_PAGE);
+  const paginated   = filtered.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
+
+  // Reset to page 1 when filters shrink the result set
+  const safeCurrentPage = Math.min(currentPage, totalPages || 1);
+  if (safeCurrentPage !== currentPage) setCurrentPage(safeCurrentPage);
+
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -231,7 +240,11 @@ const ProductsPage = () => {
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Products</h2>
-            <span className="text-xs text-gray-400 font-medium">{filtered.length} total</span>
+            <span className="text-xs text-gray-400 font-medium">
+              {filtered.length > 0
+                ? `${(currentPage - 1) * PRODUCTS_PER_PAGE + 1}–${Math.min(currentPage * PRODUCTS_PER_PAGE, filtered.length)} of ${filtered.length}`
+                : '0 products'}
+            </span>
           </div>
 
           {loading ? (
@@ -261,7 +274,7 @@ const ProductsPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filtered.map(product => (
+                  {paginated.map(product => (
                     <tr key={product._id} className="hover:bg-gray-50 transition-colors">
 
                       {/* Product */}
@@ -406,6 +419,75 @@ const ProductsPage = () => {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (() => {
+          const getPages = (): (number | '…')[] => {
+            if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+            const pages: (number | '…')[] = [1];
+            if (currentPage > 3) pages.push('…');
+            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+            if (currentPage < totalPages - 2) pages.push('…');
+            pages.push(totalPages);
+            return pages;
+          };
+
+          return (
+            <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-3">
+              <p className="text-sm text-gray-500">
+                Page <span className="font-semibold text-gray-800">{currentPage}</span> of <span className="font-semibold text-gray-800">{totalPages}</span>
+              </p>
+
+              <div className="flex items-center gap-1">
+                {/* Prev */}
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-[#0F4C69] hover:text-[#0F4C69] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-600"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Prev
+                </button>
+
+                {/* Page numbers */}
+                {getPages().map((page, idx) =>
+                  page === '…' ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 text-xs select-none">…</span>
+                  ) : (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page as number)}
+                      className={`min-w-[32px] h-8 rounded-lg text-xs font-semibold transition-all ${
+                        currentPage === page
+                          ? 'bg-[#0F4C69] text-white shadow-sm'
+                          : 'border border-gray-200 text-gray-700 hover:bg-[#0F4C69]/8 hover:border-[#0F4C69] hover:text-[#0F4C69]'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+
+                {/* Next */}
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-[#0F4C69] hover:text-[#0F4C69] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-600"
+                >
+                  Next
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Modal */}
         {modalMode && modalMode !== null && (

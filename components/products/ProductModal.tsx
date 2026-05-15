@@ -604,50 +604,26 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
     setVideoSlots(p => p.map((s, i) => i === index ? { url: '', file: null, preview: '', publicId: '', thumbnail: '' } : s));
 
   // ── Upload one media slot ──
+  // Streams directly to Cloudinary on the server side — no body-size limit,
+  // no credentials exposed to the browser.
   const uploadSlot = async (slot: MediaSlot): Promise<{ url: string; publicId: string }> => {
     if (!slot.file) return { url: slot.url, publicId: slot.publicId };
 
-    const isVideo      = slot.file.type.startsWith('video/');
-    const resourceType = isVideo ? 'video' : 'image';
-    const folder       = isVideo
-      ? 'ambassador/products/videos'
-      : 'ambassador/products/images';
-
-    // Step 1 — get a signed credential from our server (tiny JSON request, no body limit issue)
-    const sigRes = await fetch(
-      `/api/upload/signature?folder=${encodeURIComponent(folder)}&resource_type=${resourceType}`,
-      { credentials: 'include' }
-    );
-    const sigData = await sigRes.json().catch(() => ({})) as {
-      success?: boolean; signature?: string; timestamp?: number;
-      apiKey?: string; cloudName?: string;
-    };
-    if (!sigRes.ok || !sigData.success) {
-      throw new Error('Could not get upload signature. Please try again.');
-    }
-
-    const { signature, timestamp, apiKey, cloudName } = sigData;
-
-    // Step 2 — upload directly from the browser to Cloudinary (bypasses Next.js entirely)
     const fd = new FormData();
-    fd.append('file',      slot.file);
-    fd.append('api_key',   apiKey!);
-    fd.append('timestamp', String(timestamp));
-    fd.append('signature', signature!);
-    fd.append('folder',    folder);
+    fd.append('file', slot.file);
 
-    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-    const res = await fetch(uploadUrl, { method: 'POST', body: fd });
+    const res = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: fd });
 
-    const data = await res.json().catch(() => ({} as Record<string, unknown>)) as {
-      secure_url?: string; public_id?: string; error?: { message?: string };
-    };
-
-    if (!res.ok || data.error) {
-      throw new Error(data.error?.message || `Upload failed (${res.status})`);
+    let data: { success?: boolean; message?: string; url?: string; publicId?: string } = {};
+    try {
+      data = await res.json();
+    } catch {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Upload failed (${res.status}): ${text.slice(0, 120) || 'Unknown error'}`);
     }
 
-    return { url: data.secure_url!, publicId: data.public_id! };
+    if (!res.ok || !data.success) throw new Error(data.message || 'Upload failed');
+    return { url: data.url!, publicId: data.publicId! };
   };
 
   // ── Validate ──

@@ -279,7 +279,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
               <div className="relative mb-4  group">
                 <div
                   ref={imgContainerRef}
-                  className={`relative h-[600px] overflow-hidden rounded-lg bg-[#EEF5F9] border-2 border-[#E36630]/40 ${
+                  className={`relative h-[600px] overflow-hidden rounded-lg bg-[#EEF5F9] ${
                     currentMedia?.kind === 'image' ? 'cursor-crosshair' : ''
                   }`}
                   onMouseMove={currentMedia?.kind === 'image' ? handleImageMouseMove : undefined}

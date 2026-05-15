@@ -1,7 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import type { UploadApiResponse } from 'cloudinary';
+import Busboy from 'busboy';
+import { Readable } from 'stream';
 import { requireAdmin } from '@/backend/lib/adminAuth';
+
+/**
+ * WHY STREAMING?
+ * Next.js App Router buffers the entire body when you call req.formData(),
+ * applying a ~4 MB hard limit before route code runs — causing 413 errors
+ * for large video uploads. By accessing req.body as a raw ReadableStream
+ * and piping it through busboy → Cloudinary upload_stream, the file is
+ * never fully buffered in memory and there is no size limit.
+ *
+ * All Cloudinary credentials stay on the server — nothing is exposed to
+ * the browser.
+ */
+
+export const runtime = 'nodejs';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -9,79 +25,96 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-/**
- * POST /api/upload
- * Accepts multipart/form-data with a single "file" field.
- * Uploads the image to Cloudinary and returns { url, publicId }.
- * Protected — admin only.
- */
-export async function POST(req: NextRequest) {
+const ALLOWED_IMAGES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
+const ALLOWED_VIDEOS = new Set(['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/avi']);
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
   const authError = await requireAdmin(req);
   if (authError) return authError;
 
-  try {
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
+  const contentType = req.headers.get('content-type') ?? '';
+  if (!contentType.includes('multipart/form-data')) {
+    return NextResponse.json({ success: false, message: 'Expected multipart/form-data.' }, { status: 400 });
+  }
 
-    if (!file) {
-      return NextResponse.json(
-        { success: false, message: 'No file provided.' },
-        { status: 400 }
-      );
-    }
+  if (!req.body) {
+    return NextResponse.json({ success: false, message: 'No file provided.' }, { status: 400 });
+  }
 
-    const allowedImages = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
-    const allowedVideos = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/avi'];
-    const isVideo = allowedVideos.includes(file.type);
-    const isImage = allowedImages.includes(file.type);
+  return new Promise<NextResponse>((resolve) => {
+    let settled = false;
+    const finish = (res: NextResponse) => {
+      if (!settled) { settled = true; resolve(res); }
+    };
 
-    if (!isImage && !isVideo) {
-      return NextResponse.json(
-        { success: false, message: 'Only JPEG, PNG, WebP images or MP4, WebM, MOV videos are allowed.' },
-        { status: 400 }
-      );
-    }
+    const busboy = Busboy({ headers: { 'content-type': contentType } });
 
-    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { success: false, message: isVideo ? 'Video must be under 50 MB.' : 'Image must be under 5 MB.' },
-        { status: 400 }
-      );
-    }
+    busboy.on('file', (_field, fileStream, { mimeType }) => {
+      const isVideo = ALLOWED_VIDEOS.has(mimeType);
+      const isImage = ALLOWED_IMAGES.has(mimeType);
 
-    const bytes  = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+      if (!isImage && !isVideo) {
+        fileStream.resume(); // drain so busboy doesn't hang
+        finish(NextResponse.json(
+          { success: false, message: 'Only JPEG, PNG, WebP images or MP4, WebM, MOV videos are allowed.' },
+          { status: 400 }
+        ));
+        return;
+      }
 
-    const result = await new Promise<UploadApiResponse>((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        isVideo
-          ? {
-              folder:        'ambassador/products/videos',
-              resource_type: 'video',
-            }
-          : {
-              folder:        'ambassador/products/images',
-              resource_type: 'image',
-              transformation: [{ width: 1000, crop: 'limit', fetch_format: 'auto', quality: 'auto' }],
-            },
-        (error, uploadResult) => {
-          if (error || !uploadResult) return reject(error ?? new Error('Upload failed'));
-          resolve(uploadResult);
+      const uploadOptions = isVideo
+        ? { folder: 'ambassador/products/videos', resource_type: 'video' as const }
+        : {
+            folder: 'ambassador/products/images',
+            resource_type: 'image' as const,
+            transformation: [{ width: 1000, crop: 'limit' as const, fetch_format: 'auto', quality: 'auto' }],
+          };
+
+      const cloudStream = cloudinary.uploader.upload_stream(
+        uploadOptions,
+        (error: Error | undefined, result: UploadApiResponse | undefined) => {
+          if (error || !result) {
+            console.error('[/api/upload] Cloudinary error:', error);
+            finish(NextResponse.json({ success: false, message: 'Upload failed. Please try again.' }, { status: 500 }));
+          } else {
+            finish(NextResponse.json({ success: true, url: result.secure_url, publicId: result.public_id }));
+          }
         }
       );
-      stream.end(buffer);
+
+      fileStream.pipe(cloudStream);
+      fileStream.on('error', (err) => {
+        console.error('[/api/upload] file stream error:', err);
+        finish(NextResponse.json({ success: false, message: 'File read error.' }, { status: 500 }));
+      });
     });
 
-    return NextResponse.json(
-      { success: true, url: result.secure_url, publicId: result.public_id },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('[/api/upload]', error);
-    return NextResponse.json(
-      { success: false, message: 'Upload failed. Please try again.' },
-      { status: 500 }
-    );
-  }
+    busboy.on('error', (err) => {
+      console.error('[/api/upload] busboy error:', err);
+      finish(NextResponse.json({ success: false, message: 'Upload processing failed.' }, { status: 500 }));
+    });
+
+    // Convert the Web ReadableStream (req.body) → Node.js Readable → busboy
+    const reader = req.body!.getReader();
+    const nodeStream = new Readable({
+      async read() {
+        try {
+          const { done, value } = await reader.read();
+          if (done) {
+            this.push(null);
+          } else {
+            this.push(Buffer.from(value));
+          }
+        } catch (err) {
+          this.destroy(err as Error);
+        }
+      },
+    });
+
+    nodeStream.pipe(busboy);
+    nodeStream.on('error', (err) => {
+      console.error('[/api/upload] stream error:', err);
+      finish(NextResponse.json({ success: false, message: 'Stream error.' }, { status: 500 }));
+    });
+  });
 }
