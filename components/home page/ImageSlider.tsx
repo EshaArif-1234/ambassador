@@ -19,7 +19,7 @@ const slides = [
   },
   {
     id: 2,
-    image: '/Images/40000-by-4-simple.png',
+    image: '/Images/40000-by-4-Simple.png',
     alt: 'Professional Restaurant Solutions',
     badge: 'Complete Kitchen Solutions',
     title: 'Professional\nRestaurant Solutions',
