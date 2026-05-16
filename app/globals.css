@@ -27,6 +27,36 @@ body {
   padding: 0;
 }
 
+/* ── Image Slider ── */
+@keyframes ken-burns {
+  0%   { transform: scale(1)    translateX(0)      translateY(0); }
+  50%  { transform: scale(1.06) translateX(-1%)    translateY(-0.5%); }
+  100% { transform: scale(1.1)  translateX(1%)     translateY(-1%); }
+}
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-down-fade {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes progress-bar {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.slider-ken-burns { animation: ken-burns 12s ease-in-out forwards; }
+.slider-badge     { animation: slide-down-fade 0.7s ease forwards 0.2s both; }
+.slider-title     { animation: slide-up-fade   0.8s ease forwards 0.4s both; }
+.slider-subtitle  { animation: slide-up-fade   0.8s ease forwards 0.65s both; }
+.slider-cta       { animation: scale-in        0.7s ease forwards 0.85s both; }
+.slider-progress  { animation: progress-bar var(--slide-duration, 6s) linear forwards; }
+
 /* WhatsApp chat widget — attention bubble animation */
 @keyframes bounce-once {
   0%, 100% { transform: translateY(0); }
