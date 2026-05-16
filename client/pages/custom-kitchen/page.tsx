@@ -106,10 +106,10 @@ const CustomKitchenPage = () => {
       </div>
 
       {/* ── Projects Section ─────────────────────────── */}
-      <section className="bg-white py-16">
-        <div className="container mx-auto px-4">
+      <section className="bg-[#E3E6E6] py-16 px-4">
+        <div className="container mx-auto">
 
-          <div className="text-center">
+          <div className="text-center pb-10">
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-4">
               <span className="w-8 h-px bg-[#0F4C69]" />
               Our Portfolio
@@ -221,7 +221,7 @@ const CustomKitchenPage = () => {
               href="/products"
               className="px-8 py-3 border-2 border-white/30 text-white font-semibold rounded-lg hover:bg-white hover:text-[#0F4C69] transition-colors"
             >
-              View Our Products
+              View Ambassador Products
             </Link>
           </div>
         </div>

@@ -29,7 +29,8 @@ interface BranchesGridProps {
 
 const BranchesGrid = ({ branches, onGetDirections, onViewDetails }: BranchesGridProps) => {
   return (
-    <div className="container mx-auto px-4 py-32">
+    <div className="bg-[#E3E6E6]">
+    <div className="container mx-auto px-4 py-32 ">
       {/* Section Title */}
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -124,6 +125,7 @@ const BranchesGrid = ({ branches, onGetDirections, onViewDetails }: BranchesGrid
           </div>
         ))}
       </div>
+    </div>
     </div>
   );
 };

@@ -344,7 +344,10 @@ const ProductsPage = () => {
     <div className="min-h-screen bg-[#E3E6E6] py-8">
       <div className="container mx-auto bg-[#E3E6E6] px-4">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">Our Products</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">
+            <span className="text-[#E36630]">Premium</span> 
+            <span className="text-[#0F4C69]"> Products</span>
+          </h1>
           <p className="text-lg text-gray-600">Browse our extensive collection of kitchen equipment</p>
         </div>
 

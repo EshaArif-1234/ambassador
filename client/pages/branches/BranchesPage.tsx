@@ -45,12 +45,12 @@ const BranchesPage = () => {
       manager: 'Mr Faheem Ashraf',
       hours: 'Mon-Sat: 9:00 AM - 6:00 PM',
       services: ['Catering Equipment', 'Industrial Kitchen', 'Consulting', 'Training'],
-      image: '/Images/home/card1.jpg',
+      image: '/Images/Thumbnail-Head-office.png',
       coordinates: { lat: 31.524732, lng: 74.322147} // Lahore Muslim Town coordinates
     },
     {
       id: '1',
-      name: 'Fazzya Showroom',
+      name: 'Fazaia Showroom',
       address: 'Ca 77, fazaia downtown, Lahore Pakistan',
       city: 'Lahore',
       state: 'Punjab',

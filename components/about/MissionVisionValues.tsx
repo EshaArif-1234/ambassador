@@ -148,23 +148,9 @@ const MissionVisionValues = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {values.map((val, i) => (
-            <div
-              key={i}
-              className="group flex gap-4 items-start p-5 rounded-xl border border-gray-100 bg-gray-50 hover:border-[#E36630] hover:bg-white hover:shadow-md transition-all duration-300"
-            >
-              <div className="shrink-0 w-11 h-11 rounded-xl bg-[#0F4C69]/10 group-hover:bg-[#E36630] flex items-center justify-center text-[#0F4C69] group-hover:text-white transition-all duration-300">
-                {val.icon}
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-[#E36630] transition-colors duration-300">
-                  {val.title}
-                </h4>
-                <p className="text-gray-500 text-xs leading-relaxed">{val.description}</p>
-              </div>
-            </div>
-          ))}
+        
+        <div className="w-full h-full">
+          <img src="/Images/value2.png" alt="Values" className="w-full h-full object-cover" />
         </div>
 
       </div>

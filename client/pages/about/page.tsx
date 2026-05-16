@@ -22,7 +22,7 @@ const AboutPage = () => {
       </div>
 
       {/* 2 — gray */}
-      <div className="bg-[#E3E6E6]">
+      <div className="bg-white">
         <MissionVisionValues />
       </div>
 

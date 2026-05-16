@@ -52,10 +52,10 @@ const FAQSection = () => {
         
         <div className="space-y-4">
           {faqs.map((faq, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg">
+            <div key={index} className="border border-gray-300 rounded-lg">
               <button
                 onClick={() => toggleFAQ(index)}
-                className="w-full text-left p-6 hover:bg-gray-50 transition-colors focus:outline-none focus:bg-gray-50"
+                className="w-full text-left p-6 transition-colors focus:outline-none"
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-800 pr-2">{faq.question}</h3>
