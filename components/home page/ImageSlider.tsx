@@ -23,7 +23,7 @@ const slides = [
     alt: 'Professional Restaurant Solutions',
     badge: 'Complete Kitchen Solutions',
     title: 'Professional\nRestaurant Solutions',
-    subtitle: 'Everything your kitchen needs — from concept to completion, backed by 15+ years of expertise.',
+    subtitle: 'Everything your kitchen needs — from concept to completion, backed by 60+ years of expertise.',
     cta: 'View Catalogue',
     ctaHref: '/products',
     align: 'center' as const,
@@ -85,7 +85,7 @@ export default function ImageSlider() {
             key={`img-${s.id}-${idx === current ? animKey : 0}`}
             src={s.image}
             alt={s.alt}
-            className={`absolute inset-0 h-full w-full object-cover object-center ${idx === current ? 'slider-ken-burns' : ''}`}
+            className="absolute inset-0 h-full w-full object-cover object-center"
           />
 
           {/* Gradient overlays */}
