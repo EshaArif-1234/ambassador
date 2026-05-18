@@ -8,36 +8,38 @@ import TrafficChart from '@/components/dashboard/TrafficChart';
 import RecentOrders from '@/components/dashboard/RecentOrders';
 import TopSellingProducts from '@/components/dashboard/TopSellingProducts';
 
-const DashboardOverview = () => {
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    totalRevenue: 0,
-    totalUsers: 0,
-    totalProducts: 0,
-    pendingOrders: 0,
-    completedOrders: 0
-  });
+interface Stats {
+  totalOrders: number;
+  totalUsers: number;
+  totalProducts: number;
+  ordersByStatus: {
+    pending: number;
+    confirmed: number;
+    processing: number;
+    shipped: number;
+    delivered: number;
+    cancelled: number;
+  };
+}
 
+const DashboardOverview = () => {
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call to fetch dashboard stats
     const fetchStats = async () => {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setStats({
-        totalOrders: 1247,
-        totalRevenue: 2847500,
-        totalUsers: 892,
-        totalProducts: 456,
-        pendingOrders: 23,
-        completedOrders: 1224
-      });
-      
-      setLoading(false);
+      try {
+        const res = await fetch('/api/admin/stats');
+        const json = await res.json();
+        if (json.success) {
+          setStats(json.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch dashboard stats', err);
+      } finally {
+        setLoading(false);
+      }
     };
-
     fetchStats();
   }, []);
 
@@ -51,45 +53,43 @@ const DashboardOverview = () => {
     );
   }
 
+  const completedOrders = stats?.ordersByStatus.delivered ?? 0;
+  const pendingOrders   = stats?.ordersByStatus.pending   ?? 0;
+  const totalOrders     = stats?.totalOrders   ?? 0;
+  const totalUsers      = stats?.totalUsers    ?? 0;
+  const totalProducts   = stats?.totalProducts ?? 0;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Page Header */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
-          <p className="text-lg text-gray-600">Welcome to your admin dashboard. Here's what's happening with your business today.</p>
+          <p className="text-lg text-gray-600">Welcome to your admin dashboard. Here&apos;s what&apos;s happening with your business today.</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatsCard
             title="Total Orders"
-            value={stats.totalOrders}
-            change="+12.5%"
+            value={totalOrders}
+            change={`${pendingOrders} pending`}
             changeType="positive"
             icon="orders"
             color="orange"
           />
           <StatsCard
-            title="Total Revenue"
-            value={`PKR ${stats.totalRevenue.toLocaleString()}`}
-            change="+8.2%"
-            changeType="positive"
-            icon="revenue"
-            color="green"
-          />
-          <StatsCard
             title="Total Users"
-            value={stats.totalUsers}
-            change="+15.3%"
+            value={totalUsers}
+            change="Registered customers"
             changeType="positive"
             icon="users"
             color="blue"
           />
           <StatsCard
             title="Total Products"
-            value={stats.totalProducts}
-            change="+5.7%"
+            value={totalProducts}
+            change="Active listings"
             changeType="positive"
             icon="products"
             color="purple"
@@ -104,10 +104,7 @@ const DashboardOverview = () => {
 
         {/* Recent Orders and Top Products */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Orders Table */}
           <RecentOrders title="Recent Orders" />
-          
-          {/* Top Selling Products */}
           <TopSellingProducts />
         </div>
 
@@ -115,50 +112,26 @@ const DashboardOverview = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Order Status Summary</h3>
-            
+
             {/* Donut Chart */}
             <div className="flex items-center justify-center mb-6">
               <div className="relative w-40 h-40">
                 <svg className="w-40 h-40 transform -rotate-90">
-                  {/* Background circle */}
+                  <circle cx="80" cy="80" r="60" fill="none" stroke="#e5e7eb" strokeWidth="20" />
                   <circle
-                    cx="80"
-                    cy="80"
-                    r="60"
-                    fill="none"
-                    stroke="#e5e7eb"
-                    strokeWidth="20"
-                  />
-                  
-                  {/* Completed Orders */}
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="60"
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="20"
-                    strokeDasharray={`${(stats.completedOrders / (stats.completedOrders + stats.pendingOrders)) * 377} 377`}
+                    cx="80" cy="80" r="60" fill="none" stroke="#10b981" strokeWidth="20"
+                    strokeDasharray={`${totalOrders > 0 ? (completedOrders / totalOrders) * 377 : 0} 377`}
                     className="transition-all duration-500"
                   />
-                  
-                  {/* Pending Orders */}
                   <circle
-                    cx="80"
-                    cy="80"
-                    r="60"
-                    fill="none"
-                    stroke="#f97316"
-                    strokeWidth="20"
-                    strokeDasharray={`${(stats.pendingOrders / (stats.completedOrders + stats.pendingOrders)) * 377} 377`}
-                    strokeDashoffset={`${(stats.completedOrders / (stats.completedOrders + stats.pendingOrders)) * 377}`}
+                    cx="80" cy="80" r="60" fill="none" stroke="#f97316" strokeWidth="20"
+                    strokeDasharray={`${totalOrders > 0 ? (pendingOrders / totalOrders) * 377 : 0} 377`}
+                    strokeDashoffset={`-${totalOrders > 0 ? (completedOrders / totalOrders) * 377 : 0}`}
                     className="transition-all duration-500"
                   />
                 </svg>
-                
-                {/* Center text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-gray-900">{stats.completedOrders + stats.pendingOrders}</span>
+                  <span className="text-2xl font-bold text-gray-900">{totalOrders}</span>
                   <span className="text-sm text-gray-500">Total Orders</span>
                 </div>
               </div>
@@ -166,29 +139,22 @@ const DashboardOverview = () => {
 
             {/* Legend */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-700">Completed</span>
+              {[
+                { label: 'Delivered',  count: completedOrders,                         color: 'bg-green-500',  textColor: 'text-green-600'  },
+                { label: 'Pending',    count: pendingOrders,                            color: 'bg-orange-500', textColor: 'text-orange-600' },
+                { label: 'Processing', count: stats?.ordersByStatus.processing ?? 0,   color: 'bg-blue-500',   textColor: 'text-blue-600'   },
+                { label: 'Shipped',    count: stats?.ordersByStatus.shipped    ?? 0,   color: 'bg-cyan-500',   textColor: 'text-cyan-600'   },
+                { label: 'Confirmed',  count: stats?.ordersByStatus.confirmed  ?? 0,   color: 'bg-indigo-500', textColor: 'text-indigo-600' },
+                { label: 'Cancelled',  count: stats?.ordersByStatus.cancelled  ?? 0,   color: 'bg-red-400',    textColor: 'text-red-600'    },
+              ].map(({ label, count, color, textColor }) => (
+                <div key={label} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 ${color} rounded-full`} />
+                    <span className="text-sm font-medium text-gray-700">{label}</span>
+                  </div>
+                  <span className={`text-sm font-bold ${textColor}`}>{count}</span>
                 </div>
-                <span className="text-sm font-bold text-green-600">{stats.completedOrders}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-700">Pending</span>
-                </div>
-                <span className="text-sm font-bold text-orange-600">{stats.pendingOrders}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-700">Processing</span>
-                </div>
-                <span className="text-sm font-bold text-blue-600">0</span>
-              </div>
+              ))}
             </div>
           </div>
 
@@ -197,28 +163,28 @@ const DashboardOverview = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                  <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold text-gray-700">Average Order Value</span>
+                  <span className="text-sm font-semibold text-gray-700">Pending Orders</span>
                 </div>
-                <span className="text-lg font-bold text-gray-900">PKR 2,283</span>
+                <span className="text-lg font-bold text-gray-900">{pendingOrders}</span>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-green-100 text-green-600 rounded-lg">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold text-gray-700">Conversion Rate</span>
+                  <span className="text-sm font-semibold text-gray-700">Delivered Orders</span>
                 </div>
-                <span className="text-lg font-bold text-gray-900">3.2%</span>
+                <span className="text-lg font-bold text-gray-900">{completedOrders}</span>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
@@ -226,9 +192,9 @@ const DashboardOverview = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold text-gray-700">Active Users Today</span>
+                  <span className="text-sm font-semibold text-gray-700">Total Users</span>
                 </div>
-                <span className="text-lg font-bold text-gray-900">47</span>
+                <span className="text-lg font-bold text-gray-900">{totalUsers}</span>
               </div>
             </div>
           </div>

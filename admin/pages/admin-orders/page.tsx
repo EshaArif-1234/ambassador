@@ -257,6 +257,20 @@ const OrdersPage = () => {
     setSelectedOrder(sel => sel?.id === oid ? { ...sel, status: 'shipped' } : sel);
   };
 
+  const handleMarkAsDispatched = async (order: Order) => {
+    if (isOrderWorkflowLocked(order)) return;
+    const oid = order.id;
+    try {
+      await fetch('/api/admin/orders', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: oid, status: 'shipped' }),
+      });
+    } catch { /* non-fatal */ }
+    setOrders(prev => prev.map(o => (o.id === oid ? { ...o, status: 'shipped' as const } : o)));
+    setSelectedOrder(sel => sel?.id === oid ? { ...sel, status: 'shipped' } : sel);
+  };
+
   const handleMarkAsDelivered = async (order: Order) => {
     if (isOrderWorkflowLocked(order)) return;
     const oid = order.id;
@@ -692,6 +706,20 @@ const OrdersPage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 Mark as Processing
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
+                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsDispatched(order);
+                  setShowActionsDropdown(null);
+                }}
+                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+              >
+                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                Mark as Dispatched
               </button>
               <button
                 type="button"

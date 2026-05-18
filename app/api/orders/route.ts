@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     // Map cart items to order item schema
     const items = orderItems.map((item: any) => ({
       productId: item._id || item.productId || undefined,
-      productName: item.name || item.productName || 'Unknown Product',
+      productName: item.title || item.name || item.productName || 'Unknown Product',
       productImage: item.image || item.productImage || '',
       quantity: item.quantity,
       price: item.price,

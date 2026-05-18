@@ -74,10 +74,9 @@ const StatsCard: React.FC<StatsCardProps> = ({
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{title}</p>
           <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
           <div className="flex items-center mt-3">
-            <span className={`text-sm font-medium ${getChangeColor(changeType)}`}>
+            <span className="text-sm font-medium text-gray-500">
               {change}
             </span>
-            <span className="text-xs text-gray-400 ml-2">from last month</span>
           </div>
         </div>
         <div className={`p-3 rounded-xl ${getColorClasses(color)} transition-transform duration-300 hover:scale-110`}>
