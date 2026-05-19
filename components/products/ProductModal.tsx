@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { uploadMedia } from '@/utils/uploadMedia';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -488,6 +489,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
   // ── UI state ──
   const [errors,       setErrors]       = useState<Record<string, string>>({});
   const [saving,       setSaving]       = useState(false);
+  // key: `img-0`, `img-1`, `vid-0` … → 0–100 progress during upload
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadStatus, setUploadStatus] = useState('');
   const [productCategoryFilter,    setProductCategoryFilter]    = useState('');
 
@@ -603,27 +606,15 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
   const clearVideoSlot = (index: number) =>
     setVideoSlots(p => p.map((s, i) => i === index ? { url: '', file: null, preview: '', publicId: '', thumbnail: '' } : s));
 
-  // ── Upload one media slot ──
-  // Streams directly to Cloudinary on the server side — no body-size limit,
-  // no credentials exposed to the browser.
-  const uploadSlot = async (slot: MediaSlot): Promise<{ url: string; publicId: string }> => {
+  // ── Upload one media slot with progress tracking ──
+  const uploadSlot = async (slot: MediaSlot, key: string): Promise<{ url: string; publicId: string }> => {
     if (!slot.file) return { url: slot.url, publicId: slot.publicId };
-
-    const fd = new FormData();
-    fd.append('file', slot.file);
-
-    const res = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: fd });
-
-    let data: { success?: boolean; message?: string; url?: string; publicId?: string } = {};
-    try {
-      data = await res.json();
-    } catch {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Upload failed (${res.status}): ${text.slice(0, 120) || 'Unknown error'}`);
-    }
-
-    if (!res.ok || !data.success) throw new Error(data.message || 'Upload failed');
-    return { url: data.url!, publicId: data.publicId! };
+    setUploadProgress(p => ({ ...p, [key]: 0 }));
+    const result = await uploadMedia(slot.file, (pct) =>
+      setUploadProgress(p => ({ ...p, [key]: pct }))
+    );
+    setUploadProgress(p => { const n = { ...p }; delete n[key]; return n; });
+    return result;
   };
 
   // ── Validate ──
@@ -658,10 +649,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
         );
       }
 
-      // Upload all images and videos in parallel
+      // Upload all images and videos in parallel, tracking per-slot progress
       const [imageResults, videoResults] = await Promise.all([
-        Promise.all(activeImages.map(slot => uploadSlot(slot))),
-        Promise.all(activeVideos.map(slot => uploadSlot(slot))),
+        Promise.all(activeImages.map((slot, i) => uploadSlot(slot, `img-${i}`))),
+        Promise.all(activeVideos.map((slot, i) => uploadSlot(slot, `vid-${i}`))),
       ]);
 
       setUploadStatus('');
@@ -768,6 +759,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
                     {imageSlots.map((slot, i) => slot.preview ? (
                       <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 group flex-shrink-0">
                         <img src={slot.preview} alt={`img-${i}`} className="w-full h-full object-cover" />
+                        {uploadProgress[`img-${i}`] != null && (
+                          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
+                            <span className="text-white text-[10px] font-bold">{uploadProgress[`img-${i}`]}%</span>
+                            <div className="w-10 h-1 mt-1 bg-white/30 rounded-full overflow-hidden">
+                              <div className="h-full bg-[#E36630] rounded-full transition-all duration-150" style={{ width: `${uploadProgress[`img-${i}`]}%` }} />
+                            </div>
+                          </div>
+                        )}
                         <button
                           type="button"
                           onClick={() => clearImageSlot(i)}
@@ -832,14 +831,24 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
                               <path d="M8 5v14l11-7z" />
                             </svg>
                           )}
-                          {/* Play overlay */}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                            <div className="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center shadow">
-                              <svg className="w-3.5 h-3.5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
+                          {/* Upload progress overlay */}
+                          {uploadProgress[`vid-${i}`] != null ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
+                              <span className="text-white text-[10px] font-bold">{uploadProgress[`vid-${i}`]}%</span>
+                              <div className="w-12 h-1 mt-1 bg-white/30 rounded-full overflow-hidden">
+                                <div className="h-full bg-[#E36630] rounded-full transition-all duration-150" style={{ width: `${uploadProgress[`vid-${i}`]}%` }} />
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            /* Play overlay */
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <div className="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center shadow">
+                                <svg className="w-3.5 h-3.5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
                           <button
                             type="button"
                             onClick={() => clearVideoSlot(i)}

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
+import { uploadMedia } from '@/utils/uploadMedia';
 
 interface Category {
   _id: string;
@@ -95,14 +96,7 @@ const AdminCategoriesPage = () => {
     fetchData();
   }, [fetchData]);
 
-  const uploadImage = async (file: File): Promise<{ url: string; publicId: string }> => {
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: fd });
-    const data = await res.json();
-    if (!res.ok || !data.success) throw new Error(data.message ?? 'Upload failed');
-    return { url: data.url, publicId: data.publicId };
-  };
+  const uploadImage = (file: File) => uploadMedia(file);
 
   const handleAddCategory = () => {
     setModalMode('add');

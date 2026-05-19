@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
-import { migrateLegacyProductTaxonomy } from '@/backend/lib/migrateProductTaxonomy';
 import {
   resolveProductCategoryIds,
   validateProductTaxonomy,
@@ -14,52 +13,64 @@ import {
 } from '@/backend/lib/productMarketingFields';
 import { requireAdmin } from '@/backend/lib/adminAuth';
 
-/** GET /api/admin/products — list all products with optional filters */
+const ADMIN_PAGE_LIMIT = 10;
+
+// Fields needed by the admin product listing table
+const ADMIN_LIST_PROJECTION = {
+  name: 1, slug: 1, price: 1, originalPrice: 1,
+  stock: 1, status: 1, brands: 1, features: 1,
+  categories: 1, images: { $slice: 1 }, createdAt: 1,
+};
+
+/** GET /api/admin/products?page=1&limit=10&search=...&status=...&category=... */
 export async function GET(req: NextRequest) {
   const authError = await requireAdmin(req);
   if (authError) return authError;
 
   try {
     await connectDB();
-    await migrateLegacyProductTaxonomy(Product.collection);
 
     const { searchParams } = new URL(req.url);
-    const search = searchParams.get('search') ?? '';
-    const status = searchParams.get('status') ?? 'all';
+    const search     = searchParams.get('search')   ?? '';
+    const status     = searchParams.get('status')   ?? 'all';
     const categoryId = searchParams.get('category') ?? '';
+    const page       = Math.max(1, parseInt(searchParams.get('page')  ?? '1', 10));
+    const limit      = Math.min(50, parseInt(searchParams.get('limit') ?? String(ADMIN_PAGE_LIMIT), 10));
+    const skip       = (page - 1) * limit;
 
     const filter: Record<string, unknown> = {};
     if (search) filter.name = { $regex: search, $options: 'i' };
     if (status !== 'all') filter.status = status;
     if (categoryId) filter.categories = categoryId;
 
-    const products = await Product.find(filter)
-      .populate('categories', 'title')
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const ratings = await Review.aggregate([
-      { $match: { status: 'approved' } },
-      {
-        $group: {
-          _id: '$productId',
-          avgRating: { $avg: '$rating' },
-          reviewCount: { $sum: 1 },
-        },
-      },
+    // Fetch products, total count, and ratings all in parallel
+    const [products, total, ratings] = await Promise.all([
+      Product.find(filter, ADMIN_LIST_PROJECTION)
+        .populate('categories', 'title')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Product.countDocuments(filter),
+      Review.aggregate([
+        { $match: { status: 'approved' } },
+        { $group: { _id: '$productId', avgRating: { $avg: '$rating' }, reviewCount: { $sum: 1 } } },
+      ]),
     ]);
+
     const ratingMap: Record<string, { avgRating: number; reviewCount: number }> = {};
-    ratings.forEach((r) => {
-      ratingMap[String(r._id)] = { avgRating: r.avgRating, reviewCount: r.reviewCount };
-    });
+    for (const r of ratings) ratingMap[String(r._id)] = { avgRating: r.avgRating, reviewCount: r.reviewCount };
 
     const enriched = products.map((p) => ({
       ...p,
-      avgRating: +(ratingMap[String(p._id)]?.avgRating ?? 0).toFixed(1),
-      reviewCount: ratingMap[String(p._id)]?.reviewCount ?? 0,
+      avgRating:   +(ratingMap[String(p._id)]?.avgRating   ?? 0).toFixed(1),
+      reviewCount:   ratingMap[String(p._id)]?.reviewCount ?? 0,
     }));
 
-    return NextResponse.json({ success: true, data: enriched }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: enriched, total, page, totalPages: Math.ceil(total / limit) },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('[GET /api/admin/products]', error);
     return NextResponse.json({ success: false, message: 'Server error.' }, { status: 500 });
@@ -73,7 +84,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectDB();
-    await migrateLegacyProductTaxonomy(Product.collection);
+
     const body = await req.json();
     const {
       name,

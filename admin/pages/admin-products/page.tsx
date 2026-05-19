@@ -45,49 +45,69 @@ const taxonomyList = (p: Product) => {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const ADMIN_PAGE_SIZE = 10;
+
 const ProductsPage = () => {
-  const [products,    setProducts]    = useState<Product[]>([]);
-  const [categories,  setCategories]  = useState<Category[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [searchTerm,  setSearchTerm]  = useState('');
-  const [filterCat,   setFilterCat]   = useState('all');
-  const [filterStatus,setFilterStatus]= useState('all');
-  const [successMsg,  setSuccessMsg]  = useState('');
-  const [error,       setError]       = useState('');
+  const [products,     setProducts]    = useState<Product[]>([]);
+  const [categories,   setCategories]  = useState<Category[]>([]);
+  const [total,        setTotal]       = useState(0);
+  const [totalPages,   setTotalPages]  = useState(0);
+  const [loading,      setLoading]     = useState(true);
+  const [searchTerm,   setSearchTerm]  = useState('');
+  const [filterCat,    setFilterCat]   = useState('all');
+  const [filterStatus, setFilterStatus]= useState('all');
+  const [successMsg,   setSuccessMsg]  = useState('');
+  const [error,        setError]       = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [currentPage,   setCurrentPage]   = useState(1);
-  const PRODUCTS_PER_PAGE = 10;
 
   // Modal
-  const [modalMode,      setModalMode]      = useState<'add' | 'edit' | 'view' | null>(null);
+  const [modalMode,       setModalMode]       = useState<'add' | 'edit' | 'view' | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [deleteTarget,   setDeleteTarget]   = useState<Product | null>(null);
+  const [deleteTarget,    setDeleteTarget]    = useState<Product | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // ── Auto-clear banners ──
   const showSuccess = (msg: string) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 4000); };
   const showError   = (msg: string) => { setError(msg);      setTimeout(() => setError(''),      5000); };
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
+  // ── Fetch products (server-side paginated + filtered) ──────────────────────
 
-  const fetchData = useCallback(async () => {
+  const fetchProducts = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const [pRes, cRes] = await Promise.all([
-        fetch('/api/admin/products',  { credentials: 'include' }),
-        fetch('/api/admin/categories',{ credentials: 'include' }),
-      ]);
-      const [pData, cData] = await Promise.all([pRes.json(), cRes.json()]);
-      if (pData.success) setProducts(pData.data);
-      if (cData.success) setCategories(cData.data);
+      const params = new URLSearchParams();
+      params.set('page',  String(page));
+      params.set('limit', String(ADMIN_PAGE_SIZE));
+      if (searchTerm.trim())      params.set('search',   searchTerm.trim());
+      if (filterStatus !== 'all') params.set('status',   filterStatus);
+      if (filterCat    !== 'all') params.set('category', filterCat);
+
+      const res  = await fetch(`/api/admin/products?${params.toString()}`, { credentials: 'include' });
+      const data = await res.json();
+      if (data.success) {
+        setProducts(data.data);
+        setTotal(data.total ?? data.data.length);
+        setTotalPages(data.totalPages ?? 1);
+      }
     } catch {
       showError('Failed to load products.');
     } finally {
       setLoading(false);
     }
+  }, [searchTerm, filterCat, filterStatus]);
+
+  // Fetch categories once
+  useEffect(() => {
+    fetch('/api/admin/categories', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setCategories(d.data); })
+      .catch(() => {});
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  // Re-fetch when page or filters change; reset to page 1 on filter change
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCat, filterStatus]);
+  useEffect(() => { fetchProducts(currentPage); }, [currentPage, fetchProducts]);
 
   // ── CRUD handlers ──────────────────────────────────────────────────────────
 
@@ -105,12 +125,11 @@ const ProductsPage = () => {
     if (!res.ok) throw new Error(json.message || 'Request failed');
 
     if (isEdit) {
-      setProducts(prev => prev.map(p => p._id === selectedProduct!._id ? json.data : p));
       showSuccess('Product updated successfully.');
     } else {
-      setProducts(prev => [json.data, ...prev]);
       showSuccess('Product created successfully.');
     }
+    fetchProducts(currentPage);
   };
 
   const handleToggleStatus = async (product: Product) => {
@@ -124,7 +143,7 @@ const ProductsPage = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      setProducts(prev => prev.map(p => p._id === product._id ? { ...p, status: newStatus } : p));
+      fetchProducts(currentPage);
     } catch (err) {
       showError((err as Error).message);
     } finally {
@@ -140,8 +159,8 @@ const ProductsPage = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      setProducts(prev => prev.filter(p => p._id !== deleteTarget._id));
       showSuccess('Product deleted successfully.');
+      fetchProducts(currentPage);
     } catch (err) {
       showError((err as Error).message);
     } finally {
@@ -150,25 +169,8 @@ const ProductsPage = () => {
     }
   };
 
-  // ── Filtered list ──────────────────────────────────────────────────────────
-
-  const filtered = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchCat =
-      filterCat === 'all' ||
-      taxonomyList(p).some(
-        c => (typeof c === 'object' && c && '_id' in c ? c._id : c) === filterCat
-      );
-    const matchStatus = filterStatus === 'all' || p.status === filterStatus;
-    return matchSearch && matchCat && matchStatus;
-  });
-
-  const totalPages  = Math.ceil(filtered.length / PRODUCTS_PER_PAGE);
-  const paginated   = filtered.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
-
-  // Reset to page 1 when filters shrink the result set
-  const safeCurrentPage = Math.min(currentPage, totalPages || 1);
-  if (safeCurrentPage !== currentPage) setCurrentPage(safeCurrentPage);
+  // products already filtered and paginated by server
+  const paginated = products;
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -241,8 +243,8 @@ const ProductsPage = () => {
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Products</h2>
             <span className="text-xs text-gray-400 font-medium">
-              {filtered.length > 0
-                ? `${(currentPage - 1) * PRODUCTS_PER_PAGE + 1}–${Math.min(currentPage * PRODUCTS_PER_PAGE, filtered.length)} of ${filtered.length}`
+              {total > 0
+                ? `${(currentPage - 1) * ADMIN_PAGE_SIZE + 1}–${Math.min(currentPage * ADMIN_PAGE_SIZE, total)} of ${total}`
                 : '0 products'}
             </span>
           </div>
@@ -251,7 +253,7 @@ const ProductsPage = () => {
             <div className="p-12 flex justify-center">
               <div className="w-8 h-8 border-2 border-[#0F4C69] border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : paginated.length === 0 ? (
             <div className="p-12 text-center">
               <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10l8 4" />

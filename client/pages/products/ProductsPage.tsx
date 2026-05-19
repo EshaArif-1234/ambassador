@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -111,21 +111,29 @@ const FEATURE_FILTERS: { key: ProductFeatureFilterKey; label: string; apiFlag: s
 
 const ALL = 'All Categories';
 
+const SORT_MAP: Record<string, string> = {
+  'name':       'name_asc',
+  'price-low':  'price_asc',
+  'price-high': 'price_desc',
+  'newest':     'newest',
+};
+
+const PAGE_SIZE = 12;
+
 const ProductsPage = () => {
-  const [rawProducts, setRawProducts] = useState<ApiProductRow[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([ALL]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState(ALL);
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 50000 });
-  const [sortBy, setSortBy] = useState('name');
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 0 });
+  const [sortBy, setSortBy] = useState('newest');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCartPopup, setShowCartPopup] = useState(false);
   const [addedProduct, setAddedProduct] = useState<Product | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const PRODUCTS_PER_PAGE = 10;
   const { addToCart } = useCart();
   const [features, setFeatures] = useState<Record<ProductFeatureFilterKey, boolean>>({
     freeShipping: false,
@@ -143,136 +151,80 @@ const ProductsPage = () => {
   });
   const searchParams = useSearchParams();
 
-  const catalogPriceMax = useMemo(() => {
-    if (!products.length) return 50000;
-    return Math.max(50000, ...products.map((p) => p.price), ...products.map((p) => p.originalPrice));
-  }, [products]);
+  // Sync URL params on mount
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    const searchParam   = searchParams.get('search');
+    if (categoryParam) setSelectedCategory(categoryParam);
+    if (searchParam)   setSearchTerm(searchParam);
+  }, [searchParams]);
 
+  // Fetch categories once
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/categories', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json?.success && Array.isArray(json.data)) {
+          setCategories([ALL, ...(json.data as { title: string }[]).map((c) => c.title).filter(Boolean)]);
+        }
+      })
+      .catch(() => { if (!cancelled) setCategories([ALL]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fetch products from server whenever any filter or page changes
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       setLoadError(null);
       try {
-        const res = await fetch('/api/products', { cache: 'no-store' });
+        const params = new URLSearchParams();
+        params.set('page',  String(currentPage));
+        params.set('limit', String(PAGE_SIZE));
+        if (searchTerm.trim())              params.set('search',   searchTerm.trim());
+        if (selectedCategory !== ALL)       params.set('category', selectedCategory);
+        if (priceRange.min > 0)             params.set('minPrice', String(priceRange.min));
+        if (priceRange.max > 0)             params.set('maxPrice', String(priceRange.max));
+        params.set('sort', SORT_MAP[sortBy] ?? 'newest');
+
+        const activeBrands = BRAND_FILTERS.filter(({ key }) => brands[key]).map(({ apiSlug }) => apiSlug);
+        if (activeBrands.length)            params.set('brands', activeBrands.join(','));
+
+        const activeFeats = FEATURE_FILTERS.filter(({ key }) => features[key]).map(({ apiFlag }) => apiFlag);
+        if (activeFeats.length)             params.set('features', activeFeats.join(','));
+
+        const res  = await fetch(`/api/products?${params.toString()}`, { cache: 'no-store' });
         const json = await res.json();
-        if (!json?.success || !Array.isArray(json.data)) {
-          throw new Error(json?.message || 'Failed to load products.');
-        }
+        if (!json?.success || !Array.isArray(json.data)) throw new Error(json?.message || 'Failed to load products.');
         if (cancelled) return;
-        setRawProducts(json.data as ApiProductRow[]);
+
+        let mapped = (json.data as ApiProductRow[]).map(mapApiToProduct);
+
+        // Availability is stock-based — cheap client-side filter on current page
+        if (availability.readyToShip) mapped = mapped.filter((p) => p.stock > 0);
+        if (availability.customOrder) mapped = mapped.filter((p) => p.stock <= 0);
+
+        setProducts(mapped);
+        setTotal(json.total ?? mapped.length);
+        setTotalPages(json.totalPages ?? 1);
       } catch (e) {
         if (!cancelled) {
           setLoadError(e instanceof Error ? e.message : 'Failed to load products.');
-          setRawProducts([]);
+          setProducts([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => { cancelled = true; };
+  }, [currentPage, searchTerm, selectedCategory, priceRange, sortBy, brands, features, availability]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch('/api/categories', { cache: 'no-store' });
-        const json = await res.json();
-        if (!cancelled && json?.success && Array.isArray(json.data)) {
-          const titles = (json.data as { title: string }[]).map((c) => c.title).filter(Boolean);
-          setCategories([ALL, ...titles]);
-        }
-      } catch {
-        if (!cancelled) setCategories([ALL]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Reset to page 1 when any filter changes (not page itself)
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedCategory, priceRange, sortBy, brands, features, availability]);
 
-  useEffect(() => {
-    setProducts(rawProducts.map(mapApiToProduct));
-  }, [rawProducts]);
-
-  useEffect(() => {
-    setPriceRange((prev) => ({ ...prev, max: Math.max(prev.max, catalogPriceMax) }));
-  }, [catalogPriceMax]);
-
-  useEffect(() => {
-    const categoryParam = searchParams.get('category');
-    const searchParam = searchParams.get('search');
-    if (categoryParam) setSelectedCategory(categoryParam);
-    if (searchParam) setSearchTerm(searchParam);
-  }, [searchParams]);
-
-  useEffect(() => {
-    let filtered = [...products];
-
-    if (selectedCategory && selectedCategory !== ALL) {
-      filtered = filtered.filter((product) => product.categoryTitles.includes(selectedCategory));
-    }
-
-    filtered = filtered.filter(
-      (product) => product.price >= priceRange.min && product.price <= priceRange.max
-    );
-
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(q) ||
-          product.category.toLowerCase().includes(q) ||
-          product.categoryTitles.some((t) => t.toLowerCase().includes(q))
-      );
-    }
-
-    for (const { key, apiFlag } of FEATURE_FILTERS) {
-      if (features[key]) {
-        filtered = filtered.filter((p) => p.features.includes(apiFlag));
-      }
-    }
-
-    const selectedBrandSlugs = BRAND_FILTERS.filter(({ key }) => brands[key]).map(
-      ({ apiSlug }) => apiSlug
-    );
-    if (selectedBrandSlugs.length > 0) {
-      filtered = filtered.filter((p) =>
-        selectedBrandSlugs.some((slug) => p.brands.includes(slug))
-      );
-    }
-
-    if (availability.readyToShip) filtered = filtered.filter((p) => p.stock > 0);
-    if (availability.customOrder) filtered = filtered.filter((p) => p.stock <= 0);
-
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'name':
-      default:
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-    }
-
-    setFilteredProducts(filtered);
-    setCurrentPage(1);
-  }, [
-    products,
-    selectedCategory,
-    priceRange,
-    sortBy,
-    searchTerm,
-    features,
-    brands,
-    availability,
-  ]);
+  const filteredProducts = products; // server already filtered
 
   const handleFeatureChange = (feature: ProductFeatureFilterKey, checked: boolean) => {
     setFeatures((prev) => ({ ...prev, [feature]: checked }));
@@ -304,8 +256,8 @@ const ProductsPage = () => {
 
   const clearFilters = () => {
     setSelectedCategory(ALL);
-    setPriceRange({ min: 0, max: catalogPriceMax });
-    setSortBy('name');
+    setPriceRange({ min: 0, max: 0 });
+    setSortBy('newest');
     setSearchTerm('');
     setFeatures({
       freeShipping: false,
@@ -454,8 +406,8 @@ const ProductsPage = () => {
                     <input
                       type="range"
                       min={0}
-                      max={catalogPriceMax}
-                      step={Math.max(1000, Math.ceil(catalogPriceMax / 500))}
+                      max={500000}
+                      step={1000}
                       value={priceRange.min}
                       onChange={(e) =>
                         setPriceRange({ ...priceRange, min: parseInt(e.target.value, 10) })
@@ -465,13 +417,13 @@ const ProductsPage = () => {
                   </div>
                   <div>
                     <label className="text-xs text-gray-600">
-                      Max: PKR {priceRange.max.toLocaleString()}
+                      Max: PKR {priceRange.max > 0 ? priceRange.max.toLocaleString() : 'Any'}
                     </label>
                     <input
                       type="range"
                       min={0}
-                      max={catalogPriceMax}
-                      step={Math.max(1000, Math.ceil(catalogPriceMax / 500))}
+                      max={500000}
+                      step={1000}
                       value={priceRange.max}
                       onChange={(e) =>
                         setPriceRange({ ...priceRange, max: parseInt(e.target.value, 10) })
@@ -502,9 +454,9 @@ const ProductsPage = () => {
                     <>
                       Showing{' '}
                       <span className="font-semibold">
-                        {Math.min((currentPage - 1) * PRODUCTS_PER_PAGE + 1, filteredProducts.length)}–{Math.min(currentPage * PRODUCTS_PER_PAGE, filteredProducts.length)}
+                        {total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)}
                       </span>{' '}
-                      of <span className="font-semibold">{filteredProducts.length}</span> products
+                      of <span className="font-semibold">{total}</span> products
                     </>
                   )}
                 </div>
@@ -515,6 +467,7 @@ const ProductsPage = () => {
                     onChange={(e) => setSortBy(e.target.value)}
                     className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 outline-none focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
                   >
+                    <option value="newest">Newest First</option>
                     <option value="name">Name</option>
                     <option value="price-low">Price: Low to High</option>
                     <option value="price-high">Price: High to Low</option>
@@ -534,7 +487,7 @@ const ProductsPage = () => {
               </div>
             ) : filteredProducts.length > 0 ? (
               <div className="space-y-4">
-                {filteredProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE).map((product) => {
+                {filteredProducts.map((product) => {
                   const showStrike =
                     product.originalPrice > product.price &&
                     product.price > 0;
@@ -659,9 +612,7 @@ const ProductsPage = () => {
             )}
 
             {/* ── Pagination ── */}
-            {!loading && filteredProducts.length > PRODUCTS_PER_PAGE && (() => {
-              const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
-
+            {!loading && totalPages > 1 && (() => {
               const getPages = (): (number | '…')[] => {
                 if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
                 const pages: (number | '…')[] = [1];
@@ -671,10 +622,8 @@ const ProductsPage = () => {
                 pages.push(totalPages);
                 return pages;
               };
-
               return (
                 <div className="mt-8 flex items-center justify-center gap-1.5">
-                  {/* Prev */}
                   <button
                     type="button"
                     disabled={currentPage === 1}
@@ -686,8 +635,6 @@ const ProductsPage = () => {
                     </svg>
                     Prev
                   </button>
-
-                  {/* Page numbers */}
                   <div className="flex items-center gap-1">
                     {getPages().map((page, idx) =>
                       page === '…' ? (
@@ -708,8 +655,6 @@ const ProductsPage = () => {
                       )
                     )}
                   </div>
-
-                  {/* Next */}
                   <button
                     type="button"
                     disabled={currentPage === totalPages}
