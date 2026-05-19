@@ -23,6 +23,31 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+/** GET /api/admin/products/[id] — fetch a single product with all fields */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const authError = await requireAdmin(req);
+  if (authError) return authError;
+
+  try {
+    await connectDB();
+    const { id } = await params;
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Invalid product ID.' }, { status: 400 });
+    }
+    const product = await Product.findById(id).populate('categories', 'title slug').lean();
+    if (!product) {
+      return NextResponse.json({ success: false, message: 'Product not found.' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true, data: product });
+  } catch (error) {
+    console.error('[GET /api/admin/products/[id]]', error);
+    return NextResponse.json({ success: false, message: 'Server error.' }, { status: 500 });
+  }
+}
+
 /** PATCH /api/admin/products/[id] — update product or toggle status */
 export async function PATCH(
   req: NextRequest,

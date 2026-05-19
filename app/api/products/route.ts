@@ -17,6 +17,7 @@ const LISTING_PROJECTION = {
   name: 1, slug: 1, price: 1, originalPrice: 1,
   stock: 1, status: 1, brands: 1, features: 1,
   categories: 1, images: { $slice: 1 }, createdAt: 1,
+  about: 1,
 };
 
 /** GET /api/products?page=1&limit=12&search=...&category=... */

@@ -169,6 +169,18 @@ const ProductsPage = () => {
     }
   };
 
+  // Fetch the full product document (listing projection omits specs, videos, about, etc.)
+  const openModal = async (product: Product, mode: 'edit' | 'view') => {
+    try {
+      const res  = await fetch(`/api/admin/products/${product._id}`, { credentials: 'include' });
+      const data = await res.json();
+      setSelectedProduct(data.success ? data.data : product);
+    } catch {
+      setSelectedProduct(product); // fallback to partial data
+    }
+    setModalMode(mode);
+  };
+
   // products already filtered and paginated by server
   const paginated = products;
 
@@ -381,7 +393,7 @@ const ProductsPage = () => {
                             type="button"
                             title="View product"
                             aria-label="View product"
-                            onClick={() => { setSelectedProduct(product); setModalMode('view'); }}
+                            onClick={() => openModal(product, 'view')}
                             className={adminIconActionBtn}
                           >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -393,7 +405,7 @@ const ProductsPage = () => {
                             type="button"
                             title="Edit product"
                             aria-label="Edit product"
-                            onClick={() => { setSelectedProduct(product); setModalMode('edit'); }}
+                            onClick={() => openModal(product, 'edit')}
                             className={adminIconActionBtn}
                           >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
