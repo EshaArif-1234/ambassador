@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
-import { migrateLegacyProductTaxonomy } from '@/backend/lib/migrateProductTaxonomy';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -15,12 +14,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Not found.' }, { status: 404 });
     }
 
     await connectDB();
-    await migrateLegacyProductTaxonomy(Product.collection);
 
     const product = await Product.findOne({ _id: id, status: 'active' })
       .populate('categories', 'title slug')
