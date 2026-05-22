@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -121,8 +121,9 @@ const SORT_MAP: Record<string, string> = {
 const PAGE_SIZE = 12;
 
 const ProductsPage = () => {
-  const searchParams = useSearchParams();
-  const router       = useRouter();
+  const searchParams  = useSearchParams();
+  const router        = useRouter();
+  const isMounted     = useRef(false);
 
   // ── Initialise all filter state from URL on first render ──
   const [products,  setProducts]  = useState<Product[]>([]);
@@ -198,13 +199,13 @@ const ProductsPage = () => {
     [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability]);
 
   // Respond to external navigation (e.g. header search bar using router.push)
-  // Only syncs `search` and `category` — the params the header controls
+  // Only syncs `search` and `category` — the params the header controls.
+  // Page reset on search/category change is handled by the filter-change effect below.
   useEffect(() => {
     const newSearch   = searchParams.get('search')   ?? '';
     const newCategory = searchParams.get('category') ?? ALL;
-    setSearchTerm(prev   => prev   !== newSearch   ? newSearch   : prev);
+    setSearchTerm(prev      => prev !== newSearch   ? newSearch   : prev);
     setSelectedCategory(prev => prev !== newCategory ? newCategory : prev);
-    setCurrentPage(1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -268,8 +269,11 @@ const ProductsPage = () => {
     return () => { cancelled = true; };
   }, [currentPage, searchTerm, selectedCategory, priceRange, sortBy, brands, features, availability]);
 
-  // Reset to page 1 when any filter changes (not page itself)
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedCategory, priceRange, sortBy, brands, features, availability]);
+  // Reset to page 1 when a filter changes — but NOT on initial mount (so ?page=13 survives a refresh)
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return; }
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, priceRange, sortBy, brands, features, availability]);
 
   const filteredProducts = products; // server already filtered
 
