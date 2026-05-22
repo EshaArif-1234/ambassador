@@ -494,17 +494,17 @@ const ProductsPage = () => {
                   return (
                     <div
                       key={product._id}
-                      className="group relative flex flex-col sm:flex-row overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:border-[#E36630]/30 transition-all duration-300 sm:h-56"
+                      className="group relative flex flex-col sm:flex-row overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:border-[#E36630]/30 transition-all duration-300 sm:h-64"
                     >
                       {/* ── Image ── */}
-                      <div className="relative h-52 w-full shrink-0 sm:h-full sm:w-56 overflow-hidden bg-[#EEF5F9]">
+                      <div className="relative h-64 w-full shrink-0 sm:h-full sm:w-72 overflow-hidden bg-[#EEF5F9]">
                         <Link href={`/products/${product._id}`} className="block absolute inset-0">
                           <Image
                             src={product.image}
                             alt={product.name}
                             fill
-                            className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-                            sizes="(max-width: 640px) 100vw, 224px"
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            sizes="(max-width: 640px) 100vw, 288px"
                           />
                         </Link>
 
