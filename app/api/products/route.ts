@@ -75,7 +75,8 @@ export async function GET(req: NextRequest) {
     }
 
     if (featsRaw) {
-      filter.features = { $in: featsRaw.split(',').map((f) => f.trim()).filter(Boolean) };
+      // AND logic — product must have every selected feature, not just one
+      filter.features = { $all: featsRaw.split(',').map((f) => f.trim()).filter(Boolean) };
     }
 
     const sortMap: Record<string, Record<string, 1 | -1>> = {

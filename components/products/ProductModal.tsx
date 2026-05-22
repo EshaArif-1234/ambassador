@@ -962,23 +962,46 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
                 </ul>
               </div>
               <div>
-                <label className="mb-2 block text-xs font-medium text-gray-600">Brand</label>
-                <p className="mb-2 text-[11px] text-gray-400">One or both</p>
-                <ul className="space-y-1.5 rounded-lg border border-gray-200 bg-white p-2">
-                  {PRODUCT_BRAND_OPTIONS.map((opt) => (
-                    <li key={opt.id}>
-                      <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-[#0F4C69]/5 sm:text-[13px]">
-                        <input
-                          type="checkbox"
-                          checked={form.brands.includes(opt.id)}
-                          onChange={() => toggleFormBrand(opt.id)}
-                          className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-[#0F4C69] focus:ring-[#0F4C69]/30"
-                        />
-                        <span className="text-gray-400">{opt.label}</span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
+                <label className="mb-1 block text-xs font-medium text-gray-600">
+                  Brand <span className="text-red-400">*</span>
+                </label>
+                <p className="mb-2 text-[11px] text-gray-400">Select one or both</p>
+                <div className="flex flex-col gap-2">
+                  {PRODUCT_BRAND_OPTIONS.map((opt) => {
+                    const selected = form.brands.includes(opt.id);
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => toggleFormBrand(opt.id)}
+                        className={`flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-all duration-150 ${
+                          selected
+                            ? 'border-[#E36630] bg-[#E36630]/8 shadow-sm'
+                            : 'border-gray-200 bg-white hover:border-[#E36630]/50 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                          selected ? 'border-[#E36630] bg-[#E36630]' : 'border-gray-300'
+                        }`}>
+                          {selected && (
+                            <svg className="h-2.5 w-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </span>
+                        <span className={`text-sm font-semibold ${selected ? 'text-[#E36630]' : 'text-gray-700'}`}>
+                          {opt.label}
+                        </span>
+                        {selected && (
+                          <span className="ml-auto rounded-full bg-[#E36630] px-1.5 py-0.5 text-[9px] font-bold text-white">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.brands.length === 0 && (
+                  <p className="mt-1.5 text-[11px] text-amber-500 font-medium">⚠ Please select at least one brand so it appears in filters</p>
+                )}
               </div>
             </div>
           </div>

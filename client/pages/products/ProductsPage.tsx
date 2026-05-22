@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
@@ -121,43 +121,81 @@ const SORT_MAP: Record<string, string> = {
 const PAGE_SIZE = 12;
 
 const ProductsPage = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([ALL]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState(ALL);
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 0 });
-  const [sortBy, setSortBy] = useState('newest');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showCartPopup, setShowCartPopup] = useState(false);
-  const [addedProduct, setAddedProduct] = useState<Product | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const { addToCart } = useCart();
-  const [features, setFeatures] = useState<Record<ProductFeatureFilterKey, boolean>>({
-    freeShipping: false,
-    onSale: false,
-    newArrival: false,
-    bestSeller: false,
-  });
-  const [brands, setBrands] = useState<Record<BrandFilterKey, boolean>>({
-    ambassador: false,
-    imported: false,
-  });
-  const [availability, setAvailability] = useState({
-    readyToShip: false,
-    customOrder: false,
-  });
   const searchParams = useSearchParams();
+  const router       = useRouter();
 
-  // Sync URL params on mount
-  useEffect(() => {
-    const categoryParam = searchParams.get('category');
-    const searchParam   = searchParams.get('search');
-    if (categoryParam) setSelectedCategory(categoryParam);
-    if (searchParam)   setSearchTerm(searchParam);
-  }, [searchParams]);
+  // ── Initialise all filter state from URL on first render ──
+  const [products,  setProducts]  = useState<Product[]>([]);
+  const [categories,setCategories]= useState<string[]>([ALL]);
+  const [loading,   setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [total,     setTotal]     = useState(0);
+  const [totalPages,setTotalPages]= useState(0);
+
+  const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || ALL);
+  const [searchTerm,  setSearchTerm]  = useState(() => searchParams.get('search')  || '');
+  const [sortBy,      setSortBy]      = useState(() => searchParams.get('sort')    || 'newest');
+  const [currentPage, setCurrentPage] = useState(() => Math.max(1, parseInt(searchParams.get('page') || '1', 10)));
+  const [priceRange,  setPriceRange]  = useState(() => ({
+    min: parseInt(searchParams.get('minPrice') || '0', 10),
+    max: parseInt(searchParams.get('maxPrice') || '0', 10),
+  }));
+  const [features, setFeatures] = useState<Record<ProductFeatureFilterKey, boolean>>(() => {
+    const f = (searchParams.get('features') || '').split(',').filter(Boolean);
+    return {
+      freeShipping: f.includes('free_shipping'),
+      onSale:       f.includes('on_sale'),
+      newArrival:   f.includes('new_arrival'),
+      bestSeller:   f.includes('best_seller'),
+    };
+  });
+  const [brands, setBrands] = useState<Record<BrandFilterKey, boolean>>(() => {
+    const b = (searchParams.get('brands') || '').split(',').filter(Boolean);
+    return { ambassador: b.includes('ambassador'), imported: b.includes('imported') };
+  });
+  const [availability, setAvailability] = useState(() => {
+    const b = (searchParams.get('brands') || '').split(',').filter(Boolean);
+    return { readyToShip: b.includes('imported'), customOrder: b.includes('ambassador') };
+  });
+
+  const [showCartPopup, setShowCartPopup] = useState(false);
+  const [addedProduct,  setAddedProduct]  = useState<Product | null>(null);
+  const { addToCart } = useCart();
+
+  // ── Write all active filters back to the URL (replaceState — no history entry) ──
+  const syncURL = useCallback((overrides: Record<string, string> = {}) => {
+    const p = new URLSearchParams();
+    const cat  = overrides.category  ?? selectedCategory;
+    const q    = overrides.search    ?? searchTerm;
+    const sort = overrides.sort      ?? sortBy;
+    const page = overrides.page      ?? String(currentPage);
+    const minP = overrides.minPrice  ?? String(priceRange.min);
+    const maxP = overrides.maxPrice  ?? String(priceRange.max);
+    const feat = overrides.features  ?? FEATURE_FILTERS.filter(({ key }) => features[key as ProductFeatureFilterKey]).map(({ apiFlag }) => apiFlag).join(',');
+    const br   = overrides.brands    ?? (() => {
+      const set = new Set(BRAND_FILTERS.filter(({ key }) => brands[key as BrandFilterKey]).map(({ apiSlug }) => apiSlug));
+      if (availability.readyToShip) set.add('imported');
+      if (availability.customOrder) set.add('ambassador');
+      return [...set].join(',');
+    })();
+
+    if (cat  && cat  !== ALL) p.set('category', cat);
+    if (q.trim())             p.set('search',   q.trim());
+    if (sort !== 'newest')    p.set('sort',      sort);
+    if (page !== '1')         p.set('page',      page);
+    if (Number(minP) > 0)     p.set('minPrice',  minP);
+    if (Number(maxP) > 0)     p.set('maxPrice',  maxP);
+    if (feat)                 p.set('features',  feat);
+    if (br)                   p.set('brands',    br);
+
+    const qs = p.toString();
+    router.replace(qs ? `?${qs}` : '?', { scroll: false });
+  }, [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability, router]);
+
+  // Sync URL whenever any filter changes
+  useEffect(() => { syncURL(); },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability]);
 
   // Fetch categories once
   useEffect(() => {
@@ -189,8 +227,11 @@ const ProductsPage = () => {
         if (priceRange.max > 0)             params.set('maxPrice', String(priceRange.max));
         params.set('sort', SORT_MAP[sortBy] ?? 'newest');
 
-        const activeBrands = BRAND_FILTERS.filter(({ key }) => brands[key]).map(({ apiSlug }) => apiSlug);
-        if (activeBrands.length)            params.set('brands', activeBrands.join(','));
+        // Merge brand checkboxes + availability into a single brands param
+        const activeBrands = new Set(BRAND_FILTERS.filter(({ key }) => brands[key]).map(({ apiSlug }) => apiSlug));
+        if (availability.readyToShip) activeBrands.add('imported');
+        if (availability.customOrder) activeBrands.add('ambassador');
+        if (activeBrands.size)              params.set('brands', [...activeBrands].join(','));
 
         const activeFeats = FEATURE_FILTERS.filter(({ key }) => features[key]).map(({ apiFlag }) => apiFlag);
         if (activeFeats.length)             params.set('features', activeFeats.join(','));
@@ -200,12 +241,7 @@ const ProductsPage = () => {
         if (!json?.success || !Array.isArray(json.data)) throw new Error(json?.message || 'Failed to load products.');
         if (cancelled) return;
 
-        let mapped = (json.data as ApiProductRow[]).map(mapApiToProduct);
-
-        // Availability is stock-based — cheap client-side filter on current page
-        if (availability.readyToShip) mapped = mapped.filter((p) => p.stock > 0);
-        if (availability.customOrder) mapped = mapped.filter((p) => p.stock <= 0);
-
+        const mapped = (json.data as ApiProductRow[]).map(mapApiToProduct);
         setProducts(mapped);
         setTotal(json.total ?? mapped.length);
         setTotalPages(json.totalPages ?? 1);
