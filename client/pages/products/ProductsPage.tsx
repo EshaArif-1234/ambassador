@@ -192,10 +192,21 @@ const ProductsPage = () => {
     router.replace(qs ? `?${qs}` : '?', { scroll: false });
   }, [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability, router]);
 
-  // Sync URL whenever any filter changes
+  // Sync URL whenever any filter changes (internal — uses router.replace so no history entry)
   useEffect(() => { syncURL(); },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability]);
+
+  // Respond to external navigation (e.g. header search bar using router.push)
+  // Only syncs `search` and `category` — the params the header controls
+  useEffect(() => {
+    const newSearch   = searchParams.get('search')   ?? '';
+    const newCategory = searchParams.get('category') ?? ALL;
+    setSearchTerm(prev   => prev   !== newSearch   ? newSearch   : prev);
+    setSelectedCategory(prev => prev !== newCategory ? newCategory : prev);
+    setCurrentPage(1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Fetch categories once
   useEffect(() => {
@@ -343,17 +354,6 @@ const ProductsPage = () => {
           <div className="w-full lg:w-64 flex-shrink-0">
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-6">Filters</h2>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search products..."
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
-                />
-              </div>
 
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Category</h3>

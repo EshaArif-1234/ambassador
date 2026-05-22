@@ -41,10 +41,25 @@ export async function GET(req: NextRequest) {
     const filter: Record<string, unknown> = { status: 'active' };
 
     if (search) {
-      if (search.length >= 2) {
+      // Find categories whose title partially matches the search term
+      const matchingCats = await Category.find({
+        title: { $regex: escapeRegex(search), $options: 'i' },
+        $nor: [{ status: { $regex: /^inactive$/i } }],
+      }).select('_id').lean();
+
+      const nameCondition = { name: { $regex: escapeRegex(search), $options: 'i' } };
+
+      if (matchingCats.length > 0) {
+        // Search matches both product name AND category name — use $or so either qualifies
+        filter.$or = [
+          nameCondition,
+          { categories: { $in: matchingCats.map((c) => c._id) } },
+        ];
+      } else if (search.length >= 2) {
+        // No category match — use fast text index on product name
         filter.$text = { $search: search };
       } else {
-        filter.name = { $regex: escapeRegex(search), $options: 'i' };
+        filter.name = nameCondition.name;
       }
     }
 
