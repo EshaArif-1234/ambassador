@@ -2,6 +2,8 @@ import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
 export interface IReview extends Document {
   productId: Types.ObjectId;
+  /** Ties review to a specific purchase — one review per order line, not per product globally. */
+  orderId?: Types.ObjectId;
   reviewerName: string;
   reviewerEmail: string;
   rating: number;
@@ -17,6 +19,11 @@ const reviewSchema = new Schema<IReview>(
       type: Schema.Types.ObjectId,
       ref: 'Product',
       required: [true, 'Product is required'],
+    },
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Order',
+      index: true,
     },
     reviewerName: {
       type: String,
@@ -49,6 +56,14 @@ const reviewSchema = new Schema<IReview>(
     },
   },
   { timestamps: true }
+);
+
+reviewSchema.index(
+  { orderId: 1, productId: 1, reviewerEmail: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { orderId: { $type: 'objectId' } },
+  }
 );
 
 if (process.env.NODE_ENV !== 'production' && mongoose.models.Review) {

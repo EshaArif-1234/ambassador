@@ -6,10 +6,7 @@ import Review from '@/backend/models/Review.model';
 import User from '@/backend/models/User.model';
 import { sendReviewThankYouEmail } from '@/utils/email.util';
 import { verifyToken, extractToken } from '@/utils/jwt.util';
-import {
-  findUserProductReview,
-  userHasDeliveredProduct,
-} from '@/utils/reviewEligibility.util';
+import { validateOrderProductReview } from '@/utils/reviewEligibility.util';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -105,6 +102,7 @@ export async function POST(
 
     const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, 1000) : '';
     const ratingNum = Number(body.rating);
+    const orderIdRaw = typeof body.orderId === 'string' ? body.orderId.trim() : '';
 
     if (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 5) {
       return NextResponse.json(
@@ -121,6 +119,8 @@ export async function POST(
     let reviewerEmailRaw =
       typeof body.reviewerEmail === 'string' ? body.reviewerEmail.trim().toLowerCase() : '';
 
+    let orderIdForReview: string | undefined;
+
     if (token) {
       const decoded = verifyToken(token);
       const user = await User.findById(decoded.id).select('fullName email').lean();
@@ -128,28 +128,22 @@ export async function POST(
         reviewerName = user.fullName?.trim() || reviewerName;
         reviewerEmailRaw = user.email;
 
-        const existing = await findUserProductReview(user.email, id);
-        if (existing) {
+        if (!orderIdRaw || !mongoose.Types.ObjectId.isValid(orderIdRaw)) {
           return NextResponse.json(
-            {
-              success: false,
-              message: 'You have already submitted a review for this product.',
-              data: { reviewId: String(existing._id) },
-            },
-            { status: 409 }
+            { success: false, message: 'Order id is required to submit a review.' },
+            { status: 400 }
           );
         }
 
-        const eligible = await userHasDeliveredProduct(user.email, id);
-        if (!eligible) {
+        const eligibility = await validateOrderProductReview(user.email, orderIdRaw, id);
+        if (!eligibility.ok) {
           return NextResponse.json(
-            {
-              success: false,
-              message: 'You can write a review after your order has been delivered.',
-            },
-            { status: 403 }
+            { success: false, message: eligibility.message },
+            { status: eligibility.status }
           );
         }
+
+        orderIdForReview = orderIdRaw;
       }
     }
 
@@ -164,6 +158,7 @@ export async function POST(
 
     const review = await Review.create({
       productId: id,
+      orderId: orderIdForReview,
       reviewerName,
       reviewerEmail: reviewerEmailRaw,
       rating: ratingNum,
@@ -188,7 +183,13 @@ export async function POST(
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && (error as { code: number }).code === 11000) {
+      return NextResponse.json(
+        { success: false, message: 'You have already submitted a review for this order.' },
+        { status: 409 }
+      );
+    }
     console.error('[POST /api/products/[id]/reviews]', error);
     return NextResponse.json({ success: false, message: 'Server error.' }, { status: 500 });
   }

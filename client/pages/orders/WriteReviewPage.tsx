@@ -38,7 +38,7 @@ export default function WriteReviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const lineItem = order?.items.find((it) => it.productId === productId);
+  const lineItem = order?.items.find((it) => String(it.productId) === productId);
 
   const checkExisting = useCallback(async () => {
     const res = await fetch(`/api/orders/${orderId}/review-status`, { credentials: 'include' });
@@ -109,7 +109,7 @@ export default function WriteReviewPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, comment }),
+        body: JSON.stringify({ rating, comment, orderId }),
       });
       const json = await res.json();
 

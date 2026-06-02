@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
+import { formatDeliveryAddress, totalItemQuantity } from '@/utils/orderDisplay.util';
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
@@ -102,7 +103,6 @@ export default function OrderDetailsPage() {
   const [order, setOrder]     = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
-  const [cancelling, setCancelling] = useState(false);
   const [reviewByProduct, setReviewByProduct] = useState<Record<string, ReviewItemStatus>>({});
 
   const load = useCallback(() => {
@@ -128,26 +128,6 @@ export default function OrderDetailsPage() {
       .catch(() => {});
   }, [order, id]);
 
-  const cancelOrder = async () => {
-    if (!order) return;
-    setCancelling(true);
-    try {
-      const res = await fetch(`/api/orders/${order._id}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'cancel' }),
-      });
-      const d = await res.json();
-      if (d.success) setOrder(d.data);
-      else setError(d.message);
-    } catch {
-      setError('Failed to cancel order.');
-    } finally {
-      setCancelling(false);
-    }
-  };
-
   if (authLoading) {
     return <AccountPageLoader />;
   }
@@ -162,7 +142,6 @@ export default function OrderDetailsPage() {
   );
 
   const handlingFee = order ? Math.max(order.totalAmount - order.subtotal - order.deliveryCharges, 0) : 0;
-  const canCancel = order && ['pending', 'confirmed', 'processing'].includes(order.status);
   const isDelivered = order?.status === 'delivered';
   const showReviewButton = (productId?: string) =>
     Boolean(isDelivered && productId);
@@ -216,7 +195,7 @@ export default function OrderDetailsPage() {
                   {order.status === 'delivered'
                     ? `Package delivered! ${fmtDate(order.deliveryDate || order.updatedAt)}`
                     : order.status === 'cancelled'
-                    ? 'Order cancelled'
+                    ? 'This order was cancelled by the store'
                     : 'Your package is on the way'}
                 </p>
               </div>
@@ -298,16 +277,6 @@ export default function OrderDetailsPage() {
                             show={showReviewButton(item.productId)}
                           />
                         )}
-                        {canCancel && (
-                          <button
-                            type="button"
-                            onClick={cancelOrder}
-                            disabled={cancelling}
-                            className="text-sm text-red-500 hover:text-red-600 font-medium disabled:opacity-50 text-center"
-                          >
-                            {cancelling ? 'Cancelling…' : 'Cancel'}
-                          </button>
-                        )}
                       </div>
                     </div>
 
@@ -328,16 +297,6 @@ export default function OrderDetailsPage() {
                             show={showReviewButton(item.productId)}
                           />
                         )}
-                        {canCancel && (
-                          <button
-                            type="button"
-                            onClick={cancelOrder}
-                            disabled={cancelling}
-                            className="text-sm text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
-                          >
-                            {cancelling ? 'Cancelling…' : 'Cancel'}
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -349,13 +308,28 @@ export default function OrderDetailsPage() {
             <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-6 py-5">
               <p className="text-sm font-semibold text-gray-900 mb-3">Order {order.orderNumber}</p>
               <div className="space-y-1.5 text-sm text-gray-500">
-                <p>Placed on {fmtDateTime(order.createdAt)}</p>
-                {order.paidAt && <p>Paid on {fmtDateTime(order.paidAt)}</p>}
-                {isDelivered && <p>Delivered on {fmtDateTime(order.deliveryDate || order.updatedAt)}</p>}
+                {order.status === 'cancelled' ? (
+                  <>
+                    <p>Cancelled on {fmtDateTime(order.updatedAt ?? order.createdAt)}</p>
+                    <p>Originally ordered on {fmtDateTime(order.createdAt)}</p>
+                  </>
+                ) : (
+                  <>
+                    <p>Ordered on {fmtDateTime(order.createdAt)}</p>
+                    {order.paidAt && order.paymentStatus === 'paid' && (
+                      <p>Paid on {fmtDateTime(order.paidAt)}</p>
+                    )}
+                    {isDelivered && (
+                      <p>Delivered on {fmtDateTime(order.deliveryDate || order.updatedAt)}</p>
+                    )}
+                  </>
+                )}
               </div>
-              <p className="text-sm font-medium text-gray-700 mt-3">
-                Paid by {order.gatewayMethod || order.paymentMethod}
-              </p>
+              {order.status !== 'cancelled' && (
+                <p className="text-sm font-medium text-gray-700 mt-3">
+                  Paid by {order.gatewayMethod || order.paymentMethod}
+                </p>
+              )}
             </div>
 
             {/* Address + Summary */}
@@ -367,8 +341,7 @@ export default function OrderDetailsPage() {
                   <span className="px-2 py-0.5 rounded-full bg-[#E36630]/10 text-[#E36630] text-[10px] font-bold uppercase tracking-wide">Home</span>
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  {[order.shippingAddress.street, order.shippingAddress.city, order.shippingAddress.state, order.shippingAddress.country]
-                    .filter(Boolean).join(', ')}
+                  {formatDeliveryAddress(order.shippingAddress) ?? 'Address not available'}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">{order.customerPhone}</p>
               </div>
@@ -378,7 +351,7 @@ export default function OrderDetailsPage() {
                 <h2 className="text-base font-semibold text-gray-900 mb-4">Total Summary</h2>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between text-gray-600">
-                    <span>Subtotal ({order.items.length} Item{order.items.length !== 1 ? 's' : ''})</span>
+                    <span>Subtotal ({totalItemQuantity(order.items)} item{totalItemQuantity(order.items) !== 1 ? 's' : ''})</span>
                     <span>Rs. {order.subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">

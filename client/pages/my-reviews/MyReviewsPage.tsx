@@ -9,6 +9,8 @@ import AccountPageLoader from '@/components/account/AccountPageLoader';
 interface Review {
   _id: string;
   productId: string;
+  orderId?: string;
+  orderNumber?: string;
   productName?: string;
   rating: number;
   comment: string;
@@ -83,6 +85,9 @@ export default function MyReviewsPage() {
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
                     <p className="font-semibold text-gray-900 text-sm">{review.productName ?? 'Product'}</p>
+                    {review.orderNumber && (
+                      <p className="text-xs text-gray-500 mt-0.5">Order {review.orderNumber}</p>
+                    )}
                     <div className="flex items-center gap-0.5 mt-1">
                       {STARS.map(s => (
                         <svg key={s} className={`w-4 h-4 ${s <= review.rating ? 'text-yellow-400' : 'text-gray-200'}`} fill="currentColor" viewBox="0 0 20 20">

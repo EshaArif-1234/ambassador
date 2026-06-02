@@ -23,7 +23,9 @@ export async function GET(req: NextRequest) {
 
     const orders = await Order.find({ customerEmail: user.email })
       .sort({ createdAt: -1 })
-      .select('orderNumber status createdAt items totalAmount shippingAddress')
+      .select(
+        'orderNumber status createdAt updatedAt items subtotal deliveryCharges totalAmount shippingAddress paymentStatus paidAt deliveryDate'
+      )
       .lean();
 
     for (const order of orders) {
