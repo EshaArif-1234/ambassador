@@ -3,7 +3,13 @@ import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
+import User from '@/backend/models/User.model';
 import { sendReviewThankYouEmail } from '@/utils/email.util';
+import { verifyToken, extractToken } from '@/utils/jwt.util';
+import {
+  findUserProductReview,
+  userHasDeliveredProduct,
+} from '@/utils/reviewEligibility.util';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -97,16 +103,9 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'Invalid request.' }, { status: 400 });
     }
 
-    const reviewerName =
-      typeof body.reviewerName === 'string' ? body.reviewerName.trim() : '';
-    const reviewerEmailRaw =
-      typeof body.reviewerEmail === 'string' ? body.reviewerEmail.trim().toLowerCase() : '';
     const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, 1000) : '';
     const ratingNum = Number(body.rating);
 
-    if (!reviewerName) {
-      return NextResponse.json({ success: false, message: 'Name is required.' }, { status: 400 });
-    }
     if (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 5) {
       return NextResponse.json(
         { success: false, message: 'Rating must be between 1 and 5.' },
@@ -115,6 +114,48 @@ export async function POST(
     }
 
     await connectDB();
+
+    const token = extractToken(req);
+    let reviewerName =
+      typeof body.reviewerName === 'string' ? body.reviewerName.trim() : '';
+    let reviewerEmailRaw =
+      typeof body.reviewerEmail === 'string' ? body.reviewerEmail.trim().toLowerCase() : '';
+
+    if (token) {
+      const decoded = verifyToken(token);
+      const user = await User.findById(decoded.id).select('fullName email').lean();
+      if (user?.email) {
+        reviewerName = user.fullName?.trim() || reviewerName;
+        reviewerEmailRaw = user.email;
+
+        const existing = await findUserProductReview(user.email, id);
+        if (existing) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'You have already submitted a review for this product.',
+              data: { reviewId: String(existing._id) },
+            },
+            { status: 409 }
+          );
+        }
+
+        const eligible = await userHasDeliveredProduct(user.email, id);
+        if (!eligible) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'You can write a review after your order has been delivered.',
+            },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
+    if (!reviewerName) {
+      return NextResponse.json({ success: false, message: 'Name is required.' }, { status: 400 });
+    }
 
     const product = await Product.findOne({ _id: id, status: 'active' }).select('name').lean();
     if (!product) {

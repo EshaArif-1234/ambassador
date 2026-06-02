@@ -6,6 +6,7 @@ export interface OrderItemLike {
   productId?: string;
   productName?: string;
   productImage?: string;
+  productCode?: string;
   sku?: string;
   quantity?: number;
   price?: number;
@@ -13,11 +14,24 @@ export interface OrderItemLike {
   [key: string]: unknown;
 }
 
+export type EnrichedOrderItem = IOrderItem & { productCode?: string; category?: string };
+
 const UNKNOWN = 'Unknown Product';
 
 function needsName(item: OrderItemLike): boolean {
   const n = (item.productName ?? '').trim();
   return !n || n === UNKNOWN;
+}
+
+function isMongoId(value: string): boolean {
+  return mongoose.Types.ObjectId.isValid(value) && String(value).length === 24;
+}
+
+function codeFromSpecs(specs?: Record<string, string>): string | undefined {
+  if (!specs) return undefined;
+  const code = specs['Product Code'] || specs['product code'];
+  const trimmed = code?.trim();
+  return trimmed || undefined;
 }
 
 function cloudinaryKey(url: string): string {
@@ -32,65 +46,102 @@ function cloudinaryKey(url: string): string {
   }
 }
 
-/** Resolve product name/image for order line items (mutates copies, returns enriched array). */
+type ProductHit = { name: string; images: string[]; productCode?: string; category?: string; id: string };
+
+function categoryLabel(categories: unknown): string | undefined {
+  if (!Array.isArray(categories) || !categories.length) return undefined;
+  const titles = categories
+    .map((c) => (typeof c === 'object' && c && 'title' in c ? String((c as { title?: string }).title ?? '') : ''))
+    .filter(Boolean);
+  return titles.length ? titles.join(', ') : undefined;
+}
+
+function registerProduct(
+  map: Map<string, ProductHit>,
+  p: {
+    _id: unknown;
+    name: string;
+    images?: string[];
+    specifications?: Record<string, string>;
+    categories?: unknown;
+  }
+) {
+  const id = String(p._id);
+  const entry: ProductHit = {
+    id,
+    name: String(p.name),
+    images: p.images ?? [],
+    productCode: codeFromSpecs(p.specifications as Record<string, string> | undefined),
+    category: categoryLabel(p.categories),
+  };
+  map.set(id, entry);
+  if (entry.productCode) map.set(entry.productCode, entry);
+}
+
+/** Resolve product name, image, and product code for order line items. */
 export async function enrichOrderItems<T extends OrderItemLike>(items: T[]): Promise<T[]> {
   if (!items.length) return items;
 
   const out = items.map((it) => ({ ...it }));
-  const pending = out.filter(needsName);
-  if (!pending.length) return out;
-
   const idSet = new Set<string>();
-  const skus = new Set<string>();
+  const codeLookups = new Set<string>();
 
-  for (const it of pending) {
-    for (const raw of [it.productId, it.sku]) {
-      if (raw && mongoose.Types.ObjectId.isValid(String(raw))) {
-        idSet.add(String(raw));
-      }
+  for (const it of out) {
+    if (it.productId && isMongoId(String(it.productId))) idSet.add(String(it.productId));
+    if (it.sku) {
+      const s = String(it.sku).trim();
+      if (isMongoId(s)) idSet.add(s);
+      else if (s) codeLookups.add(s);
     }
-    if (it.sku && String(it.sku).trim()) skus.add(String(it.sku).trim());
+    const rawCode = (it.productCode as string) || '';
+    if (rawCode.trim() && !isMongoId(rawCode.trim())) codeLookups.add(rawCode.trim());
   }
 
-  const byId = new Map<string, { name: string; images: string[] }>();
-  const bySku = new Map<string, { name: string; images: string[] }>();
-  const byImage = new Map<string, { name: string; images: string[] }>();
+  const catalog = new Map<string, ProductHit>();
 
   if (idSet.size > 0) {
-    const rows = await Product.find({ _id: { $in: [...idSet] } }).select('name images').lean();
-    for (const p of rows) byId.set(String(p._id), { name: String(p.name), images: p.images ?? [] });
+    const rows = await Product.find({ _id: { $in: [...idSet] } })
+      .select('name images specifications categories')
+      .populate('categories', 'title')
+      .lean();
+    for (const p of rows) registerProduct(catalog, p);
   }
 
-  if (skus.size > 0) {
-    const skuList = [...skus];
+  if (codeLookups.size > 0) {
+    const codes = [...codeLookups];
     const rows = await Product.find({
       $or: [
-        { _id: { $in: skuList.filter((s) => mongoose.Types.ObjectId.isValid(s)) } },
-        { 'specifications.Product Code': { $in: skuList } },
-        { 'specifications.product code': { $in: skuList } },
+        { 'specifications.Product Code': { $in: codes } },
+        { 'specifications.product code': { $in: codes } },
       ],
     })
-      .select('name images specifications')
+      .select('name images specifications categories')
+      .populate('categories', 'title')
       .lean();
-
-    for (const p of rows) {
-      const entry = { name: String(p.name), images: p.images ?? [] };
-      byId.set(String(p._id), entry);
-      const specs = (p.specifications ?? {}) as Record<string, string>;
-      const code = specs['Product Code'] || specs['product code'];
-      if (code) bySku.set(String(code).trim(), entry);
-    }
+    for (const p of rows) registerProduct(catalog, p);
   }
 
-  for (const it of pending) {
-    if (!it.productImage || !needsName(it)) continue;
+  const byImage = new Map<string, ProductHit>();
+
+  for (const it of out) {
+    if (!it.productImage || byImage.has(cloudinaryKey(String(it.productImage)))) continue;
     const key = cloudinaryKey(String(it.productImage));
-    if (!key || byImage.has(key)) continue;
+    if (!key) continue;
 
     const url = String(it.productImage);
-    const exact = await Product.findOne({ images: url }).select('name images').lean();
+    const exact = await Product.findOne({ images: url })
+      .select('name images specifications categories')
+      .populate('categories', 'title')
+      .lean();
     if (exact) {
-      byImage.set(key, { name: String(exact.name), images: exact.images ?? [] });
+      const hit: ProductHit = {
+        id: String(exact._id),
+        name: String(exact.name),
+        images: exact.images ?? [],
+        productCode: codeFromSpecs(exact.specifications as Record<string, string>),
+        category: categoryLabel(exact.categories),
+      };
+      byImage.set(key, hit);
       continue;
     }
 
@@ -99,42 +150,77 @@ export async function enrichOrderItems<T extends OrderItemLike>(items: T[]): Pro
       const partial = await Product.findOne({
         images: { $elemMatch: { $regex: tail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') } },
       })
-        .select('name images')
+        .select('name images specifications categories')
+        .populate('categories', 'title')
         .lean();
       if (partial) {
-        byImage.set(key, { name: String(partial.name), images: partial.images ?? [] });
+        byImage.set(key, {
+          id: String(partial._id),
+          name: String(partial.name),
+          images: partial.images ?? [],
+          productCode: codeFromSpecs(partial.specifications as Record<string, string>),
+          category: categoryLabel(partial.categories),
+        });
       }
     }
   }
 
+  const resolveHit = (it: OrderItemLike): ProductHit | undefined => {
+    if (it.productId) {
+      const hit = catalog.get(String(it.productId));
+      if (hit) return hit;
+    }
+    if (it.sku) {
+      const s = String(it.sku).trim();
+      const hit = catalog.get(s);
+      if (hit) return hit;
+    }
+    if (it.productImage) {
+      return byImage.get(cloudinaryKey(String(it.productImage)));
+    }
+    return undefined;
+  };
+
   return out.map((it) => {
-    if (!needsName(it)) return it;
+    const hit = resolveHit(it);
+    const storedSku = it.sku ? String(it.sku).trim() : '';
+    const legacyCode =
+      storedSku && !isMongoId(storedSku) ? storedSku : undefined;
 
-    let hit: { name: string; images: string[] } | undefined;
-    if (it.productId) hit = byId.get(String(it.productId));
-    if (!hit && it.sku) {
-      hit = byId.get(String(it.sku)) ?? bySku.get(String(it.sku).trim());
-    }
-    if (!hit && it.productImage) {
-      hit = byImage.get(cloudinaryKey(String(it.productImage)));
-    }
+    const productId =
+      (it.productId && isMongoId(String(it.productId)) ? String(it.productId) : undefined) ||
+      (storedSku && isMongoId(storedSku) ? storedSku : undefined) ||
+      hit?.id;
 
-    if (!hit) return it;
+    const productCode = hit?.productCode ?? legacyCode;
+    const productName = hit?.name ?? (needsName(it) ? it.productName : it.productName);
+    const productImage =
+      it.productImage || hit?.images[0] || '';
+
+    const sku = productCode;
 
     return {
       ...it,
-      productName: hit.name,
-      productImage: it.productImage || hit.images[0] || '',
-      productId: it.productId || (mongoose.Types.ObjectId.isValid(String(it.sku ?? '')) ? String(it.sku) : it.productId),
-    };
+      productId,
+      productName: productName ?? UNKNOWN,
+      productImage,
+      productCode,
+      category: hit?.category ?? (it.category as string | undefined),
+      sku,
+    } as T;
   });
 }
 
 /** Ensure enriched items satisfy IOrderItem required fields. */
-export function toOrderItems(items: OrderItemLike[]): IOrderItem[] {
+export function toOrderItems(items: OrderItemLike[]): EnrichedOrderItem[] {
   return items.map((it) => {
     const qty = Number(it.quantity) || 1;
     const price = Number(it.price) || 0;
+    const storedSku = it.sku ? String(it.sku).trim() : '';
+    const productCode =
+      (it.productCode as string | undefined) ||
+      (storedSku && !isMongoId(storedSku) ? storedSku : undefined);
+
     return {
       productId: it.productId,
       productName: it.productName ?? UNKNOWN,
@@ -142,23 +228,31 @@ export function toOrderItems(items: OrderItemLike[]): IOrderItem[] {
       quantity: qty,
       price,
       total: Number(it.total) || price * qty,
-      sku: it.sku,
+      sku: productCode,
+      productCode,
+      category: it.category as string | undefined,
     };
   });
 }
 
-/** Enrich line items and return a typed IOrderItem[]. */
-export async function enrichOrderItemsList(items: IOrderItem[]): Promise<IOrderItem[]> {
+/** Enrich line items and return a typed list with catalog-backed fields. */
+export async function enrichOrderItemsList(items: IOrderItem[]): Promise<EnrichedOrderItem[]> {
   return toOrderItems(await enrichOrderItems(items as OrderItemLike[]));
 }
 
 /** Map raw cart/payment payload to order item schema fields. */
 export function mapRawOrderItem(item: Record<string, unknown>): IOrderItem {
-  const productId =
+  const rawId =
     (item._id as string) ||
     (item.productId as string) ||
     (item.id as string) ||
     undefined;
+
+  const rawCode = String((item.productCode as string) || (item.sku as string) || '').trim();
+  const codeIsId = rawCode && isMongoId(rawCode);
+
+  const productId = rawId || (codeIsId ? rawCode : undefined);
+  const productCode = rawCode && !codeIsId ? rawCode : undefined;
 
   const qty = Number(item.quantity) || 1;
   const price = Number(item.price) || 0;
@@ -174,6 +268,6 @@ export function mapRawOrderItem(item: Record<string, unknown>): IOrderItem {
     quantity: qty,
     price,
     total: price * qty,
-    sku: (item.sku as string) || (item.productCode as string) || undefined,
+    sku: productCode,
   };
 }

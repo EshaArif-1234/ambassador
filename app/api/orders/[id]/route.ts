@@ -86,7 +86,10 @@ export async function PATCH(
       }
       order.status = 'cancelled';
       await order.save();
-      return NextResponse.json({ success: true, message: 'Order cancelled.', data: order });
+      const items = Array.isArray(order.items) ? (order.items as IOrderItem[]) : [];
+      const data = order.toObject();
+      data.items = await enrichOrderItemsList(items);
+      return NextResponse.json({ success: true, message: 'Order cancelled.', data });
     }
 
     return NextResponse.json({ success: false, message: 'Unsupported action.' }, { status: 400 });

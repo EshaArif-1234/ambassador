@@ -7,13 +7,34 @@ import AccountPageLoader from '@/components/account/AccountPageLoader';
 import { authApi } from '@/utils/auth.api';
 import Link from 'next/link';
 
+type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
 interface RecentOrder {
   _id: string;
   orderNumber: string;
   createdAt: string;
+  status: OrderStatus;
   totalAmount: number;
   items: { productName: string; productImage?: string }[];
 }
+
+const STATUS_STYLES: Record<OrderStatus, string> = {
+  pending:    'bg-yellow-100 text-yellow-800',
+  confirmed:  'bg-blue-100 text-blue-800',
+  processing: 'bg-purple-100 text-purple-800',
+  shipped:    'bg-indigo-100 text-indigo-800',
+  delivered:  'bg-green-100 text-green-800',
+  cancelled:  'bg-red-100 text-red-800',
+};
+
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  pending:    'Pending',
+  confirmed:  'Confirmed',
+  processing: 'Processing',
+  shipped:    'Shipped',
+  delivered:  'Delivered',
+  cancelled:  'Cancelled',
+};
 
 export default function ProfilePage() {
   const { user, updateUser, isLoading } = useUser();
@@ -43,7 +64,16 @@ export default function ProfilePage() {
     setOrdersLoading(true);
     fetch('/api/orders', { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d.success) setOrders((d.data ?? []).slice(0, 5)); })
+      .then(d => {
+        if (d.success) {
+          setOrders(
+            (d.data ?? []).slice(0, 5).map((o: RecentOrder) => ({
+              ...o,
+              status: (o.status ?? 'pending') as OrderStatus,
+            }))
+          );
+        }
+      })
       .catch(() => {})
       .finally(() => setOrdersLoading(false));
   }, [user, isLoading]);
@@ -312,7 +342,7 @@ export default function ProfilePage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    {['Order #', 'Placed On', 'Items', 'Total', ''].map((h, i) => (
+                    {['Order #', 'Status', 'Items', 'Total', ''].map((h, i) => (
                       <th key={i} className={`px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider ${i === 3 ? 'text-right' : i === 4 ? 'text-right' : 'text-left'}`}>
                         {h}
                       </th>
@@ -322,9 +352,34 @@ export default function ProfilePage() {
                 <tbody className="divide-y divide-gray-100">
                   {orders.map(order => (
                     <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-800 whitespace-nowrap">{order.orderNumber}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <p className="text-sm font-medium text-gray-800">{order.orderNumber}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {new Date(order.createdAt).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
+                            STATUS_STYLES[order.status] ?? 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              order.status === 'delivered' ? 'bg-green-500' :
+                              order.status === 'cancelled' ? 'bg-red-500' :
+                              order.status === 'shipped' ? 'bg-indigo-500' :
+                              order.status === 'processing' ? 'bg-purple-500' :
+                              order.status === 'confirmed' ? 'bg-blue-500' :
+                              'bg-yellow-500'
+                            }`}
+                          />
+                          {STATUS_LABELS[order.status] ?? order.status}
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex -space-x-2">

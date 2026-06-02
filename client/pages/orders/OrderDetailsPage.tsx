@@ -13,10 +13,11 @@ interface OrderItem {
   productId?: string;
   productName: string;
   productImage?: string;
+  productCode?: string;
+  category?: string;
   quantity: number;
   price: number;
   total: number;
-  sku?: string;
 }
 
 interface OrderDetail {
@@ -54,6 +55,44 @@ const fmtDateTime = (d?: string) =>
 const fmtDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—';
 
+type ReviewItemStatus = { hasReview: boolean; reviewId?: string };
+
+function OrderReviewButton({
+  orderId,
+  productId,
+  reviewStatus,
+  show,
+  className = '',
+}: {
+  orderId: string;
+  productId: string;
+  reviewStatus?: ReviewItemStatus;
+  show: boolean;
+  className?: string;
+}) {
+  const router = useRouter();
+
+  if (!show) return null;
+
+  const go = () => {
+    if (reviewStatus?.hasReview) {
+      router.push('/my-reviews');
+      return;
+    }
+    router.push(`/orders/${orderId}/review/${productId}`);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={go}
+      className={`px-4 py-2 text-sm font-semibold text-[#E36630] hover:text-[#cc5a2a] text-center whitespace-nowrap transition-colors ${className}`}
+    >
+      {reviewStatus?.hasReview ? 'View your review' : 'Write a review'}
+    </button>
+  );
+}
+
 export default function OrderDetailsPage() {
   const { user, isLoading: authLoading } = useUser();
   const router = useRouter();
@@ -64,6 +103,7 @@ export default function OrderDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
   const [cancelling, setCancelling] = useState(false);
+  const [reviewByProduct, setReviewByProduct] = useState<Record<string, ReviewItemStatus>>({});
 
   const load = useCallback(() => {
     if (authLoading) return;
@@ -77,6 +117,16 @@ export default function OrderDetailsPage() {
   }, [user, id, authLoading]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!order || order.status !== 'delivered' || !id) return;
+    fetch(`/api/orders/${id}/review-status`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data?.items) setReviewByProduct(d.data.items);
+      })
+      .catch(() => {});
+  }, [order, id]);
 
   const cancelOrder = async () => {
     if (!order) return;
@@ -114,6 +164,8 @@ export default function OrderDetailsPage() {
   const handlingFee = order ? Math.max(order.totalAmount - order.subtotal - order.deliveryCharges, 0) : 0;
   const canCancel = order && ['pending', 'confirmed', 'processing'].includes(order.status);
   const isDelivered = order?.status === 'delivered';
+  const showReviewButton = (productId?: string) =>
+    Boolean(isDelivered && productId);
 
   return (
     <AccountLayout>
@@ -178,34 +230,116 @@ export default function OrderDetailsPage() {
             {/* Items */}
             <div className="rounded-2xl bg-white shadow-sm border border-gray-100 divide-y divide-gray-100">
               {order.items.map((item, i) => (
-                <div key={i} className="px-6 py-5 flex flex-col sm:flex-row gap-4">
-                  <div className="w-20 h-20 rounded-lg bg-gray-100 overflow-hidden shrink-0">
-                    {item.productImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.productImage} alt={item.productName} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No image</div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 line-clamp-2">{item.productName}</p>
-                    {item.sku && <p className="text-xs text-gray-400 mt-1">SKU: {item.sku}</p>}
-                  </div>
-                  <div className="text-sm text-gray-700 sm:text-right space-y-1 shrink-0">
-                    <p className="font-semibold text-gray-900">Rs. {item.price.toLocaleString()}</p>
-                    <p className="text-gray-500">Qty: {item.quantity}</p>
-                  </div>
-                  <div className="sm:text-right shrink-0 flex sm:flex-col gap-3 sm:gap-1">
-                    {canCancel && (
-                      <button onClick={cancelOrder} disabled={cancelling} className="text-sm text-red-500 hover:text-red-600 font-medium disabled:opacity-50">
-                        {cancelling ? 'Cancelling…' : 'Cancel'}
-                      </button>
-                    )}
-                    {isDelivered && item.productId && (
-                      <Link href={`/products/${item.productId}`} className="text-xs font-semibold text-[#0F4C69] hover:text-[#E36630] uppercase tracking-wide">
-                        Write a Review
-                      </Link>
-                    )}
+                <div key={i} className="px-5 sm:px-6 py-5">
+                  <div className="grid grid-cols-[88px_1fr] sm:grid-cols-[88px_1fr_auto] gap-4 sm:gap-6 sm:items-center">
+                    {/* Thumbnail */}
+                    <div className="w-[88px] h-[88px] rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+                      {item.productImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.productImage} alt={item.productName} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No image</div>
+                      )}
+                    </div>
+
+                    {/* Product details */}
+                    <div className="min-w-0 flex flex-col justify-center gap-1.5 col-span-1">
+                      {item.productId ? (
+                        <Link
+                          href={`/products/${item.productId}`}
+                          className="text-base font-semibold text-gray-900 hover:text-[#E36630] transition-colors line-clamp-2 leading-snug"
+                        >
+                          {item.productName}
+                        </Link>
+                      ) : (
+                        <p className="text-base font-semibold text-gray-900 line-clamp-2 leading-snug">{item.productName}</p>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                        {item.category && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 font-medium">
+                            {item.category}
+                          </span>
+                        )}
+                        {item.productCode && (
+                          <span>
+                            Product Code: <span className="text-gray-700 font-medium">{item.productCode}</span>
+                          </span>
+                        )}
+                        <span>
+                          Qty: <span className="text-gray-700 font-medium">{item.quantity}</span>
+                        </span>
+                        <span>
+                          Unit: <span className="text-gray-700 font-medium">Rs. {item.price.toLocaleString()}</span>
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-gray-600 sm:hidden">
+                        Line total: <span className="font-semibold text-gray-900">Rs. {item.total.toLocaleString()}</span>
+                      </p>
+                    </div>
+
+                    {/* Price & actions — desktop */}
+                    <div className="hidden sm:flex flex-col items-end justify-center gap-3 shrink-0 min-w-[148px]">
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-gray-900 leading-tight">Rs. {item.total.toLocaleString()}</p>
+                        {item.quantity > 1 && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {item.quantity} × Rs. {item.price.toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-stretch gap-2 w-full">
+                        {item.productId && (
+                          <OrderReviewButton
+                            orderId={order._id}
+                            productId={item.productId}
+                            reviewStatus={reviewByProduct[item.productId]}
+                            show={showReviewButton(item.productId)}
+                          />
+                        )}
+                        {canCancel && (
+                          <button
+                            type="button"
+                            onClick={cancelOrder}
+                            disabled={cancelling}
+                            className="text-sm text-red-500 hover:text-red-600 font-medium disabled:opacity-50 text-center"
+                          >
+                            {cancelling ? 'Cancelling…' : 'Cancel'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Price & actions — mobile (full width below) */}
+                    <div className="col-span-2 sm:hidden flex items-center justify-between gap-4 pt-1 border-t border-gray-50">
+                      <div>
+                        <p className="text-lg font-bold text-gray-900">Rs. {item.total.toLocaleString()}</p>
+                        {item.quantity > 1 && (
+                          <p className="text-xs text-gray-500">{item.quantity} × Rs. {item.price.toLocaleString()}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        {item.productId && (
+                          <OrderReviewButton
+                            orderId={order._id}
+                            productId={item.productId}
+                            reviewStatus={reviewByProduct[item.productId]}
+                            show={showReviewButton(item.productId)}
+                          />
+                        )}
+                        {canCancel && (
+                          <button
+                            type="button"
+                            onClick={cancelOrder}
+                            disabled={cancelling}
+                            className="text-sm text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
+                          >
+                            {cancelling ? 'Cancelling…' : 'Cancel'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
