@@ -50,6 +50,17 @@ export interface ResetPasswordPayload {
   newPassword: string;
 }
 
+export interface ChangePasswordPayload {
+  oldPassword: string;
+  newPassword: string;
+}
+
+export interface UpdateProfilePayload {
+  fullName?: string;
+  phoneNumber?: string;
+  address?: string;
+}
+
 async function request<T>(
   path: string,
   options?: RequestInit
@@ -94,6 +105,12 @@ export const authApi = {
   getMe: () =>
     request<{ user: ApiUser }>('/me'),
 
+  updateProfile: (body: UpdateProfilePayload) =>
+    request<{ user: ApiUser }>('/me', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
   forgotPassword: (body: ForgotPasswordPayload) =>
     request<null>('/forgot-password', {
       method: 'POST',
@@ -102,6 +119,12 @@ export const authApi = {
 
   resetPassword: (body: ResetPasswordPayload) =>
     request<null>('/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  changePassword: (body: ChangePasswordPayload) =>
+    request<null>('/change-password', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

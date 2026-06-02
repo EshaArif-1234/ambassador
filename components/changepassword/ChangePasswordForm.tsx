@@ -5,11 +5,13 @@ import InputField from '../common/InputField';
 import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 interface FormData {
+  oldPassword?: string;
   newPassword: string;
   confirmPassword: string;
 }
 
 interface Errors {
+  oldPassword?: string;
   newPassword?: string;
   confirmPassword?: string;
   submit?: string;
@@ -25,6 +27,10 @@ interface ChangePasswordFormProps {
   onTogglePassword: () => void;
   onToggleConfirmPassword: () => void;
   onSubmit: (e: React.FormEvent) => void;
+  /** When true, an "Old Password" field is shown above the new password. */
+  showOldPasswordField?: boolean;
+  showOldPassword?: boolean;
+  onToggleOldPassword?: () => void;
 }
 
 export default function ChangePasswordForm({
@@ -36,10 +42,30 @@ export default function ChangePasswordForm({
   onFormChange,
   onTogglePassword,
   onToggleConfirmPassword,
-  onSubmit
+  onSubmit,
+  showOldPasswordField = false,
+  showOldPassword = false,
+  onToggleOldPassword,
 }: ChangePasswordFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
+      {/* Old Password Field (authenticated change flow only) */}
+      {showOldPasswordField && (
+        <InputField
+          id="oldPassword"
+          label="Old Password"
+          value={formData.oldPassword ?? ''}
+          onChange={(value) => onFormChange('oldPassword', value)}
+          placeholder="Enter your current password"
+          type="password"
+          error={errors.oldPassword}
+          disabled={isLoading}
+          showPasswordToggle={true}
+          showPassword={showOldPassword}
+          onTogglePassword={onToggleOldPassword}
+        />
+      )}
+
       {/* New Password Field */}
       <InputField
         id="newPassword"

@@ -284,58 +284,90 @@ const Header = () => {
             {/* User Profile or Auth Buttons */}
             {user ? (
               <div className="relative" ref={profileRef}>
+                {/* Avatar trigger */}
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-1.5 rounded-full p-1 hover:bg-gray-100 transition-colors"
                 >
                   {user.profileImage ? (
-                    <Image
-                      src={user.profileImage}
-                      alt="Profile"
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
+                    <Image src={user.profileImage} alt="Profile" width={36} height={36} className="w-9 h-9 rounded-full object-cover ring-2 ring-[#E36630]/30" />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-[#E36630] flex items-center justify-center text-white text-sm font-semibold">
+                    <div className="w-9 h-9 rounded-full bg-[#E36630] flex items-center justify-center text-white text-sm font-bold ring-2 ring-[#E36630]/20 select-none">
                       {user.initials}
                     </div>
                   )}
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7 9" />
+                  <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
 
-                {/* Profile Dropdown */}
+                {/* Dropdown — admin gets a simple panel, regular users get the full menu */}
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200">
-                    <div className="py-1">
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.email}</p>
-                      </div>
-                      {/* Show Dashboard link for admin users */}
-                      {user.role === 'admin' && (
-                        <Link
-                          href="/admin"
-                          className="block px-4 py-2 text-sm text-[#E36630] hover:bg-[#E36630]/5 transition-colors font-medium"
-                        >
-                          📊 Dashboard
-                        </Link>
-                      )}
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                      >
-                        My Profile
-                      </Link>
-                      <button
-                        onClick={logout}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        Sign Out
-                      </button>
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.12)] border border-gray-100 overflow-hidden z-50">
+                    {/* Header */}
+                    <div className="px-4 py-3 bg-gradient-to-r from-[#0F4C69]/5 to-[#E36630]/5 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
                     </div>
+
+                    {user.role === 'admin' ? (
+                      /* Admin — just dashboard + logout */
+                      <div className="py-1">
+                        <Link href="/admin" onClick={() => setIsProfileOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#E36630] font-medium hover:bg-[#E36630]/5 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                          Dashboard
+                        </Link>
+                        <button onClick={() => { logout(); setIsProfileOpen(false); }}
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                          Sign Out
+                        </button>
+                      </div>
+                    ) : (
+                      /* Regular user — full menu */
+                      <div className="py-1">
+                        {[
+                          {
+                            label: 'Manage My Account', href: '/profile',
+                            icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />,
+                          },
+                          {
+                            label: 'My Orders', href: '/orders',
+                            icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />,
+                          },
+                          {
+                            label: 'My Wishlist & Followed Stores', href: '/wishlist',
+                            icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />,
+                          },
+                          {
+                            label: 'My Reviews', href: '/my-reviews',
+                            icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />,
+                          },
+                          {
+                            label: 'My Returns & Cancellations', href: '/returns',
+                            icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" /></>,
+                          },
+                        ].map(({ label, href, icon }) => (
+                          <Link key={href} href={href} onClick={() => setIsProfileOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#E36630] transition-colors group">
+                            <svg className="w-[22px] h-[22px] shrink-0 text-gray-400 group-hover:text-[#E36630] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              {icon}
+                            </svg>
+                            <span className="truncate">{label}</span>
+                          </Link>
+                        ))}
+                        <div className="border-t border-gray-100 mt-1 pt-1">
+                          <button onClick={() => { logout(); setIsProfileOpen(false); }}
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors group">
+                            <svg className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Logout
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

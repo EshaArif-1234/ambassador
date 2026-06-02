@@ -1,6 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import Order from '@/backend/models/Order.model';
+import User from '@/backend/models/User.model';
+import { verifyToken, extractToken } from '@/utils/jwt.util';
+import { enrichOrderItemsList, mapRawOrderItem } from '@/utils/orderItems.util';
+import type { IOrderItem } from '@/backend/models/Order.model';
+
+/** GET /api/orders — return orders for the authenticated user (matched by email) */
+export async function GET(req: NextRequest) {
+  try {
+    const token = extractToken(req);
+    if (!token) {
+      return NextResponse.json({ success: false, message: 'Not authenticated.' }, { status: 401 });
+    }
+    const decoded = verifyToken(token);
+    await connectDB();
+
+    const user = await User.findById(decoded.id).select('email').lean();
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'User not found.' }, { status: 401 });
+    }
+
+    const orders = await Order.find({ customerEmail: user.email })
+      .sort({ createdAt: -1 })
+      .select('orderNumber status createdAt items totalAmount shippingAddress')
+      .lean();
+
+    for (const order of orders) {
+      order.items = await enrichOrderItemsList((order.items ?? []) as IOrderItem[]);
+    }
+
+    return NextResponse.json({ success: true, data: orders });
+  } catch {
+    return NextResponse.json({ success: false, message: 'Failed to fetch orders.' }, { status: 500 });
+  }
+}
 
 /** POST /api/orders — create a new order after successful payment */
 export async function POST(req: NextRequest) {
@@ -31,16 +65,19 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    // Map cart items to order item schema
-    const items = orderItems.map((item: any) => ({
-      productId: item._id || item.productId || undefined,
-      productName: item.title || item.name || item.productName || 'Unknown Product',
-      productImage: item.image || item.productImage || '',
-      quantity: item.quantity,
-      price: item.price,
-      total: item.price * item.quantity,
-      sku: item.sku || undefined,
-    }));
+    // Map cart items — fall back to orderData.products if orderItems lack fields
+    const rawItems =
+      Array.isArray(orderItems) && orderItems.length
+        ? orderItems
+        : Array.isArray(orderData?.products)
+          ? orderData.products
+          : [];
+
+    let items: IOrderItem[] = rawItems.map((item: Record<string, unknown>) =>
+      mapRawOrderItem(item)
+    );
+
+    items = await enrichOrderItemsList(items);
 
     const subtotal = orderData?.subtotal ?? items.reduce((s: number, i: any) => s + i.total, 0);
     const deliveryCharges = orderData?.deliveryCharges ?? 0;

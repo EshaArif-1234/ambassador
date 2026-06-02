@@ -53,7 +53,7 @@ const WhatsAppChatWidget = () => {
   };
 
   return (
-    <div ref={widgetRef} className="fixed bottom-16 right-10 z-50 flex flex-col items-end gap-3">
+    <div ref={widgetRef} className="fixed bottom-16 right-10 z-50 flex flex-col items-end gap-3 pointer-events-none">
 
       {/* ── Chat panel ── */}
       <div
@@ -136,7 +136,7 @@ const WhatsAppChatWidget = () => {
       <button
         onClick={() => setIsOpen(prev => !prev)}
         aria-label={isOpen ? 'Close WhatsApp chat' : 'Open WhatsApp chat'}
-        className="relative w-14 h-14 bg-[#25D366] hover:bg-[#1ebe5d] rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+        className="relative w-14 h-14 bg-[#25D366] hover:bg-[#1ebe5d] rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 pointer-events-auto"
       >
         {/* Pulse ring */}
         {!isOpen && (

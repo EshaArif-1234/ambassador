@@ -267,7 +267,7 @@ const UsersPage = () => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  {['User', 'Phone', 'Role', 'Account', 'Verified', 'Last Login', 'Joined', 'Actions'].map(h => (
+                  {['User', 'Phone', 'Address', 'Role', 'Account', 'Verified', 'Last Login', 'Joined', 'Actions'].map(h => (
                     <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       {h}
                     </th>
@@ -294,6 +294,13 @@ const UsersPage = () => {
                     {/* Phone */}
                     <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-600">
                       {user.phoneNumber || '—'}
+                    </td>
+
+                    {/* Address */}
+                    <td className="px-5 py-4 text-sm text-gray-600 max-w-[220px]">
+                      <span className="block truncate" title={user.address || ''}>
+                        {user.address || '—'}
+                      </span>
                     </td>
 
                     {/* Role */}

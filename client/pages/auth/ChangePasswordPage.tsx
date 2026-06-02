@@ -8,11 +8,13 @@ import ChangePasswordForm from '../../../components/changepassword/ChangePasswor
 import SuccessState from '../../../components/changepassword/SuccessState';
 
 interface FormData {
+  oldPassword: string;
   newPassword: string;
   confirmPassword: string;
 }
 
 interface Errors {
+  oldPassword?: string;
   newPassword?: string;
   confirmPassword?: string;
   submit?: string;
@@ -23,18 +25,29 @@ export default function ChangePasswordPage() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
   const otp = searchParams.get('otp') || '';
+
+  // No email + otp ⇒ logged-in user changing their own password (requires old password).
+  const isAuthenticatedChange = !email || !otp;
+
   const [formData, setFormData] = useState<FormData>({
+    oldPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
   const [errors, setErrors] = useState<Errors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
+
+    // Old Password (authenticated change only)
+    if (isAuthenticatedChange && !formData.oldPassword) {
+      newErrors.oldPassword = 'Current password is required';
+    }
 
     // New Password Validation
     if (!formData.newPassword) {
@@ -51,6 +64,8 @@ export default function ChangePasswordPage() {
       newErrors.newPassword = 'Password must contain at least one number';
     } else if (!/(?=.*[@$!%*?&])/.test(formData.newPassword)) {
       newErrors.newPassword = 'Password must contain at least one special character (@$!%*?&)';
+    } else if (isAuthenticatedChange && formData.oldPassword && formData.oldPassword === formData.newPassword) {
+      newErrors.newPassword = 'New password must be different from the current password';
     }
 
     // Confirm Password Validation
@@ -66,6 +81,7 @@ export default function ChangePasswordPage() {
 
   const handleFormChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined, submit: undefined }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,22 +89,21 @@ export default function ChangePasswordPage() {
 
     if (!validateForm()) return;
 
-    if (!email || !otp) {
-      setErrors(prev => ({
-        ...prev,
-        submit: 'Reset session expired. Please start the forgot password flow again.',
-      }));
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      await authApi.resetPassword({
-        email,
-        otp,
-        newPassword: formData.newPassword,
-      });
+      if (isAuthenticatedChange) {
+        await authApi.changePassword({
+          oldPassword: formData.oldPassword,
+          newPassword: formData.newPassword,
+        });
+      } else {
+        await authApi.resetPassword({
+          email,
+          otp,
+          newPassword: formData.newPassword,
+        });
+      }
       setIsSuccess(true);
     } catch (error) {
       setErrors(prev => ({
@@ -120,7 +135,9 @@ export default function ChangePasswordPage() {
             {/* Logo and Header */}
             <AuthHeader 
               title="Change Password"
-              description="Enter your new password below."
+              description={isAuthenticatedChange
+                ? 'Enter your current password and choose a new one.'
+                : 'Enter your new password below.'}
             />
 
             {/* Success State */}
@@ -128,8 +145,8 @@ export default function ChangePasswordPage() {
               <SuccessState 
                 title="Password Changed!"
                 message="Your password has been successfully updated."
-                buttonText="Sign In"
-                onAction={() => router.push('/login')}
+                buttonText={isAuthenticatedChange ? 'Back to My Account' : 'Sign In'}
+                onAction={() => router.push(isAuthenticatedChange ? '/profile' : '/login')}
                 icon="check"
               />
             ) : (
@@ -145,6 +162,9 @@ export default function ChangePasswordPage() {
                   onTogglePassword={() => setShowPassword(!showPassword)}
                   onToggleConfirmPassword={() => setShowConfirmPassword(!showConfirmPassword)}
                   onSubmit={handleSubmit}
+                  showOldPasswordField={isAuthenticatedChange}
+                  showOldPassword={showOldPassword}
+                  onToggleOldPassword={() => setShowOldPassword(!showOldPassword)}
                 />
               </>
             )}

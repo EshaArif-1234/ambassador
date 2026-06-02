@@ -11,7 +11,6 @@ const menuItems = [
   { name: 'Custom Kitchen', href: '/custom-kitchen' },
   { name: 'Gallery',        href: '/gallery' },
   { name: 'Contact Us',     href: '/contact-us' },
-  { name: 'Orders',         href: '/orders' },
   { name: 'Our Branches',   href: '/branches' },
 ];
 
