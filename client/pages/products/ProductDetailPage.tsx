@@ -3,6 +3,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import ProductDetailGallery from '@/components/products/ProductDetailGallery';
+import {
+  PRODUCT_PLACEHOLDER,
+  resolveProductImages,
+  resolveProductVideos,
+} from '@/utils/productMedia.util';
 import ProductRatingDropdown, {
   type RatingBreakdown,
 } from '@/components/products/ProductRatingDropdown';
@@ -23,7 +29,9 @@ interface ProductDetail {
   originalPrice: number;
   stock: number;
   images: string[];
+  imagePublicIds?: string[];
   videos: string[];
+  videoPublicIds?: string[];
   brands?: unknown;
   specifications: Record<string, string>;
   categories: CategoryRef[];
@@ -47,10 +55,6 @@ interface ReviewRow {
   comment: string;
   date: string;
 }
-
-type MediaItem = { kind: 'image' | 'video'; src: string };
-
-const PLACEHOLDER = '/Images/home/stainless-steal.webp';
 
 const BRAND_FILTERS = [
   { apiSlug: 'ambassador', label: 'Ambassador' },
@@ -81,24 +85,32 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   const [relatedProducts, setRelatedProducts] = useState<CatalogProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [mediaIndex, setMediaIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showCartPopup, setShowCartPopup] = useState(false);
   const relatedScrollRef = useRef<HTMLDivElement>(null);
-  const imgContainerRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState({ x: 0, y: 0, show: false });
   const { addToCart } = useCart();
 
-  const LENS = 140;   // lens diameter px
-  const ZOOM = 2.8;   // zoom multiplier
+  const galleryImages = useMemo(
+    () =>
+      product
+        ? resolveProductImages({
+            images: product.images,
+            imagePublicIds: product.imagePublicIds,
+          })
+        : [],
+    [product]
+  );
 
-  const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = imgContainerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    setZoom({ x, y, show: true });
-  };
+  const galleryVideos = useMemo(
+    () =>
+      product
+        ? resolveProductVideos({
+            videos: product.videos,
+            videoPublicIds: product.videoPublicIds,
+          })
+        : [],
+    [product]
+  );
 
   const ratingBreakdown = useMemo<RatingBreakdown>(() => {
     const m: RatingBreakdown = {};
@@ -115,7 +127,6 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   }, [reviews]);
 
   useEffect(() => {
-    setMediaIndex(0);
     setQuantity(1);
   }, [productId]);
 
@@ -150,52 +161,59 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   useEffect(() => {
     if (!product) return;
     let cancelled = false;
+
     (async () => {
+      const categoryTitles = [
+        ...new Set(
+          (product.categories ?? [])
+            .map((c) => (typeof c.title === 'string' ? c.title.trim() : ''))
+            .filter(Boolean)
+        ),
+      ];
+
+      if (!categoryTitles.length) {
+        if (!cancelled) setRelatedProducts([]);
+        return;
+      }
+
       try {
-        const res = await fetch('/api/products', { cache: 'no-store' });
-        const json = await res.json();
-        if (!json?.success || !Array.isArray(json.data) || cancelled) return;
-        const titles = new Set(
-          (product.categories ?? []).map((c) => c.title).filter(Boolean) as string[]
-        );
-        if (titles.size === 0) {
-          if (!cancelled) setRelatedProducts([]);
-          return;
+        const seen = new Set<string>();
+        const merged: CatalogProductRow[] = [];
+        const maxRelated = 16;
+
+        for (const title of categoryTitles) {
+          if (merged.length >= maxRelated) break;
+
+          const params = new URLSearchParams({
+            category: title,
+            limit: '50',
+            page: '1',
+            exclude: product._id,
+          });
+
+          const res = await fetch(`/api/products?${params.toString()}`, { cache: 'no-store' });
+          const json = await res.json();
+          if (!json?.success || !Array.isArray(json.data)) continue;
+
+          for (const row of json.data as CatalogProductRow[]) {
+            const id = String(row._id);
+            if (seen.has(id)) continue;
+            seen.add(id);
+            merged.push(row);
+            if (merged.length >= maxRelated) break;
+          }
         }
-        const rows = json.data as CatalogProductRow[];
-        const related = rows
-          .filter(
-            (r) =>
-              String(r._id) !== String(product._id) &&
-              (r.categories ?? []).some((c) => c.title && titles.has(c.title))
-          )
-          .slice(0, 16);
-        if (!cancelled) setRelatedProducts(related);
+
+        if (!cancelled) setRelatedProducts(merged);
       } catch {
         if (!cancelled) setRelatedProducts([]);
       }
     })();
+
     return () => {
       cancelled = true;
     };
   }, [product]);
-
-  const mediaItems = useMemo<MediaItem[]>(() => {
-    if (!product) return [];
-    const imgs =
-      product.images?.filter((u) => typeof u === 'string' && u.length > 0).length > 0
-        ? product.images.filter((u) => typeof u === 'string' && u.length > 0)
-        : [PLACEHOLDER];
-    const vids = (product.videos ?? []).filter((u) => typeof u === 'string' && u.length > 0);
-    return [
-      ...imgs.map((src) => ({ kind: 'image' as const, src })),
-      ...vids.map((src) => ({ kind: 'video' as const, src })),
-    ];
-  }, [product]);
-
-  useEffect(() => {
-    if (mediaIndex >= mediaItems.length) setMediaIndex(0);
-  }, [mediaItems.length, mediaIndex]);
 
   const displayPrice =
     product && product.price != null && product.price > 0
@@ -211,9 +229,8 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   const brandTags = product ? normalizeBrandTags(product.brands) : [];
 
   const handleAddToCart = () => {
-    if (!product || !mediaItems.length) return;
-    const firstImage =
-      mediaItems.find((m) => m.kind === 'image')?.src ?? mediaItems[0].src;
+    if (!product) return;
+    const firstImage = galleryImages[0] ?? PRODUCT_PLACEHOLDER;
     const code =
       product.specifications['Product Code'] ||
       product.specifications['product code'] ||
@@ -252,10 +269,6 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
     );
   }
 
-  const currentMedia = mediaItems[mediaIndex] ?? mediaItems[0];
-  const imageThumbs = mediaItems.filter((m) => m.kind === 'image');
-  const videoThumbs = mediaItems.filter((m) => m.kind === 'video');
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
@@ -276,191 +289,11 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
-              {/* ── Main image with magnifier ── */}
-              <div className="relative mb-4  group">
-                <div
-                  ref={imgContainerRef}
-                  className={`relative h-[600px] overflow-hidden rounded-lg bg-[#EEF5F9] ${
-                    currentMedia?.kind === 'image' ? 'cursor-crosshair' : ''
-                  }`}
-                  onMouseMove={currentMedia?.kind === 'image' ? handleImageMouseMove : undefined}
-                  onMouseLeave={() => setZoom(z => ({ ...z, show: false }))}
-                  onMouseEnter={() => currentMedia?.kind === 'image' && setZoom(z => ({ ...z, show: true }))}
-                >
-                  {currentMedia?.kind === 'image' ? (
-                    <>
-                      <Image
-                        src={currentMedia.src}
-                        alt={product.name}
-                        fill
-                        className="bg-[#E5E5E5] object-cover"
-                        sizes="(max-width: 1024px) 100vw, 50vw"
-                        priority
-                      />
-
-                      {/* Lens overlay */}
-                      {zoom.show && imgContainerRef.current && (() => {
-                        const cw = imgContainerRef.current.offsetWidth;
-                        const ch = imgContainerRef.current.offsetHeight;
-                        const lx = Math.max(0, Math.min(zoom.x - LENS / 2, cw - LENS));
-                        const ly = Math.max(0, Math.min(zoom.y - LENS / 2, ch - LENS));
-                        const imgW = cw * ZOOM;
-                        const imgH = ch * ZOOM;
-                        const imgLeft = -(zoom.x * ZOOM - LENS / 2);
-                        const imgTop  = -(zoom.y * ZOOM - LENS / 2);
-                        return (
-                          <div
-                            className="absolute rounded-full overflow-hidden pointer-events-none z-20 shadow-2xl"
-                            style={{
-                              width: LENS,
-                              height: LENS,
-                              left: lx,
-                              top: ly,
-                              border: '2px solid #E36630',
-                              boxShadow: '0 0 0 1px rgba(227,102,48,0.3), 0 8px 32px rgba(0,0,0,0.35)',
-                            }}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={currentMedia.src}
-                              alt=""
-                              style={{
-                                position: 'absolute',
-                                width: imgW,
-                                height: imgH,
-                                left: imgLeft,
-                                top: imgTop,
-                                maxWidth: 'none',
-                                pointerEvents: 'none',
-                              }}
-                            />
-                          </div>
-                        );
-                      })()}
-
-                      {/* Zoom hint badge */}
-                      {!zoom.show && (
-                        <div className="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full flex items-center gap-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                          </svg>
-                          Hover to zoom
-                        </div>
-                      )}
-                    </>
-                  ) : currentMedia?.kind === 'video' ? (
-                    <video
-                      src={currentMedia.src}
-                      controls
-                      className="h-full w-full bg-[#E5E5E5] object-contain"
-                    >
-                      Your browser does not support the video tag.
-                    </video>
-                  ) : null}
-                </div>
-
-                {/* ── Floating zoom panel (desktop only) ── */}
-                {zoom.show && currentMedia?.kind === 'image' && imgContainerRef.current && (() => {
-                  const cw = imgContainerRef.current.offsetWidth;
-                  const ch = imgContainerRef.current.offsetHeight;
-                  // Panel is the same size as the image container
-                  const panelW = cw;
-                  const panelH = ch;
-                  const imgW = cw * ZOOM;
-                  const imgH = ch * ZOOM;
-                  const bgX = -((zoom.x / cw) * imgW - panelW / 2);
-                  const bgY = -((zoom.y / ch) * imgH - panelH / 2);
-                  return (
-                    <div
-                      className="absolute top-0 pointer-events-none rounded-xl overflow-hidden shadow-2xl border border-[#E36630]/30 z-30 hidden lg:block"
-                      style={{
-                        left: cw + 12,
-                        width: panelW,
-                        height: panelH,
-                      }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={currentMedia.src}
-                        alt=""
-                        style={{
-                          position: 'absolute',
-                          width: imgW,
-                          height: imgH,
-                          left: bgX,
-                          top: bgY,
-                          maxWidth: 'none',
-                        }}
-                      />
-                      <div className="absolute top-2 left-2 bg-[#E36630] text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        {ZOOM}× Zoom
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div className="grid grid-cols-5 gap-2">
-                {imageThumbs.map((item, index) => {
-                  const globalIdx = mediaItems.indexOf(item);
-                  return (
-                    <button
-                      key={`img-${item.src}-${index}`}
-                      type="button"
-                      onClick={() => setMediaIndex(globalIdx)}
-                      className={`relative w-full aspect-square overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
-                        mediaIndex === globalIdx ? 'border-[#E36630]' : 'border-gray-200'
-                      }`}
-                    >
-                      <Image
-                        src={item.src}
-                        alt=""
-                        fill
-                        className="bg-[#E5E5E5] object-cover transition-transform hover:scale-105"
-                        sizes="80px"
-                      />
-                    </button>
-                  );
-                })}
-                {videoThumbs.map((item, index) => {
-                  const globalIdx = mediaItems.indexOf(item);
-                  const thumbSrc  = item.src
-                    .replace('/upload/', '/upload/so_0,w_320,h_320,c_fill,f_jpg/')
-                    .replace(/\.[^.]+$/, '.jpg');
-                  return (
-                    <button
-                      key={`vid-${item.src}-${index}`}
-                      type="button"
-                      onClick={() => setMediaIndex(globalIdx)}
-                      className={`relative w-full aspect-square overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
-                        mediaIndex === globalIdx ? 'border-[#E36630]' : 'border-gray-200'
-                      }`}
-                    >
-                      {/* Real first-frame thumbnail from Cloudinary */}
-                      <img
-                        src={thumbSrc}
-                        alt={`video-thumbnail-${index + 1}`}
-                        className="w-full h-full object-cover"
-                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                      />
-                      {/* Play button overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-white/85 shadow flex items-center justify-center">
-                          <svg className="w-4 h-4 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="absolute bottom-1 right-1 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
-                        Video
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <ProductDetailGallery
+                productName={product.name}
+                images={galleryImages}
+                videos={galleryVideos}
+              />
             </div>
 
             <div>
@@ -657,7 +490,24 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
         {relatedProducts.length > 0 ? (
           <section className="mt-8 rounded-lg bg-white p-6 shadow-md" aria-label="Related products">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-2xl font-bold text-gray-800">Related products</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Related products</h2>
+                {categoryLine ? (
+                  <p className="mt-1 text-sm text-gray-500">
+                    {relatedProducts.length} in {categoryLine}
+                    {relatedProducts.length >= 16 ? ' (showing first 16)' : ''}
+                    {' · '}
+                    <Link
+                      href={`/products?category=${encodeURIComponent(
+                        product.categories?.[0]?.title ?? ''
+                      )}`}
+                      className="font-medium text-[#0F4C69] hover:text-[#E36630]"
+                    >
+                      View all
+                    </Link>
+                  </p>
+                ) : null}
+              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -686,7 +536,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
               className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-2"
             >
               {relatedProducts.map((r) => {
-                const img = r.images?.[0] || PLACEHOLDER;
+                const img = r.images?.[0] || PRODUCT_PLACEHOLDER;
                 const price = rowDisplayPrice(r);
                 return (
                   <Link
@@ -724,7 +574,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
         onClose={() => setShowCartPopup(false)}
         product={{
           title: product.name,
-          images: product.images?.length ? product.images : [PLACEHOLDER],
+          images: galleryImages.length ? galleryImages : [PRODUCT_PLACEHOLDER],
           specifications: product.specifications,
           price: displayPrice,
         }}

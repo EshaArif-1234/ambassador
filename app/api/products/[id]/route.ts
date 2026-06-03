@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
+import { resolveProductImages, resolveProductVideos } from '@/utils/productMedia.util';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -46,6 +47,15 @@ export async function GET(
     const avgRating = agg[0] ? +Number(agg[0].avgRating).toFixed(1) : 0;
     const reviewCount = agg[0]?.reviewCount ?? 0;
 
+    const images = resolveProductImages({
+      images: product.images,
+      imagePublicIds: product.imagePublicIds,
+    });
+    const videos = resolveProductVideos({
+      videos: product.videos,
+      videoPublicIds: product.videoPublicIds,
+    });
+
     return NextResponse.json(
       {
         success: true,
@@ -53,6 +63,8 @@ export async function GET(
           product: {
             ...product,
             _id: String(product._id),
+            images,
+            videos,
             avgRating,
             reviewCount,
           },

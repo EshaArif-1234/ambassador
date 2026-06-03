@@ -26,7 +26,15 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
+    /** Avoid broken gallery when optimization fails on edge URLs */
+    dangerouslyAllowSVG: false,
   },
 };
 

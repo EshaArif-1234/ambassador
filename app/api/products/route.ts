@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
 import Category from '@/backend/models/Category.model';
@@ -37,8 +38,13 @@ export async function GET(req: NextRequest) {
     const brandsRaw = (searchParams.get('brands')   ?? '').trim();
     const featsRaw  = (searchParams.get('features') ?? '').trim();
     const sortBy    = searchParams.get('sort') ?? 'newest';
+    const excludeId = (searchParams.get('exclude') ?? '').trim();
 
     const filter: Record<string, unknown> = { status: 'active' };
+
+    if (excludeId && mongoose.Types.ObjectId.isValid(excludeId)) {
+      filter._id = { $ne: excludeId };
+    }
 
     if (search) {
       // Find categories whose title partially matches the search term
