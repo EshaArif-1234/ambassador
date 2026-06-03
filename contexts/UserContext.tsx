@@ -10,6 +10,7 @@ export interface User {
   fullName: string;
   email: string;
   phoneNumber?: string;
+  city?: string;
   address?: string;
   profileImage?: string;
   initials: string;
@@ -26,6 +27,7 @@ export function mapApiUser(raw: ApiUser): User {
     fullName,
     email: raw.email,
     phoneNumber: raw.phoneNumber,
+    city: raw.city,
     address: raw.address,
     initials: fullName.substring(0, 2).toUpperCase(),
     role: raw.role ?? 'user',

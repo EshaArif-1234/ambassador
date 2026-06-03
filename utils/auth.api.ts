@@ -15,6 +15,7 @@ export interface ApiUser {
   fullName: string;
   email: string;
   phoneNumber?: string;
+  city?: string;
   address?: string;
   role: 'user' | 'admin';
   isVerified: boolean;
@@ -25,9 +26,8 @@ export interface ApiUser {
 export interface RegisterPayload {
   fullName: string;
   email: string;
-  phoneNumber: string;
-  address?: string;
   password: string;
+  confirmPassword: string;
 }
 
 export interface LoginPayload {
@@ -58,6 +58,7 @@ export interface ChangePasswordPayload {
 export interface UpdateProfilePayload {
   fullName?: string;
   phoneNumber?: string;
+  city?: string;
   address?: string;
 }
 
@@ -82,7 +83,7 @@ async function request<T>(
 
 export const authApi = {
   register: (body: RegisterPayload) =>
-    request<{ otp: string }>('/register', {
+    request<{ userId: string; email: string }>('/register', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

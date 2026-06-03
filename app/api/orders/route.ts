@@ -4,6 +4,7 @@ import Order from '@/backend/models/Order.model';
 import User from '@/backend/models/User.model';
 import { verifyToken, extractToken } from '@/utils/jwt.util';
 import { enrichOrderItemsList, mapRawOrderItem } from '@/utils/orderItems.util';
+import { syncUserContactFromCheckout } from '@/utils/syncUserContact.util';
 import type { IOrderItem } from '@/backend/models/Order.model';
 
 const ORDER_STATUSES = [
@@ -115,6 +116,27 @@ export async function POST(req: NextRequest) {
       paymentMethod === 'bank' ? 'Bank Transfer' :
       paymentMethod === 'card' ? 'Credit/Debit Card' :
       paymentMethod ?? 'Online';
+
+    const customerEmail =
+      typeof customerInfo.email === 'string' ? customerInfo.email : '';
+    const contactPhone =
+      typeof customerInfo.phone === 'string'
+        ? customerInfo.phone
+        : typeof orderData?.phone === 'string'
+          ? orderData.phone
+          : '';
+    const contactCity =
+      typeof orderData?.city === 'string'
+        ? orderData.city
+        : typeof customerInfo.city === 'string'
+          ? customerInfo.city
+          : city;
+
+    await syncUserContactFromCheckout(req, customerEmail, {
+      phone: contactPhone,
+      city: contactCity,
+      address: street,
+    });
 
     const order = await Order.create({
       orderNumber: orderId,

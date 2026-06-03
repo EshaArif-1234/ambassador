@@ -5,6 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
 import { authApi } from '@/utils/auth.api';
+import { SHIPPING_CITIES } from '@/utils/userAddress.util';
 import Link from 'next/link';
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
@@ -50,6 +51,7 @@ export default function ProfilePage() {
   // ── Address edit state ──
   const [editingAddress, setEditingAddress] = useState(false);
   const [savingAddress, setSavingAddress]   = useState(false);
+  const [addressCity, setAddressCity]         = useState(user?.city ?? '');
   const [address, setAddress]               = useState(user?.address ?? '');
 
   // ── Recent orders ──
@@ -120,8 +122,11 @@ export default function ProfilePage() {
   const saveAddress = async () => {
     setSavingAddress(true);
     try {
-      const res = await authApi.updateProfile({ address: address.trim() });
-      updateUser({ address: res.data!.user.address });
+      const res = await authApi.updateProfile({
+        city: addressCity.trim(),
+        address: address.trim(),
+      });
+      updateUser({ city: res.data!.user.city, address: res.data!.user.address });
       setEditingAddress(false);
       flash('success', 'Address updated.');
     } catch (err) {
@@ -245,7 +250,11 @@ export default function ProfilePage() {
               <h2 className="text-base font-semibold text-[#0F4C69]">Address Book</h2>
               {!editingAddress && (
                 <button
-                  onClick={() => { setAddress(user.address ?? ''); setEditingAddress(true); }}
+                  onClick={() => {
+                    setAddressCity(user.city ?? '');
+                    setAddress(user.address ?? '');
+                    setEditingAddress(true);
+                  }}
                   className="text-xs font-semibold text-[#E36630] hover:underline uppercase tracking-wide"
                 >
                   Edit
@@ -257,11 +266,26 @@ export default function ProfilePage() {
 
             {editingAddress ? (
               <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">City</label>
+                  <select
+                    value={addressCity}
+                    onChange={(e) => setAddressCity(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/20"
+                  >
+                    <option value="">Select city</option>
+                    {SHIPPING_CITIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <textarea
                   value={address}
                   onChange={e => setAddress(e.target.value)}
                   rows={4}
-                  placeholder="Province - City - Area - Street / House details"
+                  placeholder="Area, street, house / building details"
                   className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/20 resize-none"
                 />
                 <div className="flex items-center gap-3">
@@ -280,17 +304,20 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </div>
-            ) : user.address ? (
+            ) : user.address || user.city ? (
               <div>
                 <p className="text-sm font-bold text-gray-900 mb-1">{user.name}</p>
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{user.address}</p>
+                {user.city && <p className="text-sm text-gray-600">{user.city}</p>}
+                {user.address && (
+                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{user.address}</p>
+                )}
                 {user.phoneNumber && <p className="text-sm text-gray-600 mt-1">{user.phoneNumber}</p>}
               </div>
             ) : (
               <div className="py-4">
                 <p className="text-sm text-gray-400">No address saved yet.</p>
                 <button
-                  onClick={() => { setAddress(''); setEditingAddress(true); }}
+                  onClick={() => { setAddressCity(''); setAddress(''); setEditingAddress(true); }}
                   className="mt-2 text-sm font-medium text-[#E36630] hover:underline"
                 >
                   + Add Address
@@ -304,10 +331,13 @@ export default function ProfilePage() {
             <h2 className="text-base font-semibold text-[#0F4C69] mb-4">Billing Address</h2>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Default Billing Address</p>
 
-            {user.address ? (
+            {user.address || user.city ? (
               <div>
                 <p className="text-sm font-bold text-gray-900 mb-1">{user.name}</p>
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{user.address}</p>
+                {user.city && <p className="text-sm text-gray-600">{user.city}</p>}
+                {user.address && (
+                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{user.address}</p>
+                )}
                 {user.phoneNumber && <p className="text-sm text-gray-600 mt-1">{user.phoneNumber}</p>}
                 <p className="mt-3 text-xs text-gray-400">Same as your default shipping address.</p>
               </div>

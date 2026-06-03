@@ -1,8 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
+import { useUser } from '@/contexts/UserContext';
+import { authApi } from '@/utils/auth.api';
+import {
+  checkoutDefaultsFromUser,
+  profileUpdateFromCheckout,
+  SHIPPING_CITIES,
+} from '@/utils/userAddress.util';
 import AuthModal from '@/components/auth/AuthModal';
 
 const inputFocus =
@@ -28,30 +35,29 @@ const emptyForm: CheckoutFormData = {
 
 const CheckoutForm = () => {
   const { cartItems } = useCart();
+  const { user, isLoading: authLoading, updateUser } = useUser();
   const router = useRouter();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
   const [formData, setFormData] = useState<CheckoutFormData>(emptyForm);
+  const prefilledFromProfile = useRef(false);
 
-  // Simulate user context (in real app, this would come from UserContext)
-  const [user, setUser] = useState<any>(null);
-
-  // Auto-fill if user is logged in
+  // Logged-in: pre-fill from user profile (default phone, city, address)
   useEffect(() => {
-    if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        fullName: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-      }));
-    }
-  }, [user]);
+    if (authLoading || !user || prefilledFromProfile.current) return;
+    prefilledFromProfile.current = true;
+    const defaults = checkoutDefaultsFromUser(user);
+    setFormData((prev) => ({
+      ...prev,
+      ...defaults,
+      deliveryNotes: prev.deliveryNotes,
+    }));
+  }, [user, authLoading]);
 
-  // Load saved form data from localStorage
+  // Guest: restore draft from localStorage
   useEffect(() => {
+    if (authLoading || user) return;
     const savedData = localStorage.getItem('checkoutFormData');
     if (!savedData) return;
     try {
@@ -68,12 +74,13 @@ const CheckoutForm = () => {
     } catch {
       /* ignore corrupt storage */
     }
-  }, []);
+  }, [user, authLoading]);
 
-  // Save form data to localStorage
+  // Guest draft only — logged-in users rely on profile + order sync
   useEffect(() => {
+    if (user) return;
     localStorage.setItem('checkoutFormData', JSON.stringify(formData));
-  }, [formData]);
+  }, [formData, user]);
 
   const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const deliveryCharges = subtotal > 0 ? 200 : 0; // Fixed delivery charge
@@ -124,13 +131,33 @@ const CheckoutForm = () => {
     setIsProcessing(true);
 
     try {
+      if (user) {
+        const profilePayload = profileUpdateFromCheckout({
+          phone: formData.phone,
+          city: formData.city,
+          address: formData.address,
+        });
+        try {
+          const res = await authApi.updateProfile(profilePayload);
+          const u = res.data!.user;
+          updateUser({
+            phoneNumber: u.phoneNumber,
+            city: u.city,
+            address: u.address,
+          });
+        } catch {
+          /* order API will sync again after payment if cookie is sent */
+        }
+      }
+
       const orderData = {
         name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
-        address: `${formData.address}, ${formData.city}`,
+        city: formData.city,
+        address: formData.address,
         deliveryNotes: formData.deliveryNotes,
-        userId: user?._id || null,
+        userId: user?.id ?? null,
         products: cartItems,
         subtotal,
         deliveryCharges,
@@ -149,6 +176,8 @@ const CheckoutForm = () => {
           name: formData.fullName,
           email: formData.email,
           phone: formData.phone,
+          city: formData.city,
+          address: formData.address,
         },
         orderItems: cartItems,
         orderData: orderData,
@@ -204,9 +233,12 @@ const CheckoutForm = () => {
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 } placeholder:text-gray-400`}
                 placeholder="Enter your email"
-                disabled={!!user}
+                disabled={Boolean(user)}
               />
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              {user && (
+                <p className="mt-1 text-xs text-gray-500">Using your account email.</p>
+              )}
             </div>
 
             <div>
@@ -222,7 +254,6 @@ const CheckoutForm = () => {
                   errors.phone ? 'border-red-500' : 'border-gray-300'
                 } placeholder:text-gray-400`}
                 placeholder="03XX-XXXXXXX"
-                disabled={!!user}
               />
               {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
             </div>
@@ -232,6 +263,12 @@ const CheckoutForm = () => {
         {/* Shipping Details */}
         <div className="rounded-lg border bg-white p-6">
           <h3 className="mb-4 text-lg font-semibold text-gray-900">Shipping Details</h3>
+          {user && (user.phoneNumber || user.address || user.city) && (
+            <p className="mb-3 text-xs text-gray-500">
+              Pre-filled from your profile. Change anything here to update your default contact and
+              address.
+            </p>
+          )}
 
           <div className="space-y-4">
             <div>
@@ -245,11 +282,11 @@ const CheckoutForm = () => {
                 }`}
               >
                 <option value="">Select city</option>
-                <option value="Lahore">Lahore</option>
-                <option value="Karachi">Karachi</option>
-                <option value="Islamabad">Islamabad</option>
-                <option value="Rawalpindi">Rawalpindi</option>
-                <option value="Faisalabad">Faisalabad</option>
+                {SHIPPING_CITIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
               {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
             </div>

@@ -4,7 +4,9 @@ import bcrypt from 'bcryptjs';
 export interface IUser extends Document {
   fullName: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber?: string;
+  /** Default shipping city (checkout + profile). */
+  city?: string;
   address: string;
   password: string;
   role: 'user' | 'admin';
@@ -41,8 +43,13 @@ const userSchema = new Schema<IUser>(
     },
     phoneNumber: {
       type: String,
-      required: [true, 'Phone number is required'],
       trim: true,
+      default: '',
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: '',
     },
     address: {
       type: String,

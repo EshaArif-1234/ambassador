@@ -10,6 +10,7 @@ interface AdminUser {
   fullName: string;
   email: string;
   phoneNumber: string;
+  city?: string;
   address: string;
   role: 'user' | 'admin';
   isVerified: boolean;
@@ -298,8 +299,11 @@ const UsersPage = () => {
 
                     {/* Address */}
                     <td className="px-5 py-4 text-sm text-gray-600 max-w-[220px]">
-                      <span className="block truncate" title={user.address || ''}>
-                        {user.address || '—'}
+                      <span
+                        className="block truncate"
+                        title={[user.city, user.address].filter(Boolean).join(' — ') || ''}
+                      >
+                        {[user.city, user.address].filter(Boolean).join(', ') || '—'}
                       </span>
                     </td>
 
@@ -599,7 +603,11 @@ const UsersPage = () => {
               <div className="space-y-3 text-sm">
                 {[
                   { label: 'Phone',       value: userToView.phoneNumber || '—' },
-                  { label: 'Address',     value: userToView.address || '—' },
+                  {
+                    label: 'Address',
+                    value:
+                      [userToView.city, userToView.address].filter(Boolean).join(', ') || '—',
+                  },
                   { label: 'Role',        value: userToView.role },
                   { label: 'Status',      value: userToView.isDisabled ? 'Disabled' : 'Active' },
                   { label: 'Verified',    value: userToView.isVerified ? 'Yes' : 'No' },

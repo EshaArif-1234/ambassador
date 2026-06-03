@@ -21,6 +21,7 @@ async function saveOrderToDb(orderPayload: Record<string, unknown>) {
     await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(orderPayload),
     });
   } catch {

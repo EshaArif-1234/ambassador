@@ -74,6 +74,9 @@ export async function PATCH(req: NextRequest) {
     if (typeof body.phoneNumber === 'string') {
       user.phoneNumber = body.phoneNumber.trim();
     }
+    if (typeof body.city === 'string') {
+      user.city = body.city.trim();
+    }
     if (typeof body.address === 'string') {
       user.address = body.address.trim();
     }
