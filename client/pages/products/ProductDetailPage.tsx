@@ -7,6 +7,7 @@ import ProductRatingDropdown, {
   type RatingBreakdown,
 } from '@/components/products/ProductRatingDropdown';
 import CartPopup from '@/components/products/CartPopup';
+import WishlistButton from '@/components/products/WishlistButton';
 import { useCart } from '@/contexts/CartContext';
 
 interface CategoryRef {
@@ -463,7 +464,10 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
             </div>
 
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-800 flex-1 min-w-0">{product.name}</h1>
+                <WishlistButton productId={product._id} variant="inline" iconClassName="w-6 h-6" />
+              </div>
               {categoryLine ? (
                 <p className="mb-4 text-sm text-gray-600">{categoryLine}</p>
               ) : null}

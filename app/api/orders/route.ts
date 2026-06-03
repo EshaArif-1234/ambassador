@@ -6,7 +6,16 @@ import { verifyToken, extractToken } from '@/utils/jwt.util';
 import { enrichOrderItemsList, mapRawOrderItem } from '@/utils/orderItems.util';
 import type { IOrderItem } from '@/backend/models/Order.model';
 
-/** GET /api/orders — return orders for the authenticated user (matched by email) */
+const ORDER_STATUSES = [
+  'pending',
+  'confirmed',
+  'processing',
+  'shipped',
+  'delivered',
+  'cancelled',
+] as const;
+
+/** GET /api/orders — return orders for the authenticated user (matched by email). Optional ?status=cancelled */
 export async function GET(req: NextRequest) {
   try {
     const token = extractToken(req);
@@ -21,10 +30,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'User not found.' }, { status: 401 });
     }
 
-    const orders = await Order.find({ customerEmail: user.email })
-      .sort({ createdAt: -1 })
+    const statusParam = new URL(req.url).searchParams.get('status')?.trim().toLowerCase();
+    const filter: Record<string, unknown> = { customerEmail: user.email };
+    if (
+      statusParam &&
+      statusParam !== 'all' &&
+      (ORDER_STATUSES as readonly string[]).includes(statusParam)
+    ) {
+      filter.status = statusParam;
+    }
+
+    const orders = await Order.find(filter)
+      .sort({ updatedAt: -1 })
       .select(
-        'orderNumber status createdAt updatedAt items subtotal deliveryCharges totalAmount shippingAddress paymentStatus paidAt deliveryDate'
+        'orderNumber status createdAt updatedAt items subtotal deliveryCharges totalAmount shippingAddress paymentStatus paidAt deliveryDate notes failedReason'
       )
       .lean();
 

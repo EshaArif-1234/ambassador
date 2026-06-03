@@ -4,6 +4,7 @@ import "./globals.css";
 import LayoutWrapper from "@/components/common/LayoutWrapper";
 import { UserProvider } from "@/contexts/UserContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { WishlistProvider } from "@/contexts/WishlistContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,9 +44,11 @@ export default function RootLayout({
       >
         <CartProvider>
           <UserProvider>
-            <LayoutWrapper>
-              {children}
-            </LayoutWrapper>
+            <WishlistProvider>
+              <LayoutWrapper>
+                {children}
+              </LayoutWrapper>
+            </WishlistProvider>
           </UserProvider>
         </CartProvider>
       </body>

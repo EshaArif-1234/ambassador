@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
 import CartPopup from '@/components/products/CartPopup';
+import WishlistButton from '@/components/products/WishlistButton';
 import { useCart } from '@/contexts/CartContext';
 
 interface ApiCategoryRef {
@@ -547,6 +548,7 @@ const ProductsPage = () => {
                             sizes="(max-width: 640px) 100vw, 288px"
                           />
                         </Link>
+                        <WishlistButton productId={product._id} />
 
                         {/* Orange bottom accent */}
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#E36630] via-[#0F4C69] to-[#E36630] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

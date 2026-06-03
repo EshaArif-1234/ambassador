@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Schema } from 'mongoose';
+import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
@@ -13,6 +13,7 @@ export interface IUser extends Document {
   disableReason?: string;
   disableDescription?: string;
   lastLoginAt?: Date;
+  wishlist: Types.ObjectId[];
   otp?: string;
   otpExpiry?: Date;
   createdAt: Date;
@@ -77,6 +78,10 @@ const userSchema = new Schema<IUser>(
     },
     lastLoginAt: {
       type: Date,
+    },
+    wishlist: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
+      default: [],
     },
     otp: {
       type: String,
