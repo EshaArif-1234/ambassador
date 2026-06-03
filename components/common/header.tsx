@@ -165,7 +165,7 @@ const Header = () => {
             onSubmit={handleSearch}
             className="order-3 flex w-full min-w-0 max-w-4xl flex-1 basis-full items-stretch sm:order-none sm:basis-auto sm:px-2 md:mx-2 lg:mx-4 xl:max-w-5xl xl:mx-6"
           >
-            <div className="flex min-h-[44px] min-w-0 flex-1 rounded-l-full border border-r-0 border-gray-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+            <div className="flex min-h-[44px] min-w-0 flex-1 items-center rounded-l-full border border-r-0 border-gray-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
               <label htmlFor="header-search" className="sr-only">
                 Search for products
               </label>
@@ -184,7 +184,7 @@ const Header = () => {
                 <button
                   type="button"
                   onClick={handleClearSearch}
-                  className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="mr-1 flex h-8 w-8 shrink-0 self-center items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                   aria-label="Clear search"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -193,7 +193,10 @@ const Header = () => {
                 </button>
               ) : null}
               <div className="hidden h-auto w-px shrink-0 bg-gray-200 sm:my-2.5 sm:block" aria-hidden />
-              <div className="relative flex shrink-0 border-l border-gray-200/80 sm:border-l-0" ref={categoriesRef}>
+              <div
+                className="relative flex shrink-0 self-stretch border-l border-gray-200/80 sm:border-l-0"
+                ref={categoriesRef}
+              >
                 <button
                   type="button"
                   onClick={() => setIsCategoryOpen((v) => !v)}
