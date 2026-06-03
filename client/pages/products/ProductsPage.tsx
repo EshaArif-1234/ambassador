@@ -181,8 +181,11 @@ const ProductsPage = () => {
       return [...set].join(',');
     })();
 
-    if (cat  && cat  !== ALL) p.set('category', cat);
-    if (q.trim())             p.set('search',   q.trim());
+    if (q.trim()) {
+      p.set('search', q.trim());
+    } else if (cat && cat !== ALL) {
+      p.set('category', cat);
+    }
     if (sort !== 'newest')    p.set('sort',      sort);
     if (page !== '1')         p.set('page',      page);
     if (Number(minP) > 0)     p.set('minPrice',  minP);
@@ -203,10 +206,15 @@ const ProductsPage = () => {
   // Only syncs `search` and `category` — the params the header controls.
   // Page reset on search/category change is handled by the filter-change effect below.
   useEffect(() => {
-    const newSearch   = searchParams.get('search')   ?? '';
+    const newSearch = searchParams.get('search') ?? '';
     const newCategory = searchParams.get('category') ?? ALL;
-    setSearchTerm(prev      => prev !== newSearch   ? newSearch   : prev);
-    setSelectedCategory(prev => prev !== newCategory ? newCategory : prev);
+    if (newSearch.trim()) {
+      setSearchTerm(newSearch);
+      setSelectedCategory(ALL);
+    } else {
+      setSearchTerm('');
+      setSelectedCategory(newCategory);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -234,8 +242,11 @@ const ProductsPage = () => {
         const params = new URLSearchParams();
         params.set('page',  String(currentPage));
         params.set('limit', String(PAGE_SIZE));
-        if (searchTerm.trim())              params.set('search',   searchTerm.trim());
-        if (selectedCategory !== ALL)       params.set('category', selectedCategory);
+        if (searchTerm.trim()) {
+          params.set('search', searchTerm.trim());
+        } else if (selectedCategory !== ALL) {
+          params.set('category', selectedCategory);
+        }
         if (priceRange.min > 0)             params.set('minPrice', String(priceRange.min));
         if (priceRange.max > 0)             params.set('maxPrice', String(priceRange.max));
         params.set('sort', SORT_MAP[sortBy] ?? 'newest');
@@ -370,7 +381,10 @@ const ProductsPage = () => {
                         name="category"
                         value={category}
                         checked={selectedCategory === category}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedCategory(e.target.value);
+                          setSearchTerm('');
+                        }}
                         className="mr-2 accent-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
                       />
                       <span className="text-sm text-gray-700">{category}</span>

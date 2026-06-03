@@ -46,30 +46,24 @@ export async function GET(req: NextRequest) {
       filter._id = { $ne: excludeId };
     }
 
+    // Text search and category browse are separate modes (not combined).
     if (search) {
-      // Find categories whose title partially matches the search term
+      const nameCondition = { name: { $regex: escapeRegex(search), $options: 'i' } };
+
       const matchingCats = await Category.find({
         title: { $regex: escapeRegex(search), $options: 'i' },
         $nor: [{ status: { $regex: /^inactive$/i } }],
       }).select('_id').lean();
 
-      const nameCondition = { name: { $regex: escapeRegex(search), $options: 'i' } };
-
       if (matchingCats.length > 0) {
-        // Search matches both product name AND category name — use $or so either qualifies
         filter.$or = [
           nameCondition,
           { categories: { $in: matchingCats.map((c) => c._id) } },
         ];
-      } else if (search.length >= 2) {
-        // No category match — use fast text index on product name
-        filter.$text = { $search: search };
       } else {
         filter.name = nameCondition.name;
       }
-    }
-
-    if (categoryTitle) {
+    } else if (categoryTitle) {
       const cats = await Category.find({
         title: new RegExp(`^${escapeRegex(categoryTitle)}$`, 'i'),
         $nor: [{ status: { $regex: /^inactive$/i } }],

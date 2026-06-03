@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { useCart } from '@/contexts/CartContext';
 
@@ -11,6 +11,8 @@ type CategoryItem = { title: string; slug?: string; image?: string };
 
 const Header = () => {
   const router = useRouter();
+  const pathname = usePathname();
+  const urlSearchParams = useSearchParams();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -64,12 +66,76 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = searchQuery.trim();
+  /** Keep header search UI in sync when viewing /products (search OR category, not both) */
+  useEffect(() => {
+    if (pathname !== '/products') return;
+    const urlQ = urlSearchParams.get('search') ?? '';
+    const urlCat = urlSearchParams.get('category');
+    if (urlQ.trim()) {
+      setSearchQuery(urlQ);
+      setSelectedCategoryTitle(null);
+    } else {
+      setSearchQuery('');
+      setSelectedCategoryTitle(urlCat || null);
+    }
+  }, [pathname, urlSearchParams]);
+
+  const buildProductsHref = (params: URLSearchParams) => {
+    const qs = params.toString();
+    return qs ? `/products?${qs}` : '/products';
+  };
+
+  /** Drop ?search= from URL and show all products (keeps category if set). */
+  const clearSearchFromUrl = () => {
+    const params = new URLSearchParams();
+    const cat = urlSearchParams.get('category');
+    if (cat) params.set('category', cat);
+    router.replace(buildProductsHref(params));
+  };
+
+  /** Product name search — all categories, case-insensitive on the server */
+  const runProductSearch = (query: string) => {
+    const q = query.trim();
+    setSearchQuery(q);
+    setSelectedCategoryTitle(null);
     const params = new URLSearchParams();
     if (q) params.set('search', q);
-    if (selectedCategoryTitle) params.set('category', selectedCategoryTitle);
+    router.push(buildProductsHref(params));
+  };
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    // Clearing the field must clear ?search= from the URL (not only local state)
+    if (
+      pathname === '/products' &&
+      !value.trim() &&
+      urlSearchParams.get('search')?.trim()
+    ) {
+      clearSearchFromUrl();
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    if (pathname === '/products' && urlSearchParams.get('search')?.trim()) {
+      clearSearchFromUrl();
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    runProductSearch(searchQuery);
+  };
+
+  /** Category browse — no text search filter applied */
+  const selectCategory = (title: string | null) => {
+    setSelectedCategoryTitle(title);
+    setSearchQuery('');
+    setIsCategoryOpen(false);
+    const params = new URLSearchParams();
+    if (title) params.set('category', title);
     const qs = params.toString();
     router.push(qs ? `/products?${qs}` : '/products');
   };
@@ -105,13 +171,27 @@ const Header = () => {
               </label>
               <input
                 id="header-search"
-                type="search"
+                type="text"
+                role="searchbox"
+                enterKeyHint="search"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchInputChange}
                 placeholder="Search for products"
                 autoComplete="off"
-                className="min-w-0 flex-1 rounded-l-full border-0 bg-transparent py-2.5 pl-4 pr-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0 sm:py-3 sm:pl-5 sm:text-[15px]"
+                className="min-w-0 flex-1 rounded-l-full border-0 bg-transparent py-2.5 pl-4 pr-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0 sm:py-3 sm:pl-5 sm:text-[15px] [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
               />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              ) : null}
               <div className="hidden h-auto w-px shrink-0 bg-gray-200 sm:my-2.5 sm:block" aria-hidden />
               <div className="relative flex shrink-0 border-l border-gray-200/80 sm:border-l-0" ref={categoriesRef}>
                 <button
@@ -144,10 +224,7 @@ const Header = () => {
                       type="button"
                       role="option"
                       aria-selected={selectedCategoryTitle === null}
-                      onClick={() => {
-                        setSelectedCategoryTitle(null);
-                        setIsCategoryOpen(false);
-                      }}
+                      onClick={() => selectCategory(null)}
                       className={`flex w-full items-center px-4 py-2.5 text-left text-sm transition-colors ${
                         selectedCategoryTitle === null
                           ? 'bg-[#0F4C69] font-medium text-white'
@@ -171,10 +248,7 @@ const Header = () => {
                             type="button"
                             role="option"
                             aria-selected={active}
-                            onClick={() => {
-                              setSelectedCategoryTitle(cat.title);
-                              setIsCategoryOpen(false);
-                            }}
+                            onClick={() => selectCategory(cat.title)}
                             className={`flex w-full items-center px-4 py-2.5 text-left text-sm transition-colors ${
                               active
                                 ? 'bg-[#0F4C69] font-medium text-white'

@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import Header from './header';
 import NavigationHeader from './NavigationHeader';
@@ -33,7 +34,9 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
   // Render full layout for non-admin routes
   return (
     <>
-      <Header />
+      <Suspense fallback={<div className="h-16 bg-white shadow-md" aria-hidden />}>
+        <Header />
+      </Suspense>
       <NavigationHeader />
       {children}
       <Footer />
