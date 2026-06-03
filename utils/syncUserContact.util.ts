@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 import User from '@/backend/models/User.model';
-import { extractToken, verifyToken } from '@/utils/jwt.util';
+import { getUserIdFromRequest } from '@/utils/authSession.util';
 import { profileUpdateFromCheckout } from '@/utils/userAddress.util';
 
 /**
@@ -12,17 +12,7 @@ export async function syncUserContactFromCheckout(
   customerEmail: string,
   contact: { phone: string; city: string; address: string }
 ): Promise<void> {
-  const token = extractToken(req);
-  if (!token) return;
-
-  let decoded;
-  try {
-    decoded = verifyToken(token);
-  } catch {
-    return;
-  }
-
-  const userId = typeof decoded.id === 'string' ? decoded.id : String(decoded.sub ?? '');
+  const userId = getUserIdFromRequest(req);
   if (!userId) return;
 
   const user = await User.findById(userId);

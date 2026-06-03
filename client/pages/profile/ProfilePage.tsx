@@ -7,6 +7,7 @@ import AccountPageLoader from '@/components/account/AccountPageLoader';
 import { authApi } from '@/utils/auth.api';
 import { SHIPPING_CITIES } from '@/utils/userAddress.util';
 import Link from 'next/link';
+import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
@@ -57,26 +58,41 @@ export default function ProfilePage() {
   // ── Recent orders ──
   const [orders, setOrders]               = useState<RecentOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError]     = useState<string | null>(null);
 
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
-    if (!user) { setOrdersLoading(false); return; }
+    if (!user) {
+      setOrdersLoading(false);
+      setOrdersError(null);
+      return;
+    }
     setOrdersLoading(true);
-    fetch('/api/orders', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) {
+    setOrdersError(null);
+    fetchAuthedJson<{ success?: boolean; data?: RecentOrder[]; message?: string }>('/api/orders')
+      .then(({ ok, status, body }) => {
+        if (ok && body.success) {
           setOrders(
-            (d.data ?? []).slice(0, 5).map((o: RecentOrder) => ({
+            (body.data ?? []).slice(0, 5).map((o) => ({
               ...o,
               status: (o.status ?? 'pending') as OrderStatus,
             }))
           );
+          return;
         }
+        if (status === 401) {
+          setOrdersError('Session expired. Please log in again.');
+        } else {
+          setOrdersError(body.message ?? 'Could not load recent orders.');
+        }
+        setOrders([]);
       })
-      .catch(() => {})
+      .catch(() => {
+        setOrdersError('Could not load recent orders. Check your connection and try again.');
+        setOrders([]);
+      })
       .finally(() => setOrdersLoading(false));
   }, [user, isLoading]);
 
@@ -359,6 +375,15 @@ export default function ProfilePage() {
           {ordersLoading ? (
             <div className="p-6 space-y-3">
               {[1, 2, 3].map(i => <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />)}
+            </div>
+          ) : ordersError ? (
+            <div className="py-14 text-center px-6">
+              <p className="text-sm text-red-600">{ordersError}</p>
+              {ordersError.includes('log in') && (
+                <Link href="/login" className="mt-3 inline-block text-sm font-medium text-[#0F4C69] hover:underline">
+                  Go to login
+                </Link>
+              )}
             </div>
           ) : orders.length === 0 ? (
             <div className="py-14 text-center">

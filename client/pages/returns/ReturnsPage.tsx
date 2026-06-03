@@ -41,7 +41,10 @@ export default function ReturnsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/orders?status=cancelled', { credentials: 'include' });
+      const res = await fetch('/api/orders?status=cancelled', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
       const json = await res.json();
       if (json.success) {
         setOrders(

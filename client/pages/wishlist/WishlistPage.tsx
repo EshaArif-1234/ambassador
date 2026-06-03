@@ -9,6 +9,7 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
 import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
+import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
 
 interface WishlistProduct {
   _id: string;
@@ -30,18 +31,31 @@ export default function WishlistPage() {
   const { addToCart } = useCart();
   const [items, setItems] = useState<WishlistProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
-      const res = await fetch('/api/wishlist', { credentials: 'include' });
-      const json = await res.json();
-      if (json.success) {
-        setItems(json.data?.items ?? []);
+      const { ok, status, body } = await fetchAuthedJson<{
+        success?: boolean;
+        data?: { items?: WishlistProduct[] };
+        message?: string;
+      }>('/api/wishlist');
+      if (ok && body.success) {
+        setItems(body.data?.items ?? []);
+        return;
       }
+      setItems([]);
+      setLoadError(
+        status === 401
+          ? 'Session expired. Please log in again.'
+          : (body.message ?? 'Could not load wishlist.')
+      );
     } catch {
       setItems([]);
+      setLoadError('Could not load wishlist. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -124,6 +138,23 @@ export default function WishlistPage() {
             {[1, 2].map((i) => (
               <div key={i} className="h-40 rounded-2xl bg-white animate-pulse" />
             ))}
+          </div>
+        ) : loadError ? (
+          <div className="rounded-2xl bg-white shadow-sm border border-gray-100 py-16 text-center px-6">
+            <p className="text-sm text-red-600">{loadError}</p>
+            {loadError.includes('log in') ? (
+              <Link href="/login" className="mt-3 inline-block text-sm font-medium text-[#0F4C69] hover:underline">
+                Go to login
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={load}
+                className="mt-3 text-sm font-medium text-[#E36630] hover:underline"
+              >
+                Try again
+              </button>
+            )}
           </div>
         ) : items.length === 0 ? (
           <div className="rounded-2xl bg-white shadow-sm border border-gray-100 py-20 text-center">

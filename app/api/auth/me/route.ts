@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
-import { verifyToken, extractToken } from '@/utils/jwt.util';
+import { requireAuthUser, userIdFromJwtPayload } from '@/utils/authSession.util';
+import { extractToken, verifyToken } from '@/utils/jwt.util';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
     const token = extractToken(req);
-
     if (!token) {
       return NextResponse.json(
         { success: false, message: 'Not authenticated. Please log in.' },
@@ -14,10 +17,26 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const decoded = verifyToken(token);
+    let decoded;
+    try {
+      decoded = verifyToken(token);
+    } catch {
+      return NextResponse.json(
+        { success: false, message: 'Invalid or expired token. Please log in again.' },
+        { status: 401 }
+      );
+    }
+
+    const userId = userIdFromJwtPayload(decoded);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid session token.' },
+        { status: 401 }
+      );
+    }
 
     await connectDB();
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(userId);
 
     if (!user) {
       return NextResponse.json(
@@ -32,9 +51,10 @@ export async function GET(req: NextRequest) {
         message: 'Authenticated user retrieved.',
         data: { user: user.toSafeObject() },
       },
-      { status: 200 }
+      { status: 200, headers: { 'Cache-Control': 'no-store, private' } }
     );
-  } catch {
+  } catch (error) {
+    console.error('[auth/me GET]', error);
     return NextResponse.json(
       { success: false, message: 'Invalid or expired token. Please log in again.' },
       { status: 401 }
@@ -45,20 +65,15 @@ export async function GET(req: NextRequest) {
 /** PATCH /api/auth/me — let the authenticated user update their own profile */
 export async function PATCH(req: NextRequest) {
   try {
-    const token = extractToken(req);
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Not authenticated. Please log in.' },
-        { status: 401 }
-      );
+    const auth = await requireAuthUser(req);
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, message: auth.message }, { status: auth.status });
     }
 
-    const decoded = verifyToken(token);
     const body = await req.json().catch(() => ({}));
 
     await connectDB();
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(auth.userId);
 
     if (!user) {
       return NextResponse.json(
@@ -67,7 +82,6 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Only allow self-editable fields
     if (typeof body.fullName === 'string' && body.fullName.trim()) {
       user.fullName = body.fullName.trim();
     }

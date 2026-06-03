@@ -68,7 +68,8 @@ async function request<T>(
 ): Promise<ApiResponse<T>> {
   const res = await fetch(`/api/auth${path}`, {
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include', // send httpOnly cookie automatically
+    credentials: 'include',
+    cache: 'no-store',
     ...options,
   });
 

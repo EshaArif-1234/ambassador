@@ -4,20 +4,10 @@ import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
 import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
-import { verifyToken, extractToken } from '@/utils/jwt.util';
+import { requireAuthUser } from '@/utils/authSession.util';
 
 export const dynamic = 'force-dynamic';
-
-async function getAuthUserId(req: NextRequest): Promise<string | null> {
-  const token = extractToken(req);
-  if (!token) return null;
-  try {
-    const decoded = verifyToken(token);
-    return decoded.id;
-  } catch {
-    return null;
-  }
-}
+export const runtime = 'nodejs';
 
 function displayPrice(p: { price?: number; originalPrice: number }) {
   return p.price != null && p.price > 0 ? p.price : p.originalPrice;
@@ -26,21 +16,24 @@ function displayPrice(p: { price?: number; originalPrice: number }) {
 /** GET /api/wishlist — list saved products for the authenticated user */
 export async function GET(req: NextRequest) {
   try {
-    const userId = await getAuthUserId(req);
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'Not authenticated.' }, { status: 401 });
+    const auth = await requireAuthUser(req);
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, message: auth.message }, { status: auth.status });
     }
 
     await connectDB();
 
-    const user = await User.findById(userId).select('wishlist').lean();
+    const user = await User.findById(auth.userId).select('wishlist').lean();
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found.' }, { status: 401 });
     }
 
     const ids = (user.wishlist ?? []).map((id) => String(id));
     if (!ids.length) {
-      return NextResponse.json({ success: true, data: { productIds: [], items: [] } });
+      return NextResponse.json(
+        { success: true, data: { productIds: [], items: [] } },
+        { headers: { 'Cache-Control': 'no-store, private' } }
+      );
     }
 
     const products = await Product.find({
@@ -95,10 +88,13 @@ export async function GET(req: NextRequest) {
 
     const activeIds = items.map((p) => p._id);
 
-    return NextResponse.json({
-      success: true,
-      data: { productIds: activeIds, items },
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: { productIds: activeIds, items },
+      },
+      { headers: { 'Cache-Control': 'no-store, private' } }
+    );
   } catch (err) {
     console.error('[GET /api/wishlist]', err);
     return NextResponse.json({ success: false, message: 'Failed to load wishlist.' }, { status: 500 });
@@ -108,9 +104,9 @@ export async function GET(req: NextRequest) {
 /** POST /api/wishlist — add product to wishlist { productId } */
 export async function POST(req: NextRequest) {
   try {
-    const userId = await getAuthUserId(req);
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'Not authenticated.' }, { status: 401 });
+    const auth = await requireAuthUser(req);
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, message: auth.message }, { status: auth.status });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -126,7 +122,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Product not found.' }, { status: 404 });
     }
 
-    const user = await User.findById(userId).select('wishlist');
+    const user = await User.findById(auth.userId).select('wishlist');
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found.' }, { status: 401 });
     }

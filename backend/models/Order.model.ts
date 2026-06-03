@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Schema } from 'mongoose';
+import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
 export interface IOrderItem {
   productId?: string;
@@ -12,6 +12,8 @@ export interface IOrderItem {
 
 export interface IOrder extends Document {
   orderNumber: string;
+  /** Linked account when order was placed while logged in. */
+  userId?: Types.ObjectId;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -63,6 +65,11 @@ const orderSchema = new Schema<IOrder>(
       unique: true,
       trim: true,
     },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
     customerName: { type: String, required: true, trim: true },
     customerEmail: { type: String, required: true, trim: true, lowercase: true },
     customerPhone: { type: String, required: true, trim: true },
@@ -109,6 +116,7 @@ const orderSchema = new Schema<IOrder>(
 );
 
 orderSchema.index({ customerEmail: 1 });
+orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ createdAt: -1 });
 

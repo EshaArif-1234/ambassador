@@ -6,6 +6,7 @@ import { useUser } from '@/contexts/UserContext';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
 import { formatDeliveryAddress, orderMetaLine } from '@/utils/orderDisplay.util';
+import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
@@ -58,28 +59,40 @@ export default function OrdersPage() {
   const { user, isLoading } = useUser();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'delivered' | 'cancelled'>('all');
 
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
       setLoading(false);
+      setLoadError(null);
       return;
     }
     setLoading(true);
-    fetch('/api/orders', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) {
+    setLoadError(null);
+    fetchAuthedJson<{ success?: boolean; data?: Order[]; message?: string }>('/api/orders')
+      .then(({ ok, status, body }) => {
+        if (ok && body.success) {
           setOrders(
-            (d.data ?? []).map((o: Order) => ({
+            (body.data ?? []).map((o) => ({
               ...o,
               status: (o.status ?? 'pending') as OrderStatus,
             }))
           );
+          return;
         }
+        setOrders([]);
+        setLoadError(
+          status === 401
+            ? 'Session expired. Please log in again to view your orders.'
+            : (body.message ?? 'Could not load orders.')
+        );
       })
-      .catch(() => {})
+      .catch(() => {
+        setOrders([]);
+        setLoadError('Could not load orders. Check your connection and try again.');
+      })
       .finally(() => setLoading(false));
   }, [user, isLoading]);
 
@@ -139,7 +152,46 @@ export default function OrdersPage() {
           ))}
         </div>
 
-        {loading ? (
+        {loadError && !loading ? (
+          <div className="rounded-2xl bg-white shadow-sm border border-gray-100 py-16 text-center px-6">
+            <p className="text-sm text-red-600">{loadError}</p>
+            {loadError.includes('log in') ? (
+              <Link href="/login" className="mt-3 inline-block text-sm font-medium text-[#0F4C69] hover:underline">
+                Go to login
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setLoadError(null);
+                  setLoading(true);
+                  fetchAuthedJson<{ success?: boolean; data?: Order[]; message?: string }>('/api/orders')
+                    .then(({ ok, status, body }) => {
+                      if (ok && body.success) {
+                        setOrders(
+                          (body.data ?? []).map((o) => ({
+                            ...o,
+                            status: (o.status ?? 'pending') as OrderStatus,
+                          }))
+                        );
+                        return;
+                      }
+                      setLoadError(
+                        status === 401
+                          ? 'Session expired. Please log in again to view your orders.'
+                          : (body.message ?? 'Could not load orders.')
+                      );
+                    })
+                    .catch(() => setLoadError('Could not load orders. Check your connection and try again.'))
+                    .finally(() => setLoading(false));
+                }}
+                className="mt-3 text-sm font-medium text-[#E36630] hover:underline"
+              >
+                Try again
+              </button>
+            )}
+          </div>
+        ) : loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-40 rounded-2xl bg-white animate-pulse" />

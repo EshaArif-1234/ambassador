@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
-import { verifyToken, extractToken } from '@/utils/jwt.util';
+import { requireAuthUser } from '@/utils/authSession.util';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /** DELETE /api/wishlist/[productId] — remove product from wishlist */
 export async function DELETE(
@@ -17,15 +18,14 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: 'Invalid product.' }, { status: 400 });
     }
 
-    const token = extractToken(req);
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Not authenticated.' }, { status: 401 });
+    const auth = await requireAuthUser(req);
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, message: auth.message }, { status: auth.status });
     }
-    const decoded = verifyToken(token);
 
     await connectDB();
 
-    const user = await User.findById(decoded.id).select('wishlist');
+    const user = await User.findById(auth.userId).select('wishlist');
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found.' }, { status: 401 });
     }

@@ -19,27 +19,44 @@ export const verifyToken = (token: string): jwt.JwtPayload => {
   return jwt.verify(token, secret()) as jwt.JwtPayload;
 };
 
+/** Production-safe Secure flag (set COOKIE_SECURE=false only for local HTTP testing). */
+function authCookieSecure(): boolean {
+  if (process.env.COOKIE_SECURE === 'false') return false;
+  if (process.env.COOKIE_SECURE === 'true') return true;
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL;
+  if (siteUrl) {
+    const href = siteUrl.startsWith('http') ? siteUrl : `https://${siteUrl}`;
+    try {
+      return new URL(href).protocol === 'https:';
+    } catch {
+      /* fall through */
+    }
+  }
+  return process.env.NODE_ENV === 'production';
+}
+
+function authCookieOptions(maxAge: number) {
+  const opts: Parameters<NextResponse['cookies']['set']>[2] = {
+    httpOnly: true,
+    secure: authCookieSecure(),
+    sameSite: 'lax',
+    maxAge,
+    path: '/',
+  };
+  const domain = process.env.COOKIE_DOMAIN?.trim();
+  if (domain) opts.domain = domain;
+  return opts;
+}
+
 /** Attach a signed JWT as an httpOnly cookie on a NextResponse. */
 export const attachCookie = (response: NextResponse, token: string): void => {
   const days = parseInt(expiresIn(), 10) || 7;
-  response.cookies.set('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: days * 24 * 60 * 60,
-    path: '/',
-  });
+  response.cookies.set('token', token, authCookieOptions(days * 24 * 60 * 60));
 };
 
 /** Clear the JWT cookie on a NextResponse. */
 export const clearCookie = (response: NextResponse): void => {
-  response.cookies.set('token', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 0,
-    path: '/',
-  });
+  response.cookies.set('token', '', authCookieOptions(0));
 };
 
 /**

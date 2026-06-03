@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useUser } from '@/contexts/UserContext';
+import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
 
 interface WishlistContextType {
   productIds: Set<string>;
@@ -42,10 +43,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     }
     setLoading(true);
     try {
-      const res = await fetch('/api/wishlist', { credentials: 'include' });
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data?.productIds)) {
-        setProductIds(new Set(json.data.productIds as string[]));
+      const { ok, body } = await fetchAuthedJson<{ success?: boolean; data?: { productIds?: string[] } }>(
+        '/api/wishlist'
+      );
+      if (ok && body.success && Array.isArray(body.data?.productIds)) {
+        setProductIds(new Set(body.data.productIds));
       }
     } catch {
       /* keep previous state */
@@ -84,13 +86,12 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   const remove = useCallback(
     async (productId: string) => {
       if (!user) return false;
-      const res = await fetch(`/api/wishlist/${productId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      const json = await res.json();
-      if (!json.success) return false;
-      setProductIds(new Set(json.data?.productIds ?? []));
+      const { ok, body } = await fetchAuthedJson<{
+        success?: boolean;
+        data?: { productIds?: string[] };
+      }>(`/api/wishlist/${productId}`, { method: 'DELETE' });
+      if (!ok || !body.success) return false;
+      setProductIds(new Set(body.data?.productIds ?? []));
       return true;
     },
     [user]
