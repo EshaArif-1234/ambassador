@@ -1,6 +1,8 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+export type AuthProvider = 'local' | 'google' | 'both';
+
 export interface IUser extends Document {
   fullName: string;
   email: string;
@@ -8,7 +10,9 @@ export interface IUser extends Document {
   /** Default shipping city (checkout + profile). */
   city?: string;
   address: string;
-  password: string;
+  password?: string;
+  googleId?: string;
+  authProvider: AuthProvider;
   role: 'user' | 'admin';
   isVerified: boolean;
   isDisabled: boolean;
@@ -58,9 +62,19 @@ const userSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
       minlength: [8, 'Password must be at least 8 characters'],
       select: false,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google', 'both'],
+      default: 'local',
     },
     role: {
       type: String,
@@ -102,14 +116,15 @@ const userSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-// Hash password before saving if modified
+// Hash password before saving when set (Google-only users may have no password)
 userSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
+  if (!this.isModified('password') || !this.password) return;
   this.password = await bcrypt.hash(this.password, 12);
 });
 
 // Compare plain password against stored hash
 userSchema.methods.comparePassword = async function (candidate: string): Promise<boolean> {
+  if (!this.password) return false;
   return bcrypt.compare(candidate, this.password);
 };
 

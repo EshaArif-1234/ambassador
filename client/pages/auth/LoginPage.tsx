@@ -6,6 +6,7 @@ import { useUser } from '@/contexts/UserContext';
 import { authApi } from '@/utils/auth.api';
 import LoginMarketingSection from '../../../components/login/LoginMarketingSection';
 import LoginForm from '../../../components/login/LoginForm';
+import { getGoogleOAuthErrorMessage } from '@/utils/googleOAuthErrors.util';
 
 interface FormData {
   email: string;
@@ -36,9 +37,12 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Clear the verified params from the URL after reading them (clean URL)
   useEffect(() => {
-    if (isJustVerified) {
+    const oauthMsg = getGoogleOAuthErrorMessage(searchParams.get('error'));
+    if (oauthMsg) {
+      setErrors((prev) => ({ ...prev, submit: oauthMsg }));
+    }
+    if (isJustVerified || oauthMsg) {
       router.replace('/login');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

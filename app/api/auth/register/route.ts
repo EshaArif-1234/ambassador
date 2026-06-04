@@ -42,10 +42,11 @@ export async function POST(req: NextRequest) {
 
     const existing = await User.findOne({ email: normalizedEmail });
     if (existing?.isVerified) {
-      return NextResponse.json(
-        { success: false, message: 'An account with this email already exists.' },
-        { status: 409 }
-      );
+      const message =
+        existing.authProvider === 'google' || existing.authProvider === 'both'
+          ? 'An account with this email already exists. Sign in with Google or email.'
+          : 'An account with this email already exists.';
+      return NextResponse.json({ success: false, message }, { status: 409 });
     }
 
     const plainOtp = generateOtp();

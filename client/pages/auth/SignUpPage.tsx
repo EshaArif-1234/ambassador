@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { authApi } from '@/utils/auth.api';
 import SignUpMarketingSection from '@/components/login/SignUpMarketingSection';
 import PasswordInput from '@/components/auth/PasswordInput';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import {
   getPasswordStrength,
   PASSWORD_CHECKLIST,
@@ -201,6 +202,19 @@ export default function SignUpPage() {
                   {isLoading ? 'Creating Account…' : 'Create Account'}
                 </button>
               </form>
+
+              <div className="relative my-5 max-w-md">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or sign up with</span>
+                </div>
+              </div>
+
+              <div className="max-w-md">
+                <GoogleSignInButton label="Sign up with Google" disabled={isLoading} />
+              </div>
 
               <p className="mt-4 text-center text-sm text-gray-600 max-w-md">
                 Already have an account?{' '}

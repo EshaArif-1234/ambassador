@@ -19,7 +19,24 @@ export async function POST(req: NextRequest) {
     // Explicitly select password (marked select: false in schema)
     const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
 
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid email or password.' },
+        { status: 401 }
+      );
+    }
+
+    if (user.authProvider === 'google') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'This account uses Google sign-in. Click "Continue with Google" below.',
+        },
+        { status: 401 }
+      );
+    }
+
+    if (!(await user.comparePassword(password))) {
       return NextResponse.json(
         { success: false, message: 'Invalid email or password.' },
         { status: 401 }

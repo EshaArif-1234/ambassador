@@ -20,7 +20,7 @@ export const verifyToken = (token: string): jwt.JwtPayload => {
 };
 
 /** Production-safe Secure flag (set COOKIE_SECURE=false only for local HTTP testing). */
-function authCookieSecure(): boolean {
+export function authCookieSecure(): boolean {
   if (process.env.COOKIE_SECURE === 'false') return false;
   if (process.env.COOKIE_SECURE === 'true') return true;
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL;
@@ -35,7 +35,7 @@ function authCookieSecure(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
-function authCookieOptions(maxAge: number) {
+export function authCookieOptions(maxAge: number) {
   const opts: Parameters<NextResponse['cookies']['set']>[2] = {
     httpOnly: true,
     secure: authCookieSecure(),
