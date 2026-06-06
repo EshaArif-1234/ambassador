@@ -1,133 +1,147 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+
+interface StatItem {
+  value: number;
+  suffix: string;
+  label: string;
+  icon: ReactNode;
+}
+
+const stats: StatItem[] = [
+  {
+    value: 4,
+    suffix: '',
+    label: 'Branches',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+      />
+    ),
+  },
+  {
+    value: 25,
+    suffix: '+',
+    label: 'Years Experience',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    ),
+  },
+  {
+    value: 500,
+    suffix: '+',
+    label: 'Projects Completed',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    ),
+  },
+  {
+    value: 1000,
+    suffix: '+',
+    label: 'Products Installed',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+      />
+    ),
+  },
+];
+
+function useCountUp(target: number, duration: number, active: boolean) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    let startTime: number | null = null;
+    const tick = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [target, duration, active]);
+  return count;
+}
+
+const StatCard = ({ stat, active }: { stat: StatItem; active: boolean }) => {
+  const count = useCountUp(stat.value, 1800, active);
+  return (
+    <div className="group flex flex-col items-center rounded-2xl border border-gray-100 bg-white p-6 md:p-8 text-center shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:border-[#E36630]/30 hover:shadow-[0_8px_28px_rgba(0,0,0,0.1)] transition-all duration-300">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#E36630]/10 text-[#E36630] group-hover:bg-[#E36630] group-hover:text-white transition-colors duration-300">
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {stat.icon}
+        </svg>
+      </div>
+      <p className="text-3xl md:text-4xl font-black text-[#E36630] leading-none mb-2 tabular-nums">
+        {active ? count : 0}
+        {stat.suffix}
+      </p>
+      <p className="text-sm md:text-base font-bold text-[#0F4C69] leading-snug">{stat.label}</p>
+    </div>
+  );
+};
 
 interface StatsSectionProps {
   className?: string;
 }
 
-const StatsSection = ({ className = "" }: StatsSectionProps) => {
-  const [counters, setCounters] = useState({
-    branches: 0,
-    years: 0,
-    projects: 0,
-    products: 0
-  });
-
-  const targetValues = {
-    branches: 4,
-    years: 15,
-    projects: 500,
-    products: 1000
-  };
+const StatsSection = ({ className = '' }: StatsSectionProps) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(false);
 
   useEffect(() => {
-    const duration = 2000; // 2 seconds
-    const steps = 60;
-    const stepDuration = duration / steps;
-
-    const interval = setInterval(() => {
-      setCounters(prev => {
-        const newCounters = { ...prev };
-        let allComplete = true;
-
-        Object.keys(newCounters).forEach(key => {
-          const target = targetValues[key as keyof typeof targetValues];
-          if (newCounters[key as keyof typeof newCounters] < target) {
-            const increment = Math.ceil(target / steps);
-            newCounters[key as keyof typeof newCounters] = Math.min(
-              newCounters[key as keyof typeof newCounters] + increment,
-              target
-            );
-            allComplete = false;
-          }
-        });
-
-        if (allComplete) {
-          clearInterval(interval);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setActive(true);
+          observer.disconnect();
         }
-
-        return newCounters;
-      });
-    }, stepDuration);
-
-    return () => clearInterval(interval);
+      },
+      { threshold: 0.2 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
   }, []);
 
   return (
-    <div className={`py-20 bg-[#ff6900] ${className}`}>
+    <section ref={ref} className={`bg-white py-12 md:py-16 border-t border-gray-100 ${className}`}>
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Branches */}
-            <div className="text-center group">
-              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-orange-200 transition-colors duration-300">
-                  <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-                <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
-                  {counters.branches}+
-                </div>
-                <p className="text-lg text-gray-600 font-medium">
-                  Branches
-                </p>
-              </div>
-            </div>
+        <div className="text-center mb-10">
+          <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-3">
+            <span className="w-6 h-px bg-[#0F4C69]" />
+            Our Impact
+            <span className="w-6 h-px bg-[#0F4C69]" />
+          </span>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+            Trusted Across <span className="text-[#E36630]">Pakistan</span>
+          </h2>
+        </div>
 
-            {/* Years Experience */}
-            <div className="text-center group">
-              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-orange-200 transition-colors duration-300">
-                  <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
-                  {counters.years}+
-                </div>
-                <p className="text-lg text-gray-600 font-medium">
-                  Years Experience
-                </p>
-              </div>
-            </div>
-
-            {/* Projects Completed */}
-            <div className="text-center group">
-              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-orange-200 transition-colors duration-300">
-                  <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
-                  {counters.projects}+
-                </div>
-                <p className="text-lg text-gray-600 font-medium">
-                  Projects Completed
-                </p>
-              </div>
-            </div>
-
-            {/* Products Installed */}
-            <div className="text-center group">
-              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-orange-200 transition-colors duration-300">
-                  <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m0 6l8 4 8-4m-8-6v6m0 0V7m0 6l-8-4-8 4m8 6l8-4m-8 6v-6" />
-                  </svg>
-                </div>
-                <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
-                  {counters.products}+
-                </div>
-                <p className="text-lg text-gray-600 font-medium">
-                  Products Installed
-                </p>
-              </div>
-            </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {stats.map((stat) => (
+            <StatCard key={stat.label} stat={stat} active={active} />
+          ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

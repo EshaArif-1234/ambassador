@@ -4,6 +4,7 @@ import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
 import Category from '@/backend/models/Category.model';
 import Review from '@/backend/models/Review.model';
+import { shuffleWithSeed } from '@/utils/seededShuffle.util';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,8 +105,62 @@ export async function GET(req: NextRequest) {
     };
     const sortOrder = sortMap[sortBy] ?? sortMap.newest;
 
+    const ratingsPromise = Review.aggregate([
+      { $match: { status: 'approved' } },
+      { $group: { _id: '$productId', avgRating: { $avg: '$rating' }, reviewCount: { $sum: 1 } } },
+    ]);
+
+    if (sortBy === 'random') {
+      const seedRaw = parseInt(searchParams.get('seed') ?? '', 10);
+      const seed = Number.isFinite(seedRaw) ? seedRaw : Date.now();
+
+      const [idRows, totalCount, ratings] = await Promise.all([
+        Product.find(filter).select('_id').lean(),
+        Product.countDocuments(filter),
+        ratingsPromise,
+      ]);
+
+      const total = totalCount;
+      const orderedIds = shuffleWithSeed(
+        idRows.map((row) => String(row._id)),
+        seed
+      ).slice(skip, skip + limit);
+
+      const products =
+        orderedIds.length === 0
+          ? []
+          : await (async () => {
+              const rows = await Product.find({ _id: { $in: orderedIds } }, LISTING_PROJECTION)
+                .populate('categories', 'title slug')
+                .lean();
+              const order = new Map(orderedIds.map((id, index) => [id, index]));
+              return [...rows].sort(
+                (a, b) => (order.get(String(a._id)) ?? 0) - (order.get(String(b._id)) ?? 0)
+              );
+            })();
+
+      const ratingMap: Record<string, { avgRating: number; reviewCount: number }> = {};
+      for (const r of ratings) ratingMap[String(r._id)] = { avgRating: r.avgRating, reviewCount: r.reviewCount };
+
+      const enriched = products.map((p) => {
+        const id = String(p._id);
+        const r = ratingMap[id];
+        return {
+          ...p,
+          _id: id,
+          avgRating: r ? +Number(r.avgRating).toFixed(1) : 0,
+          reviewCount: r?.reviewCount ?? 0,
+        };
+      });
+
+      return NextResponse.json(
+        { success: true, data: enriched, total, page, totalPages: Math.ceil(total / limit) },
+        { status: 200, headers: { 'Cache-Control': 'no-store' } }
+      );
+    }
+
     // Fetch page of products, total count, and ratings — all in parallel
-    const [products, total, ratings] = await Promise.all([
+    const [productsResult, totalResult, ratings] = await Promise.all([
       Product.find(filter, LISTING_PROJECTION)
         .populate('categories', 'title slug')
         .sort(sortOrder)
@@ -113,16 +168,15 @@ export async function GET(req: NextRequest) {
         .limit(limit)
         .lean(),
       Product.countDocuments(filter),
-      Review.aggregate([
-        { $match: { status: 'approved' } },
-        { $group: { _id: '$productId', avgRating: { $avg: '$rating' }, reviewCount: { $sum: 1 } } },
-      ]),
+      ratingsPromise,
     ]);
+
+    const total = totalResult;
 
     const ratingMap: Record<string, { avgRating: number; reviewCount: number }> = {};
     for (const r of ratings) ratingMap[String(r._id)] = { avgRating: r.avgRating, reviewCount: r.reviewCount };
 
-    const enriched = products.map((p) => {
+    const enriched = productsResult.map((p) => {
       const id = String(p._id);
       const r  = ratingMap[id];
       return {

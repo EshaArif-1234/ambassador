@@ -1,7 +1,11 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 
-/** Build the transporter once and reuse it across requests. */
-const createTransporter = () => {
+let cachedTransporter: Transporter | null = null;
+
+/** Reuse a pooled SMTP connection across requests (faster than a new handshake each time). */
+function getTransporter(): Transporter {
+  if (cachedTransporter) return cachedTransporter;
+
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT ?? '587', 10);
   const user = process.env.SMTP_USER;
@@ -11,13 +15,21 @@ const createTransporter = () => {
     throw new Error('SMTP configuration is incomplete. Check SMTP_HOST, SMTP_USER, SMTP_PASS in .env.local');
   }
 
-  return nodemailer.createTransport({
+  cachedTransporter = nodemailer.createTransport({
     host,
     port,
-    secure: port === 465, // true for 465 (SSL), false for 587 (TLS/STARTTLS)
+    secure: port === 465,
     auth: { user, pass },
+    pool: true,
+    maxConnections: 2,
+    maxMessages: 50,
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 12_000,
   });
-};
+
+  return cachedTransporter;
+}
 
 // ─── HTML Templates ────────────────────────────────────────────────────────────
 
@@ -102,7 +114,7 @@ export const sendVerificationEmail = async (
   fullName: string,
   otp: string
 ): Promise<void> => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
 
@@ -140,7 +152,7 @@ export const sendAccountDisabledEmail = async (
   reason: string,
   description?: string
 ): Promise<void> => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const fromName  = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
 
@@ -198,7 +210,7 @@ export const sendAccountEnabledEmail = async (
   to: string,
   fullName: string
 ): Promise<void> => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const fromName  = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
 
@@ -243,7 +255,7 @@ export const sendPasswordResetEmail = async (
   fullName: string,
   otp: string
 ): Promise<void> => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
 
@@ -287,6 +299,7 @@ const CONTACT_SUBJECT_LABELS: Record<string, string> = {
   sales: 'Sales & Quotation',
   service: 'After-Sales Service',
   'custom-kitchen': 'Custom Kitchen Project',
+  'showroom-visit': 'Showroom Visit Booking',
   other: 'Other',
 };
 
@@ -304,7 +317,7 @@ export interface ContactFormPayload {
 
 /** Notify the company inbox about a contact form submission. */
 export async function sendContactInquiryEmail(payload: ContactFormPayload): Promise<void> {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
   const inbox = getContactInboxEmail();
@@ -316,12 +329,18 @@ export async function sendContactInquiryEmail(payload: ContactFormPayload): Prom
   const subjectSafe = escapeHtmlForEmail(subjectLabel);
   const messageSafe = escapeHtmlForEmail(payload.message).replace(/\n/g, '<br/>');
 
+  const isShowroom = payload.subject === 'showroom-visit';
+  const heading = isShowroom ? 'New Showroom Visit Request' : 'New Contact Form Message';
+  const intro = isShowroom
+    ? 'A visitor requested a showroom appointment via the branches page.'
+    : 'A visitor submitted the contact form on your website.';
+
   const body = `
     <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
-      New Contact Form Message
+      ${heading}
     </h2>
     <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
-      A visitor submitted the contact form on your website.
+      ${intro}
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;color:#333;">
@@ -361,20 +380,24 @@ export async function sendContactInquiryEmail(payload: ContactFormPayload): Prom
 
 /** Auto-reply confirming receipt of the contact form. */
 export async function sendContactConfirmationEmail(payload: ContactFormPayload): Promise<void> {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
   const inbox = getContactInboxEmail();
   const nameSafe = escapeHtmlForEmail(payload.name);
+  const isShowroom = payload.subject === 'showroom-visit';
 
   const body = `
     <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
-      We Received Your Message
+      ${isShowroom ? 'Showroom Visit Request Received' : 'We Received Your Message'}
     </h2>
     <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
       Hi <strong>${nameSafe}</strong>,<br/>
-      Thank you for contacting Ambassador Kitchen Equipment. Our team has received your message
-      and will get back to you within 24 hours.
+      ${
+        isShowroom
+          ? 'Thank you for booking a showroom visit with Ambassador Kitchen Equipment. Our team will review your preferred branch and date, then confirm your appointment within 24 hours.'
+          : 'Thank you for contacting Ambassador Kitchen Equipment. Our team has received your message and will get back to you within 24 hours.'
+      }
     </p>
     <p style="margin:0;color:#555555;font-size:14px;line-height:1.7;">
       For urgent enquiries, call us at <strong>+92 331 4937412</strong> or email
@@ -401,7 +424,7 @@ export async function sendReviewThankYouEmail(
   }
 ): Promise<void> {
   try {
-    const transporter = createTransporter();
+    const transporter = getTransporter();
     const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
     const fromEmail = process.env.SMTP_USER!;
 

@@ -83,7 +83,7 @@ const CustomKitchenHighlight = () => (
               See how custom kitchen works
             </Link>
             <Link
-              href="/contact"
+              href="/contact-us"
               className="inline-flex justify-center rounded-lg border-2 border-white/35 bg-white/5 px-7 py-3.5 text-center text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:border-white/60 hover:bg-white/10 md:text-base"
             >
               Request a consultation

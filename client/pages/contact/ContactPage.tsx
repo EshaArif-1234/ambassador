@@ -6,6 +6,7 @@ import Link from 'next/link';
 import InputField from '@/components/common/InputField';
 import FAQSection from '@/components/about/FAQSection';
 import SignupBanner from '@/components/common/signup-banner';
+import { submitContactForm } from '@/utils/contact.api';
 
 const CONTACT = {
   address: '5-A Fazal Elahi Road, Rehman Pura Link Ferozpur Road, Lahore, Pakistan',
@@ -61,26 +62,32 @@ const ContactPage = () => {
     setSubmitMessage('');
     setSubmitIsError(false);
 
-    try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        setSubmitIsError(true);
-        setSubmitMessage(json.message || 'Failed to send message. Please try again.');
-        return;
-      }
-
-      setSubmitMessage(json.message);
-      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
-    } catch {
+    if (!formData.subject) {
       setSubmitIsError(true);
-      setSubmitMessage('Network error. Please try again or email us at info@ambassador.pk.');
+      setSubmitMessage('Please select a subject.');
+      setIsSubmitting(false);
+      return;
+    }
+    if (formData.message.trim().length < 10) {
+      setSubmitIsError(true);
+      setSubmitMessage('Message must be at least 10 characters.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const result = await submitContactForm({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        subject: formData.subject,
+        message: formData.message.trim(),
+      });
+      setSubmitMessage(result.message);
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+    } catch (err) {
+      setSubmitIsError(true);
+      setSubmitMessage((err as Error).message || 'Please try again or email info@ambassador.pk directly.');
     } finally {
       setIsSubmitting(false);
     }
@@ -268,6 +275,7 @@ const ContactPage = () => {
                         value={formData.message}
                         onChange={handleChange}
                         required
+                        minLength={10}
                         rows={5}
                         placeholder="Describe your kitchen setup, equipment needs, or service request..."
                         className={`${inputClass} resize-none`}

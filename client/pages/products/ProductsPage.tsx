@@ -113,10 +113,11 @@ const FEATURE_FILTERS: { key: ProductFeatureFilterKey; label: string; apiFlag: s
 const ALL = 'All Categories';
 
 const SORT_MAP: Record<string, string> = {
-  'name':       'name_asc',
+  random:       'random',
+  name:         'name_asc',
   'price-low':  'price_asc',
   'price-high': 'price_desc',
-  'newest':     'newest',
+  newest:       'newest',
 };
 
 const PAGE_SIZE = 12;
@@ -136,7 +137,8 @@ const ProductsPage = () => {
 
   const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || ALL);
   const [searchTerm,  setSearchTerm]  = useState(() => searchParams.get('search')  || '');
-  const [sortBy,      setSortBy]      = useState(() => searchParams.get('sort')    || 'newest');
+  const [shuffleSeed] = useState(() => Date.now());
+  const [sortBy,      setSortBy]      = useState(() => searchParams.get('sort')    || 'random');
   const [currentPage, setCurrentPage] = useState(() => Math.max(1, parseInt(searchParams.get('page') || '1', 10)));
   const [priceRange,  setPriceRange]  = useState(() => ({
     min: parseInt(searchParams.get('minPrice') || '0', 10),
@@ -186,7 +188,7 @@ const ProductsPage = () => {
     } else if (cat && cat !== ALL) {
       p.set('category', cat);
     }
-    if (sort !== 'newest')    p.set('sort',      sort);
+    if (sort !== 'random')    p.set('sort',      sort);
     if (page !== '1')         p.set('page',      page);
     if (Number(minP) > 0)     p.set('minPrice',  minP);
     if (Number(maxP) > 0)     p.set('maxPrice',  maxP);
@@ -249,7 +251,9 @@ const ProductsPage = () => {
         }
         if (priceRange.min > 0)             params.set('minPrice', String(priceRange.min));
         if (priceRange.max > 0)             params.set('maxPrice', String(priceRange.max));
-        params.set('sort', SORT_MAP[sortBy] ?? 'newest');
+        const apiSort = SORT_MAP[sortBy] ?? 'random';
+        params.set('sort', apiSort);
+        if (apiSort === 'random') params.set('seed', String(shuffleSeed));
 
         // Merge brand checkboxes + availability into a single brands param
         const activeBrands = new Set(BRAND_FILTERS.filter(({ key }) => brands[key]).map(({ apiSlug }) => apiSlug));
@@ -279,7 +283,7 @@ const ProductsPage = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [currentPage, searchTerm, selectedCategory, priceRange, sortBy, brands, features, availability]);
+  }, [currentPage, searchTerm, selectedCategory, priceRange, sortBy, brands, features, availability, shuffleSeed]);
 
   // Reset to page 1 when a filter changes — but NOT on initial mount (so ?page=13 survives a refresh)
   useEffect(() => {
@@ -522,6 +526,7 @@ const ProductsPage = () => {
                     onChange={(e) => setSortBy(e.target.value)}
                     className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 outline-none focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
                   >
+                    <option value="random">Featured Mix</option>
                     <option value="newest">Newest First</option>
                     <option value="name">Name</option>
                     <option value="price-low">Price: Low to High</option>
