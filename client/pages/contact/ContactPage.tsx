@@ -1,8 +1,42 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import InputField from '@/components/common/InputField';
 import FAQSection from '@/components/about/FAQSection';
+import SignupBanner from '@/components/common/signup-banner';
+
+const CONTACT = {
+  address: '5-A Fazal Elahi Road, Rehman Pura Link Ferozpur Road, Lahore, Pakistan',
+  phone: '+92 331 4937412',
+  phoneHref: 'tel:+923314937412',
+  uan: '042-111-313-106',
+  uanHref: 'tel:042111313106',
+  email: 'info@ambassador.pk',
+  emailHref: 'mailto:info@ambassador.pk',
+  hours: 'Monday – Saturday: 9:00 AM – 6:00 PM',
+  mapQuery: '5-A Fazal Elahi Road, Rehman Pura Link Ferozpur Road, Lahore, Pakistan',
+};
+
+const BRANCHES = [
+  { name: 'Head Office', city: 'Lahore' },
+  { name: 'Fazaia Showroom', city: 'Lahore' },
+  { name: 'Raya Showroom', city: 'DHA Lahore' },
+  { name: 'Rawalpindi Branch', city: 'Rawalpindi' },
+];
+
+const SUBJECTS = [
+  { value: 'product-inquiry', label: 'Product Inquiry' },
+  { value: 'technical-support', label: 'Technical Support' },
+  { value: 'sales', label: 'Sales & Quotation' },
+  { value: 'service', label: 'After-Sales Service' },
+  { value: 'custom-kitchen', label: 'Custom Kitchen Project' },
+  { value: 'other', label: 'Other' },
+];
+
+const inputClass =
+  'w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E36630]/40 focus:border-[#E36630] transition-colors';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -10,292 +44,341 @@ const ContactPage = () => {
     email: '',
     phone: '',
     subject: '',
-    message: ''
+    message: '',
   });
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage('');
-
-    // Simulate form submission
     setTimeout(() => {
-      setSubmitMessage('Thank you for contacting us! We will get back to you soon.');
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
-      });
+      setSubmitMessage('Thank you for reaching out! Our team will get back to you within 24 hours.');
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
       setIsSubmitting(false);
-    }, 2000);
+    }, 1500);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <style jsx global>{`
-        :root {
-          --color-gray-dark: #565D63;
-          --color-orange: #E36630;
-          --color-blue: #0F4C69;
-          --color-gray-medium: #4B4B4B;
-          --color-black: #000000;
-          --color-white: #FFFFFF;
-        }
-      `}</style>
-
-      {/* Hero Section */}
-      <div className="w-full" style={{ maxHeight: '600px', overflow: 'hidden' }}>
-        <img
+    <div className="min-h-screen bg-white">
+      {/* Hero */}
+      <section className="relative h-96 md:h-[560px] overflow-hidden bg-[#06131A]">
+        <Image
           src="/Images/Contact-Us-Banner-1.png"
-          alt="Contact Us Background"
-          className="w-full block"
-          style={{ maxHeight: '600px', objectFit: 'cover', objectPosition: 'center center' }}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = `https://via.placeholder.com/1920x600/E36630/ffffff?text=Contact+Us`;
-          }}
+          alt="Contact Ambassador Kitchen Equipment"
+          fill
+          className="object-cover object-center"
+          priority
         />
-      </div>
-
-      {/* Contact Content */}
-      <div className="container mx-auto px-4 py-32">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          
-          {/* Contact Form */}
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Send us a Message</h2>
-            
-            {submitMessage && (
-              <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-                {submitMessage}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField
-                  id="name"
-                  label="Full Name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(value) => setFormData(prev => ({ ...prev, name: value }))}
-                  placeholder="Enter your full name"
-                />
-                
-                <InputField
-                  id="email"
-                  label="Email Address"
-                  type="email"
-                  value={formData.email}
-                  onChange={(value) => setFormData(prev => ({ ...prev, email: value }))}
-                  placeholder="your@email.com"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField
-                  id="phone"
-                  label="Phone Number"
-                  type="text"
-                  value={formData.phone}
-                  onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
-                  placeholder="+91 98765 43210"
-                />
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Subject
-                  </label>
-                  <select
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    <option value="">Select a subject</option>
-                    <option value="product-inquiry">Product Inquiry</option>
-                    <option value="technical-support">Technical Support</option>
-                    <option value="sales">Sales Information</option>
-                    <option value="service">Service Request</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Message
-                </label>
-                <textarea
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  required
-                  rows={6}
-                  placeholder="Tell us more about your requirements..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-orange-500 text-white py-3 px-6 rounded-lg hover:bg-orange-600 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Sending...' : 'Send Message'}
-              </button>
-            </form>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/30" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="container mx-auto px-4 text-center text-white">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-white/90 backdrop-blur-sm mb-6">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#E36630]" />
+              We&apos;re Here to Help
+            </span>
+            <h1
+              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-5 leading-tight"
+              style={{ textShadow: '0 4px 24px rgba(0,0,0,0.5)' }}
+            >
+              Get in <span className="text-[#E36630]">Touch</span>
+            </h1>
+            <p className="text-lg md:text-xl text-white/75 max-w-2xl mx-auto leading-relaxed">
+              Questions about equipment, custom kitchens, or after-sales support — our Lahore team is ready to assist you across Pakistan.
+            </p>
           </div>
+        </div>
+      </section>
 
-          {/* Contact Information */}
-          <div className="space-y-8">
-            {/* Contact Details */}
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Get in Touch</h2>
-              
-              <div className="space-y-6">
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800 mb-1">Address</h3>
-                    <p className="text-gray-600">
-                      Ambassador Engineering Works<br />
-                      123, Industrial Area, Phase 2<br />
-                      Mumbai, Maharashtra 400001<br />
-                      India
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800 mb-1">Phone</h3>
-                    <p className="text-gray-600">
-                      +91 22 1234 5678<br />
-                      +91 98765 43210
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800 mb-1">Email</h3>
-                    <p className="text-gray-600">
-                      info@ambassador.com<br />
-                      support@ambassador.com
-                    </p>
-                  </div>
-                </div>
+      {/* Quick contact strip */}
+      <section className="bg-[#0F4C69] py-6 md:py-8">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+            <a
+              href={CONTACT.phoneHref}
+              className="group flex items-center gap-4 rounded-xl border border-white/15 bg-white/5 px-5 py-4 backdrop-blur-sm transition-colors hover:bg-white/10"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E36630]/20 text-[#E36630] group-hover:bg-[#E36630] group-hover:text-white transition-colors">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
               </div>
-            </div>
-
-            {/* Business Hours */}
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Business Hours</h2>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Monday - Friday</span>
-                  <span className="font-medium text-gray-800">9:00 AM - 7:00 PM</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Saturday</span>
-                  <span className="font-medium text-gray-800">9:00 AM - 6:00 PM</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Sunday</span>
-                  <span className="font-medium text-gray-800">10:00 AM - 4:00 PM</span>
-                </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-white/50">Call Us</p>
+                <p className="text-sm md:text-base font-semibold text-white">{CONTACT.phone}</p>
+                <p className="text-xs text-white/60">UAN: {CONTACT.uan}</p>
               </div>
-            </div>
+            </a>
 
-            {/* Social Media */}
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Follow Us</h2>
-              
-              <div className="flex space-x-4">
-                <a 
-                  href="https://www.facebook.com/ambassadoracke/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-orange-500 hover:text-white transition-colors"
-                  style={{ backgroundColor: '#101827' }}
-                >
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                </a>
-                
-                <a 
-                  href="https://www.instagram.com/ambassador_acke/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-orange-500 hover:text-white transition-colors"
-                  style={{ backgroundColor: '#101827' }}
-                >
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM5.838 12a6.162 6.162 0 1112.324 0 6.162 6.162 0 01-12.324 0zM12 16a4 4 0 110-8 4 4 0 010 8zm4.965-10.405a1.44 1.44 0 112.881.001 1.44 1.44 0 01-2.881-.001z"/>
-                  </svg>
-                </a>
-                
-                <a 
-                  href="https://www.linkedin.com/checkpoint/challengesV2/AQFsRpoj65pv0AAAAZzB2Vk_yS9l4P9OarYCPhOE7bnkKg0ub2AFoyQ3gOV_1D-0mk75E5-DLXHHD1bcC2id-LxBMl7mBe0uOg?ut=0dmDCDF5t8RY81" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-orange-500 hover:text-white transition-colors"
-                  style={{ backgroundColor: '#101827' }}
-                >
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                  </svg>
-                </a>
-                
-                <a 
-                  href="https://www.youtube.com/@ambassador.official" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-orange-500 hover:text-white transition-colors"
-                  style={{ backgroundColor: '#101827' }}
-                >
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                  </svg>
-                </a>
+            <a
+              href={CONTACT.emailHref}
+              className="group flex items-center gap-4 rounded-xl border border-white/15 bg-white/5 px-5 py-4 backdrop-blur-sm transition-colors hover:bg-white/10"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E36630]/20 text-[#E36630] group-hover:bg-[#E36630] group-hover:text-white transition-colors">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-white/50">Email</p>
+                <p className="text-sm md:text-base font-semibold text-white">{CONTACT.email}</p>
+                <p className="text-xs text-white/60">We reply within 24 hours</p>
+              </div>
+            </a>
+
+            <div className="flex items-center gap-4 rounded-xl border border-white/15 bg-white/5 px-5 py-4 backdrop-blur-sm">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E36630]/20 text-[#E36630]">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-white/50">Business Hours</p>
+                <p className="text-sm md:text-base font-semibold text-white">Mon – Sat</p>
+                <p className="text-xs text-white/60">9:00 AM – 6:00 PM</p>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Form + contact info */}
+      <section className="py-12 md:py-20 bg-[#FAFAFA]">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12 md:mb-16">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F4C69] uppercase tracking-widest mb-4">
+              <span className="w-8 h-px bg-[#0F4C69]" />
+              Contact Us
+              <span className="w-8 h-px bg-[#0F4C69]" />
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+              Send a <span className="text-[#E36630]">Message</span>
+            </h2>
+            <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+              Tell us about your kitchen requirements and we&apos;ll connect you with the right specialist.
+            </p>
+            <div className="mt-5 w-16 h-1 bg-[#E36630] mx-auto rounded-full" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            {/* Form */}
+            <div className="lg:col-span-7">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_40px_rgba(0,0,0,0.08)] overflow-hidden">
+                <div className="p-6 md:p-8 lg:p-10">
+                  {submitMessage && (
+                    <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                      <svg className="h-5 w-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {submitMessage}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <InputField
+                        id="name"
+                        label="Full Name"
+                        type="text"
+                        value={formData.name}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, name: value }))}
+                        placeholder="Your full name"
+                      />
+                      <InputField
+                        id="email"
+                        label="Email Address"
+                        type="email"
+                        value={formData.email}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, email: value }))}
+                        placeholder="you@email.com"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <InputField
+                        id="phone"
+                        label="Phone Number"
+                        type="text"
+                        value={formData.phone}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, phone: value }))}
+                        placeholder="+92 3XX XXXXXXX"
+                      />
+                      <div className="space-y-2">
+                        <label htmlFor="subject" className="block text-sm font-medium text-gray-700">
+                          Subject
+                        </label>
+                        <select
+                          id="subject"
+                          name="subject"
+                          value={formData.subject}
+                          onChange={handleChange}
+                          required
+                          className={inputClass}
+                        >
+                          <option value="">Select a subject</option>
+                          {SUBJECTS.map((s) => (
+                            <option key={s.value} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+                        Message
+                      </label>
+                      <textarea
+                        id="message"
+                        name="message"
+                        value={formData.message}
+                        onChange={handleChange}
+                        required
+                        rows={5}
+                        placeholder="Describe your kitchen setup, equipment needs, or service request..."
+                        className={`${inputClass} resize-none`}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full rounded-xl bg-[#E36630] py-3.5 px-6 font-semibold text-white shadow-lg shadow-[#E36630]/25 transition-all hover:bg-[#cc5a2a] hover:shadow-[#E36630]/40 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          Send Message
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Address card */}
+              <div className="group rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-all hover:border-[#E36630]/40 hover:shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#E36630]/10 text-[#E36630] group-hover:bg-[#E36630] group-hover:text-white transition-colors">
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Head Office — Lahore</h3>
+                <p className="text-gray-500 text-sm leading-relaxed mb-4">{CONTACT.address}</p>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CONTACT.mapQuery)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#E36630] hover:text-[#cc5a2a] transition-colors"
+                >
+                  Open in Google Maps
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+
+              {/* Branches */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Our Branches</h3>
+                <p className="text-sm text-gray-500 mb-4">4 locations across Pakistan</p>
+                <ul className="space-y-3 mb-5">
+                  {BRANCHES.map((branch) => (
+                    <li key={branch.name} className="flex items-center gap-3 text-sm">
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-[#E36630]" />
+                      <span className="font-medium text-gray-800">{branch.name}</span>
+                      <span className="text-gray-400">·</span>
+                      <span className="text-gray-500">{branch.city}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/branches"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#0F4C69] px-4 py-2.5 text-sm font-semibold text-[#0F4C69] transition-colors hover:bg-[#0F4C69] hover:text-white"
+                >
+                  View All Branches
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </Link>
+              </div>
+
+              {/* Social */}
+              <div className="rounded-2xl bg-[#0F4C69] p-6 text-white">
+                <h3 className="text-lg font-bold mb-1">Follow Us</h3>
+                <p className="text-sm text-white/60 mb-5">Stay updated on products, projects & kitchen tips</p>
+                <div className="flex gap-3">
+                  {[
+                    { href: 'https://www.facebook.com/ambassadoracke/', label: 'Facebook', icon: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
+                    { href: 'https://www.instagram.com/ambassador_acke/', label: 'Instagram', icon: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM5.838 12a6.162 6.162 0 1112.324 0 6.162 6.162 0 01-12.324 0zM12 16a4 4 0 110-8 4 4 0 010 8zm4.965-10.405a1.44 1.44 0 112.881.001 1.44 1.44 0 01-2.881-.001z' },
+                    { href: 'https://www.youtube.com/@ambassador.official', label: 'YouTube', icon: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' },
+                  ].map((social) => (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={social.label}
+                      className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 border border-white/20 text-white transition-colors hover:bg-[#E36630] hover:border-[#E36630]"
+                    >
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d={social.icon} />
+                      </svg>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Map */}
+      <section className="py-12 md:py-16 bg-[#E3E6E6] border-t border-gray-200">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+              Find Us in <span className="text-[#E36630]">Lahore</span>
+            </h2>
+            <p className="text-gray-500 mt-2 max-w-xl mx-auto">
+              Visit our head office showroom to explore commercial kitchen equipment in person.
+            </p>
+          </div>
+          <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-xl aspect-[16/7] md:aspect-[21/7]">
+            <iframe
+              title="Ambassador Head Office Location"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(CONTACT.mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+              className="w-full h-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
+      </section>
 
       <FAQSection />
+      <SignupBanner />
     </div>
   );
 };
