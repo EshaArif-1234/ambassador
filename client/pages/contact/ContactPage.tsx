@@ -48,6 +48,7 @@ const ContactPage = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+  const [submitIsError, setSubmitIsError] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -58,11 +59,31 @@ const ContactPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage('');
-    setTimeout(() => {
-      setSubmitMessage('Thank you for reaching out! Our team will get back to you within 24 hours.');
+    setSubmitIsError(false);
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        setSubmitIsError(true);
+        setSubmitMessage(json.message || 'Failed to send message. Please try again.');
+        return;
+      }
+
+      setSubmitMessage(json.message);
       setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+    } catch {
+      setSubmitIsError(true);
+      setSubmitMessage('Network error. Please try again or email us at info@ambassador.pk.');
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -172,7 +193,13 @@ const ContactPage = () => {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_40px_rgba(0,0,0,0.08)] overflow-hidden">
                 <div className="p-6 md:p-8 lg:p-10">
                   {submitMessage && (
-                    <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    <div
+                      className={`mb-6 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
+                        submitIsError
+                          ? 'border-red-200 bg-red-50 text-red-700'
+                          : 'border-green-200 bg-green-50 text-green-800'
+                      }`}
+                    >
                       <svg className="h-5 w-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>

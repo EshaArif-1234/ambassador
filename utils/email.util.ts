@@ -281,6 +281,115 @@ function escapeHtmlForEmail(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
+const CONTACT_SUBJECT_LABELS: Record<string, string> = {
+  'product-inquiry': 'Product Inquiry',
+  'technical-support': 'Technical Support',
+  sales: 'Sales & Quotation',
+  service: 'After-Sales Service',
+  'custom-kitchen': 'Custom Kitchen Project',
+  other: 'Other',
+};
+
+export function getContactInboxEmail(): string {
+  return (process.env.CONTACT_INBOX_EMAIL ?? 'info@ambassador.pk').trim();
+}
+
+export interface ContactFormPayload {
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+}
+
+/** Notify the company inbox about a contact form submission. */
+export async function sendContactInquiryEmail(payload: ContactFormPayload): Promise<void> {
+  const transporter = createTransporter();
+  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromEmail = process.env.SMTP_USER!;
+  const inbox = getContactInboxEmail();
+
+  const nameSafe = escapeHtmlForEmail(payload.name);
+  const emailSafe = escapeHtmlForEmail(payload.email);
+  const phoneSafe = escapeHtmlForEmail(payload.phone || '—');
+  const subjectLabel = CONTACT_SUBJECT_LABELS[payload.subject] ?? payload.subject;
+  const subjectSafe = escapeHtmlForEmail(subjectLabel);
+  const messageSafe = escapeHtmlForEmail(payload.message).replace(/\n/g, '<br/>');
+
+  const body = `
+    <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
+      New Contact Form Message
+    </h2>
+    <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
+      A visitor submitted the contact form on your website.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;color:#333;">
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;width:120px;">Name</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${nameSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">Email</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">
+          <a href="mailto:${emailSafe}" style="color:#0F4C69;">${emailSafe}</a>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">Phone</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${phoneSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">Subject</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${subjectSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;font-weight:600;vertical-align:top;">Message</td>
+        <td style="padding:10px 0;line-height:1.7;">${messageSafe}</td>
+      </tr>
+    </table>
+  `;
+
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: inbox,
+    replyTo: payload.email,
+    subject: `Contact Form: ${subjectLabel} — ${payload.name}`,
+    html: baseTemplate('New Contact Message', body),
+  });
+}
+
+/** Auto-reply confirming receipt of the contact form. */
+export async function sendContactConfirmationEmail(payload: ContactFormPayload): Promise<void> {
+  const transporter = createTransporter();
+  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromEmail = process.env.SMTP_USER!;
+  const inbox = getContactInboxEmail();
+  const nameSafe = escapeHtmlForEmail(payload.name);
+
+  const body = `
+    <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
+      We Received Your Message
+    </h2>
+    <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
+      Hi <strong>${nameSafe}</strong>,<br/>
+      Thank you for contacting Ambassador Kitchen Equipment. Our team has received your message
+      and will get back to you within 24 hours.
+    </p>
+    <p style="margin:0;color:#555555;font-size:14px;line-height:1.7;">
+      For urgent enquiries, call us at <strong>+92 331 4937412</strong> or email
+      <a href="mailto:${inbox}" style="color:#0F4C69;">${inbox}</a>.
+    </p>
+  `;
+
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: payload.email,
+    subject: 'We received your message — Ambassador Kitchen Equipment',
+    html: baseTemplate('Message Received', body),
+  });
+}
+
 /** Thank-you note after submitting a review. Does not throw if SMTP fails. */
 export async function sendReviewThankYouEmail(
   to: string,
