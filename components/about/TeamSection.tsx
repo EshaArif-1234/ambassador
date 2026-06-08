@@ -12,7 +12,7 @@ const TeamSection = () => {
       role: "CEO & Founder",
       image: "/Images/about/person-1.avif",
       description: "Visionary leader with 15+ years in commercial equipment industry",
-      details: "Ahmed founded Ambassadors with a vision to provide premium commercial kitchen equipment to businesses across Pakistan. His leadership has driven the company's growth and success."
+      details: "Ahmed founded Ambassador with a vision to provide premium commercial kitchen equipment to businesses across Pakistan. His leadership has driven the company's growth and success."
     },
     {
       name: "Sarah Khan",
@@ -40,14 +40,14 @@ const TeamSection = () => {
       role: "Marketing Director",
       image: "/Images/about/person-5.jpg",
       description: "Creative strategist driving brand awareness and growth",
-      details: "Bilal develops marketing strategies that showcase Ambassadors' commitment to quality and service excellence."
+      details: "Bilal develops marketing strategies that showcase Ambassador' commitment to quality and service excellence."
     },
     {
       name: "Ayesha Malik",
       role: "Customer Service Lead",
       image: "/Images/about/person-6.jpg",
       description: "Committed to exceptional customer support and satisfaction",
-      details: "Ayesha ensures every customer receives outstanding support throughout their journey with Ambassadors."
+      details: "Ayesha ensures every customer receives outstanding support throughout their journey with Ambassador."
     }
   ];
 
@@ -94,7 +94,7 @@ const TeamSection = () => {
             <span className="text-orange-500">Our</span> Team
           </h2>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Meet the passionate professionals behind Ambassadors
+            Meet the passionate professionals behind Ambassador
           </p>
         </div>
         

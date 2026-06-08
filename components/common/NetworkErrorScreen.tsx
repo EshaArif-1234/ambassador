@@ -80,8 +80,8 @@ export default function NetworkErrorScreen({
                 <p className="mb-2">Still having trouble?</p>
                 <p>
                   <span className="font-medium">Contact Support</span> at{' '}
-                  <a href="mailto:support@ambassadors.com" className="text-orange-500 hover:text-orange-600">
-                    support@ambassadors.com
+                  <a href="mailto:support@ambassador.pk" className="text-orange-500 hover:text-orange-600">
+                    support@ambassador.pk
                   </a>
                 </p>
               </div>
@@ -93,7 +93,7 @@ export default function NetworkErrorScreen({
         <div className="text-center mt-8">
           <Image
             src="/Images/home/logo.webp"
-            alt="Ambassadors Logo"
+            alt="Ambassador Logo"
             width={120}
             height={40}
             className="h-8 w-auto mx-auto"

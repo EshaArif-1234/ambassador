@@ -39,7 +39,7 @@ export default function LoginForm({
     <div className="lg:w-1/2 p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Sign In</h1>
-        <p className="mt-2 text-gray-600">Welcome back to Ambassadors Kitchen Equipment</p>
+        <p className="mt-2 text-gray-600">Welcome back to Ambassador Commercial Kitchen Equipment</p>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-6">

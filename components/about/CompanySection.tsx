@@ -55,13 +55,13 @@ const CompanySection = () => {
 
             <div className="space-y-4 text-gray-500 text-base leading-relaxed">
               <p>
-                Ambassadors is a trusted provider of commercial kitchen equipment and professional food service solutions in Pakistan. With more than 15 years of industry experience, we specialize in supplying high-quality equipment sourced from leading international brands.
+                Ambassador is a trusted provider of commercial kitchen equipment and professional food service solutions in Pakistan. With more than 15 years of industry experience, we specialize in supplying high-quality equipment sourced from leading international brands.
               </p>
               <p>
                 Our company supports restaurants, hotels, bakeries, cafés, supermarkets, and institutional kitchens with reliable, efficient equipment designed to meet modern culinary and operational demands — from cooking ranges and refrigeration systems to stainless steel workstations.
               </p>
               <p>
-                At Ambassadors, our goal is to help businesses build fully functional, durable kitchen environments, backed by dependable service and practical solutions that keep operations running at the highest standard.
+                At Ambassador, our goal is to help businesses build fully functional, durable kitchen environments, backed by dependable service and practical solutions that keep operations running at the highest standard.
               </p>
             </div>
 

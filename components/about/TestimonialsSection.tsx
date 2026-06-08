@@ -8,21 +8,21 @@ const testimonials = [
     name: 'Restaurant Owner — Lahore',
     image: '/Images/about/person-1.avif',
     title: 'Excellent Service',
-    text: 'Ambassadors provided us with top-quality kitchen equipment that transformed our restaurant operations. Their after-sales support is outstanding!',
+    text: 'Ambassador provided us with top-quality kitchen equipment that transformed our restaurant operations. Their after-sales support is outstanding!',
     rating: 5,
   },
   {
     name: 'Bakery Manager — Karachi',
     image: '/Images/about/person-2.jpg',
     title: 'Reliable Partner',
-    text: "We've been working with Ambassadors for 5 years. They always deliver on time and provide the best equipment at competitive prices.",
+    text: "We've been working with Ambassador for 5 years. They always deliver on time and provide the best equipment at competitive prices.",
     rating: 5,
   },
   {
     name: 'Hotel Chef — Islamabad',
     image: '/Images/about/person-3.avif',
     title: 'Professional Quality',
-    text: 'The commercial kitchen equipment from Ambassadors meets international standards. Highly recommended for any food service establishment.',
+    text: 'The commercial kitchen equipment from Ambassador meets international standards. Highly recommended for any food service establishment.',
     rating: 4,
   },
   {
@@ -43,7 +43,7 @@ const testimonials = [
     name: 'Hotel Manager — Rawalpindi',
     image: '/Images/about/person-6.jpg',
     title: 'Outstanding Quality',
-    text: 'The equipment from Ambassadors has exceeded our expectations. Their professional team and quality products make them our preferred supplier.',
+    text: 'The equipment from Ambassador has exceeded our expectations. Their professional team and quality products make them our preferred supplier.',
     rating: 5,
   },
 ];

@@ -27,7 +27,7 @@ const Footer = () => {
             <Link href="/" className="flex items-center mb-4">
               <Image
                 src="/Images/home/Logo-Png.png"
-                alt="Ambassadors Logo"
+                alt="Ambassador Logo"
                 width={150}
                 height={50}
               />
@@ -97,7 +97,7 @@ const Footer = () => {
                 <svg className="w-5 h-5 text-[#E36630] mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <p className="text-sm text-white/60">info@ambassadors.com</p>
+                <p className="text-sm text-white/60">info@ambassador.pk</p>
               </div>
             </div>
           </div>
@@ -176,7 +176,7 @@ const Footer = () => {
         <div className="border-t border-white/20 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-white/60 text-sm">
-              © 2024 Ambassadors Kitchen Equipment. All rights reserved.
+              © 2024 Ambassador Commercial Kitchen Equipment. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link href="#" className="text-white/60 hover:text-[#E36630] transition-colors text-sm">

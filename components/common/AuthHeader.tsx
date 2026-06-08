@@ -14,7 +14,7 @@ export default function AuthHeader({ title, description }: AuthHeaderProps) {
       <div className="mb-4">
         <Image
           src="/Images/home/logo.webp"
-          alt="Ambassadors Logo"
+          alt="Ambassador Logo"
           width={120}
           height={40}
           className="h-10 w-auto mx-auto"

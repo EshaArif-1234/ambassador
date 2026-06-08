@@ -6,7 +6,7 @@ const SignUpMarketingSection: React.FC = () => {
   return (
     <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-500 to-orange-600 items-center justify-center p-8">
       <div className="max-w-md text-center text-white">
-        <h2 className="text-2xl font-bold mb-4">Join Ambassadors Kitchen Equipment</h2>
+        <h2 className="text-2xl font-bold mb-4">Join Ambassador Commercial Kitchen Equipment</h2>
         <p className="text-orange-100 mb-6">
           Create an account to access premium kitchen equipment and exclusive deals. Join thousands of satisfied customers worldwide.
         </p>

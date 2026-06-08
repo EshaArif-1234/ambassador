@@ -119,16 +119,16 @@ const AdminSettingsPage = () => {
   // Settings data
   const [settings, setSettings] = useState<SettingsData>({
     general: {
-      appName: 'Ambassadors Kitchen',
-      appUrl: 'https://ambassadors-kitchen.com',
+      appName: 'Ambassador Commercial Kitchen Equipment',
+      appUrl: 'https://ambassador.pk',
       timezone: 'UTC',
       language: 'en',
       maintenanceMode: false,
       debugMode: false
     },
     company: {
-      name: 'Ambassadors Kitchen',
-      email: 'info@ambassadors-kitchen.com',
+      name: 'Ambassador Commercial Kitchen Equipment',
+      email: 'info@ambassador.pk',
       phone: '+1 234-567-8900',
       address: '123 Main St, City, State 12345',
       description: 'Premium kitchen equipment and appliances',
@@ -163,8 +163,8 @@ const AdminSettingsPage = () => {
       smtpPort: 587,
       smtpUsername: '',
       smtpPassword: '',
-      fromEmail: 'noreply@ambassadors-kitchen.com',
-      fromName: 'Ambassadors Kitchen'
+      fromEmail: 'info@ambassador.pk',
+      fromName: 'Ambassador Commercial Kitchen Equipment'
     }
   });
 

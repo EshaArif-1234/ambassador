@@ -49,7 +49,7 @@ export default function NotFoundScreen({
               <div className="text-center mt-8">
                 <Image
                   src="/Images/home/logo.webp"
-                  alt="Ambassadors Logo"
+                  alt="Ambassador Logo"
                   width={120}
                   height={40}
                   className="h-8 w-auto mx-auto"

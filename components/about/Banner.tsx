@@ -8,7 +8,7 @@ const Banner = () => {
       {/* Background Image */}
       <Image
         src="/Images/About-Us-Banner-New-Update.jpg"
-        alt="About Ambassadors Banner"
+        alt="About Ambassador Banner"
         fill
         className="object-cover"
         priority
@@ -23,7 +23,7 @@ const Banner = () => {
               textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5), 0 0 40px rgba(0,0,0,0.3)'
             }}
           >
-            About Ambassadors       
+            About Ambassador       
           </h1>
           <p 
             className="text-xl md:text-2xl leading-relaxed max-w-3xl mx-auto font-semibold"
