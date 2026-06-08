@@ -65,6 +65,8 @@ export async function GET(
             _id: String(product._id),
             images,
             videos,
+            imagePublicIds: product.imagePublicIds ?? [],
+            videoPublicIds: product.videoPublicIds ?? [],
             avgRating,
             reviewCount,
           },

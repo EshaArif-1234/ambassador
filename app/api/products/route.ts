@@ -5,6 +5,7 @@ import Product from '@/backend/models/Product.model';
 import Category from '@/backend/models/Category.model';
 import Review from '@/backend/models/Review.model';
 import { shuffleWithSeed } from '@/utils/seededShuffle.util';
+import { resolveProductImages } from '@/utils/productMedia.util';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,9 +19,20 @@ function escapeRegex(s: string) {
 const LISTING_PROJECTION = {
   name: 1, slug: 1, price: 1, originalPrice: 1,
   stock: 1, status: 1, brands: 1, features: 1,
-  categories: 1, images: { $slice: 1 }, createdAt: 1,
+  categories: 1, images: 1, imagePublicIds: 1, createdAt: 1,
   about: 1,
 };
+
+function enrichListingProduct<T extends { images?: unknown; imagePublicIds?: unknown }>(p: T) {
+  const resolved = resolveProductImages({
+    images: p.images,
+    imagePublicIds: p.imagePublicIds,
+  });
+  return {
+    ...p,
+    images: resolved.length ? [resolved[0]] : [],
+  };
+}
 
 /** GET /api/products?page=1&limit=12&search=...&category=... */
 export async function GET(req: NextRequest) {
@@ -145,12 +157,12 @@ export async function GET(req: NextRequest) {
       const enriched = products.map((p) => {
         const id = String(p._id);
         const r = ratingMap[id];
-        return {
+        return enrichListingProduct({
           ...p,
           _id: id,
           avgRating: r ? +Number(r.avgRating).toFixed(1) : 0,
           reviewCount: r?.reviewCount ?? 0,
-        };
+        });
       });
 
       return NextResponse.json(
@@ -179,11 +191,12 @@ export async function GET(req: NextRequest) {
     const enriched = productsResult.map((p) => {
       const id = String(p._id);
       const r  = ratingMap[id];
-      return {
-        ...p, _id: id,
-        avgRating:   r ? +Number(r.avgRating).toFixed(1) : 0,
+      return enrichListingProduct({
+        ...p,
+        _id: id,
+        avgRating: r ? +Number(r.avgRating).toFixed(1) : 0,
         reviewCount: r?.reviewCount ?? 0,
-      };
+      });
     });
 
     return NextResponse.json(

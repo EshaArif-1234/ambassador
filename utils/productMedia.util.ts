@@ -54,61 +54,75 @@ export function cloudinaryUrlFromPublicId(
   const id = typeof publicId === 'string' ? publicId.trim().replace(/^\//, '') : '';
   const cloud = (cloudName ?? cloudNameFromEnv())?.trim();
   if (!id || !cloud) return null;
-  const type = resourceType === 'video' ? 'video' : 'image';
-  return `https://res.cloudinary.com/${cloud}/${type}/upload/f_auto,q_auto/${id}`;
+  if (resourceType === 'video') {
+    return `https://res.cloudinary.com/${cloud}/video/upload/f_mp4,q_auto/${id}`;
+  }
+  return `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto/${id}`;
 }
 
-/** Merge stored URLs + public_ids into a deduped image list for this product only. */
+/** Ensure Cloudinary video URLs play in HTML5 <video> across browsers. */
+export function normalizeCloudinaryVideoUrl(url: string): string {
+  if (!url.includes('res.cloudinary.com') || !url.includes('/video/upload/')) return url;
+  if (url.includes('/f_mp4') || url.includes('/f_m3u8')) return url;
+  return url.replace('/video/upload/', '/video/upload/f_mp4,q_auto/');
+}
+
+function mediaDedupeKey(url: string): string {
+  if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    const match = url.match(/\/upload\/(?:[^/]+\/)*(?:v\d+\/)?(.+)$/i);
+    if (match?.[1]) return match[1].replace(/\.[a-z0-9]+$/i, '');
+  }
+  return url;
+}
+
+/**
+ * Pair stored URLs with public_ids by slot index (admin saves up to 3 images + 2 videos).
+ * Prefers the stored URL per slot; falls back to rebuilding from public_id when URL is missing.
+ */
+function resolveMediaSlots(
+  urls: unknown,
+  publicIds: unknown,
+  resourceType: 'image' | 'video',
+  cloudName?: string
+): string[] {
+  const urlArr = Array.isArray(urls) ? urls : [];
+  const pidArr = Array.isArray(publicIds) ? publicIds : [];
+  const slotCount = Math.max(urlArr.length, pidArr.length);
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (let i = 0; i < slotCount; i++) {
+    const fromUrl = normalizeMediaUrl(urlArr[i]);
+    const fromPid = cloudinaryUrlFromPublicId(pidArr[i], resourceType, cloudName);
+    let chosen = fromUrl || fromPid;
+    if (!chosen) continue;
+    if (resourceType === 'video') chosen = normalizeCloudinaryVideoUrl(chosen);
+
+    const key = mediaDedupeKey(chosen);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(chosen);
+  }
+
+  return out;
+}
+
+/** Resolve all product images (up to 3 slots) for storefront display. */
 export function resolveProductImages(input: {
   images?: unknown;
   imagePublicIds?: unknown;
   cloudName?: string;
 }): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-
-  const add = (url: string | null) => {
-    if (!url || seen.has(url)) return;
-    seen.add(url);
-    out.push(url);
-  };
-
-  if (Array.isArray(input.images)) {
-    for (const raw of input.images) add(normalizeMediaUrl(raw));
-  }
-  if (Array.isArray(input.imagePublicIds)) {
-    for (const pid of input.imagePublicIds) {
-      add(cloudinaryUrlFromPublicId(pid, 'image', input.cloudName));
-    }
-  }
-
-  return out;
+  return resolveMediaSlots(input.images, input.imagePublicIds, 'image', input.cloudName);
 }
 
+/** Resolve all product videos (up to 2 slots) for storefront display. */
 export function resolveProductVideos(input: {
   videos?: unknown;
   videoPublicIds?: unknown;
   cloudName?: string;
 }): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-
-  const add = (url: string | null) => {
-    if (!url || seen.has(url)) return;
-    seen.add(url);
-    out.push(url);
-  };
-
-  if (Array.isArray(input.videos)) {
-    for (const raw of input.videos) add(normalizeMediaUrl(raw));
-  }
-  if (Array.isArray(input.videoPublicIds)) {
-    for (const pid of input.videoPublicIds) {
-      add(cloudinaryUrlFromPublicId(pid, 'video', input.cloudName));
-    }
-  }
-
-  return out;
+  return resolveMediaSlots(input.videos, input.videoPublicIds, 'video', input.cloudName);
 }
 
 /** Combined gallery items for product detail slider. */

@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { uploadMedia } from '@/utils/uploadMedia';
+import {
+  cloudinaryUrlFromPublicId,
+  cloudinaryVideoThumbnail,
+  normalizeMediaUrl,
+  resolveProductImages,
+  resolveProductVideos,
+} from '@/utils/productMedia.util';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,13 +82,25 @@ const categoryIdsFromProduct = (p: any): string[] => {
   if (p?.category) return [getId(p.category)].filter(Boolean);
   return [];
 };
-const initMediaSlots = (urls: string[], pids: string[], count: number): MediaSlot[] =>
-  Array.from({ length: count }, (_, i) => ({
-    url:      urls[i] || '',
-    file:     null,
-    preview:  urls[i] || '',
-    publicId: pids[i] || '',
-  }));
+const initMediaSlots = (
+  urls: string[],
+  pids: string[],
+  count: number,
+  kind: 'image' | 'video'
+): MediaSlot[] =>
+  Array.from({ length: count }, (_, i) => {
+    const url =
+      normalizeMediaUrl(urls[i]) || cloudinaryUrlFromPublicId(pids[i], kind) || '';
+    return {
+      url,
+      file: null,
+      preview: url,
+      publicId: pids[i] || '',
+      ...(kind === 'video' && url ? { thumbnail: cloudinaryVideoThumbnail(url) } : {}),
+    };
+  });
+
+const isActiveMediaSlot = (slot: MediaSlot) => Boolean(slot.file || slot.url || slot.publicId);
 
 // ─── View Modal ───────────────────────────────────────────────────────────────
 
@@ -95,8 +114,14 @@ const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ pro
       : [];
   const categoryLabels    = catItems.map((c: any) => getTitle(c) || getId(c) || '—');
   const specs  = (p.specifications || {}) as Record<string, unknown>;
-  const imgs   = (p.images  || []).filter(Boolean) as string[];
-  const vids   = (p.videos  || []).filter(Boolean) as string[];
+  const imgs = resolveProductImages({
+    images: p.images,
+    imagePublicIds: p.imagePublicIds,
+  });
+  const vids = resolveProductVideos({
+    videos: p.videos,
+    videoPublicIds: p.videoPublicIds,
+  });
 
   const hasDiscount = p.price != null && p.price !== '' && Number(p.price) < Number(p.originalPrice);
   const savings     = hasDiscount ? Number(p.originalPrice) - Number(p.price) : 0;
@@ -457,10 +482,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
 
   // ── Media: 3 image slots + 2 video slots ──
   const [imageSlots, setImageSlots] = useState<MediaSlot[]>(() =>
-    initMediaSlots(product?.images || [], product?.imagePublicIds || [], 3)
+    initMediaSlots(product?.images || [], product?.imagePublicIds || [], 3, 'image')
   );
   const [videoSlots, setVideoSlots] = useState<MediaSlot[]>(() =>
-    initMediaSlots(product?.videos || [], product?.videoPublicIds || [], 2)
+    initMediaSlots(product?.videos || [], product?.videoPublicIds || [], 2, 'video')
   );
 
   // ── Form ──
@@ -528,8 +553,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
         value: String(v ?? ''),
       }))
     );
-    setImageSlots(initMediaSlots(p?.images || [], p?.imagePublicIds || [], 3));
-    setVideoSlots(initMediaSlots(p?.videos || [], p?.videoPublicIds || [], 2));
+    setImageSlots(initMediaSlots(p?.images || [], p?.imagePublicIds || [], 3, 'image'));
+    setVideoSlots(initMediaSlots(p?.videos || [], p?.videoPublicIds || [], 2, 'video'));
     setErrors({});
   }, [isOpen, mode, product?._id]);
 
@@ -607,8 +632,15 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
     setVideoSlots(p => p.map((s, i) => i === index ? { url: '', file: null, preview: '', publicId: '', thumbnail: '' } : s));
 
   // ── Upload one media slot with progress tracking ──
-  const uploadSlot = async (slot: MediaSlot, key: string): Promise<{ url: string; publicId: string }> => {
-    if (!slot.file) return { url: slot.url, publicId: slot.publicId };
+  const uploadSlot = async (
+    slot: MediaSlot,
+    key: string,
+    kind: 'image' | 'video'
+  ): Promise<{ url: string; publicId: string }> => {
+    if (!slot.file) {
+      const url = slot.url || cloudinaryUrlFromPublicId(slot.publicId, kind) || '';
+      return { url, publicId: slot.publicId };
+    }
     setUploadProgress(p => ({ ...p, [key]: 0 }));
     const result = await uploadMedia(slot.file, (pct) =>
       setUploadProgress(p => ({ ...p, [key]: pct }))
@@ -636,8 +668,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
     if (!validate()) return;
     setSaving(true);
     try {
-      const activeImages = imageSlots.filter(s => s.file || s.url);
-      const activeVideos = videoSlots.filter(s => s.file || s.url);
+      const activeImages = imageSlots.filter(isActiveMediaSlot);
+      const activeVideos = videoSlots.filter(isActiveMediaSlot);
 
       const newImageCount = activeImages.filter(s => s.file).length;
       const newVideoCount = activeVideos.filter(s => s.file).length;
@@ -651,8 +683,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
 
       // Upload all images and videos in parallel, tracking per-slot progress
       const [imageResults, videoResults] = await Promise.all([
-        Promise.all(activeImages.map((slot, i) => uploadSlot(slot, `img-${i}`))),
-        Promise.all(activeVideos.map((slot, i) => uploadSlot(slot, `vid-${i}`))),
+        Promise.all(activeImages.map((slot, i) => uploadSlot(slot, `img-${i}`, 'image'))),
+        Promise.all(activeVideos.map((slot, i) => uploadSlot(slot, `vid-${i}`, 'video'))),
       ]);
 
       setUploadStatus('');

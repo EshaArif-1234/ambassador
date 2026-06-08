@@ -40,8 +40,8 @@ export default function ProductDetailGallery({
   }, [mediaItems.length, mediaIndex]);
 
   const currentMedia = mediaItems[mediaIndex] ?? mediaItems[0];
-  const imageItems = mediaItems.filter((m) => m.kind === 'image');
-  const videoItems = mediaItems.filter((m) => m.kind === 'video');
+  const imageThumbs = mediaItems.filter((m) => m.kind === 'image');
+  const videoThumbs = mediaItems.filter((m) => m.kind === 'video');
   const hasMultiple = mediaItems.length > 1;
 
   const goPrev = useCallback(() => {
@@ -202,96 +202,83 @@ export default function ProductDetailGallery({
         })()}
       </div>
 
-      {(imageItems.length > 0 || videoItems.length > 0) && (
-        <div
-          className={`grid gap-2 ${
-            mediaItems.length >= 5
-              ? 'grid-cols-5'
-              : mediaItems.length === 4
-                ? 'grid-cols-4'
-                : mediaItems.length === 3
-                  ? 'grid-cols-3'
-                  : mediaItems.length === 2
-                    ? 'grid-cols-2'
-                    : 'grid-cols-1'
-          }`}
-        >
-          <ThumbStrip
-            items={imageItems}
-            mediaIndex={mediaIndex}
-            onSelect={setMediaIndex}
+      <div className="grid grid-cols-5 gap-2">
+        {imageThumbs.map((item, index) => (
+          <ThumbButton
+            key={`img-${item.src}-${index}`}
+            item={item}
+            isActive={mediaIndex === item.index}
             productName={productName}
+            onSelect={() => setMediaIndex(item.index)}
           />
-          <ThumbStrip
-            items={videoItems}
-            mediaIndex={mediaIndex}
-            onSelect={setMediaIndex}
+        ))}
+        {videoThumbs.map((item, index) => (
+          <ThumbButton
+            key={`vid-${item.src}-${index}`}
+            item={item}
+            isActive={mediaIndex === item.index}
             productName={productName}
+            onSelect={() => setMediaIndex(item.index)}
             isVideo
           />
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
 
-function ThumbStrip({
-  items,
-  mediaIndex,
-  onSelect,
+function ThumbButton({
+  item,
+  isActive,
   productName,
+  onSelect,
   isVideo,
 }: {
-  items: ProductMediaItem[];
-  mediaIndex: number;
-  onSelect: (index: number) => void;
+  item: ProductMediaItem;
+  isActive: boolean;
   productName: string;
+  onSelect: () => void;
   isVideo?: boolean;
 }) {
   return (
-    <>
-      {items.map((item) => (
-        <button
-          key={`${item.kind}-${item.index}-${item.src}`}
-          type="button"
-          onClick={() => onSelect(item.index)}
-          className={`relative w-full aspect-square overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
-            mediaIndex === item.index ? 'border-[#E36630]' : 'border-gray-200'
-          }`}
-        >
-          {isVideo ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={cloudinaryVideoThumbnail(item.src)}
-                alt={`${productName} video`}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow">
-                  <svg className="ml-0.5 h-4 w-4 text-gray-800" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="absolute bottom-1 right-1 rounded bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                Video
-              </div>
-            </>
-          ) : (
-            <ProductMediaImage
-              src={item.src}
-              alt={`${productName} thumbnail`}
-              fill
-              className="bg-[#E5E5E5] object-cover transition-transform hover:scale-105"
-              sizes="80px"
-            />
-          )}
-        </button>
-      ))}
-    </>
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`relative w-full aspect-square overflow-hidden rounded-lg border-2 bg-[#E5E5E5] transition-all ${
+        isActive ? 'border-[#E36630]' : 'border-gray-200'
+      }`}
+    >
+      {isVideo || item.kind === 'video' ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={cloudinaryVideoThumbnail(item.src)}
+            alt={`${productName} video`}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow">
+              <svg className="ml-0.5 h-4 w-4 text-gray-800" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
+          <div className="absolute bottom-1 right-1 rounded bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
+            Video
+          </div>
+        </>
+      ) : (
+        <ProductMediaImage
+          src={item.src}
+          alt={`${productName} thumbnail`}
+          fill
+          className="bg-[#E5E5E5] object-cover transition-transform hover:scale-105"
+          sizes="80px"
+        />
+      )}
+    </button>
   );
 }
