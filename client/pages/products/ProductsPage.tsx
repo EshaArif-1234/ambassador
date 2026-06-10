@@ -305,20 +305,32 @@ const ProductsPage = () => {
     setAvailability((prev) => ({ ...prev, [key]: checked }));
   };
 
-  const handleAddToCart = (product: Product) => {
+  const buildCartItem = (product: Product) => {
     const code =
-      product.specifications['Product Code'] || product.specifications['product code'] || product._id;
-    addToCart({
+      product.specifications['Product Code'] ||
+      product.specifications['product code'] ||
+      product._id;
+    return {
       id: product._id,
       title: product.name,
       price: product.price,
       quantity: 1,
       image: product.image,
       productCode: String(code),
-    });
+    };
+  };
+
+  const handleAddToCart = (product: Product) => {
+    addToCart(buildCartItem(product));
     setAddedProduct(product);
     setShowCartPopup(true);
     setTimeout(() => setShowCartPopup(false), 3000);
+  };
+
+  const handleBuyItNow = (product: Product) => {
+    if (product.stock <= 0) return;
+    addToCart(buildCartItem(product));
+    router.push('/checkout');
   };
 
   const clearFilters = () => {
@@ -637,16 +649,17 @@ const ProductsPage = () => {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <Link
-                              href={`/products/${product._id}`}
-                              className="hidden sm:flex items-center gap-1.5 rounded-xl border-2 border-[#0F4C69] px-3 py-2 text-xs font-semibold text-[#0F4C69] hover:bg-[#0F4C69] hover:text-white transition-colors duration-200"
+                            <button
+                              type="button"
+                              onClick={() => handleBuyItNow(product)}
+                              disabled={product.stock <= 0}
+                              className="flex items-center gap-1.5 rounded-xl border-2 border-[#0F4C69] px-3 py-2 text-xs font-semibold text-[#0F4C69] hover:bg-[#0F4C69] hover:text-white transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                               </svg>
-                              View
-                            </Link>
+                              Buy it Now
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleAddToCart(product)}

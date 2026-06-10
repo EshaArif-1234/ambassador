@@ -12,6 +12,7 @@ import {
   sanitizeProductBrands,
 } from '@/backend/lib/productMarketingFields';
 import { requireAdmin } from '@/backend/lib/adminAuth';
+import mongoose from 'mongoose';
 
 const ADMIN_PAGE_LIMIT = 10;
 
@@ -22,7 +23,7 @@ const ADMIN_LIST_PROJECTION = {
   categories: 1, images: { $slice: 1 }, createdAt: 1,
 };
 
-/** GET /api/admin/products?page=1&limit=10&search=...&status=...&category=... */
+/** GET /api/admin/products?page=1&limit=10&search=...&status=...&category=...&stock=... */
 export async function GET(req: NextRequest) {
   const authError = await requireAdmin(req);
   if (authError) return authError;
@@ -33,15 +34,43 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search     = searchParams.get('search')   ?? '';
     const status     = searchParams.get('status')   ?? 'all';
+    const stock      = searchParams.get('stock')    ?? 'all';
     const categoryId = searchParams.get('category') ?? '';
     const page       = Math.max(1, parseInt(searchParams.get('page')  ?? '1', 10));
     const limit      = Math.min(50, parseInt(searchParams.get('limit') ?? String(ADMIN_PAGE_LIMIT), 10));
     const skip       = (page - 1) * limit;
 
     const filter: Record<string, unknown> = {};
-    if (search) filter.name = { $regex: search, $options: 'i' };
+    const trimmedSearch = search.trim();
+    if (trimmedSearch) {
+      const orConditions: Record<string, unknown>[] = [
+        { name: { $regex: trimmedSearch, $options: 'i' } },
+        { slug: { $regex: trimmedSearch, $options: 'i' } },
+      ];
+
+      if (
+        mongoose.Types.ObjectId.isValid(trimmedSearch) &&
+        String(new mongoose.Types.ObjectId(trimmedSearch)) === trimmedSearch
+      ) {
+        orConditions.push({ _id: new mongoose.Types.ObjectId(trimmedSearch) });
+      } else if (/^[a-f0-9]{4,24}$/i.test(trimmedSearch)) {
+        orConditions.push({
+          $expr: {
+            $regexMatch: {
+              input: { $toString: '$_id' },
+              regex: trimmedSearch,
+              options: 'i',
+            },
+          },
+        });
+      }
+
+      filter.$or = orConditions;
+    }
     if (status !== 'all') filter.status = status;
     if (categoryId) filter.categories = categoryId;
+    if (stock === 'in_stock') filter.stock = { $gt: 0 };
+    if (stock === 'out_of_stock') filter.stock = { $lte: 0 };
 
     // Fetch products, total count, and ratings all in parallel
     const [products, total, ratings] = await Promise.all([

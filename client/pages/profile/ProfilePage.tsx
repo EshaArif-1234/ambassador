@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
 import { authApi } from '@/utils/auth.api';
-import { SHIPPING_CITIES } from '@/utils/userAddress.util';
+import { fetchPakistanCities } from '@/utils/cities.api';
 import Link from 'next/link';
 import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
 
@@ -61,6 +61,39 @@ export default function ProfilePage() {
   const [ordersError, setOrdersError]     = useState<string | null>(null);
 
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+
+  const [cities, setCities] = useState<string[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(true);
+  const [citiesError, setCitiesError] = useState<string | null>(null);
+
+  const cityOptions = useMemo(() => {
+    const list = [...cities];
+    const saved = (addressCity || user?.city || '').trim();
+    if (saved && !list.includes(saved)) list.unshift(saved);
+    return list;
+  }, [cities, addressCity, user?.city]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCitiesLoading(true);
+    setCitiesError(null);
+    fetchPakistanCities()
+      .then((data) => {
+        if (!cancelled) setCities(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setCitiesError((err as Error).message);
+          setCities([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCitiesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -287,15 +320,21 @@ export default function ProfilePage() {
                   <select
                     value={addressCity}
                     onChange={(e) => setAddressCity(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/20"
+                    disabled={citiesLoading}
+                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/20 disabled:bg-gray-50 disabled:text-gray-500"
                   >
-                    <option value="">Select city</option>
-                    {SHIPPING_CITIES.map((c) => (
+                    <option value="">
+                      {citiesLoading ? 'Loading cities…' : 'Select city'}
+                    </option>
+                    {cityOptions.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>
                     ))}
                   </select>
+                  {citiesError && (
+                    <p className="mt-1 text-xs text-red-600">{citiesError}</p>
+                  )}
                 </div>
                 <textarea
                   value={address}

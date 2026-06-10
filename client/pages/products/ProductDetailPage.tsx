@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import ProductDetailGallery from '@/components/products/ProductDetailGallery';
 import {
   PRODUCT_PLACEHOLDER,
@@ -80,6 +81,7 @@ function rowDisplayPrice(p: { price?: number; originalPrice: number }): number {
 }
 
 const ProductDetailPage = ({ productId }: { productId: string }) => {
+  const router = useRouter();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<CatalogProductRow[]>([]);
@@ -228,22 +230,35 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   const categoryLine = product?.categories?.map((c) => c.title).filter(Boolean).join(' · ');
   const brandTags = product ? normalizeBrandTags(product.brands) : [];
 
-  const handleAddToCart = () => {
-    if (!product) return;
+  const buildCartItem = () => {
+    if (!product) return null;
     const firstImage = galleryImages[0] ?? PRODUCT_PLACEHOLDER;
     const code =
       product.specifications['Product Code'] ||
       product.specifications['product code'] ||
       product._id;
-    addToCart({
+    return {
       id: product._id,
       title: product.name,
       price: displayPrice,
       quantity,
       image: firstImage,
       productCode: String(code),
-    });
+    };
+  };
+
+  const handleAddToCart = () => {
+    const item = buildCartItem();
+    if (!item) return;
+    addToCart(item);
     setShowCartPopup(true);
+  };
+
+  const handleBuyItNow = () => {
+    const item = buildCartItem();
+    if (!item) return;
+    addToCart(item);
+    router.push('/checkout');
   };
 
   if (loading) {
@@ -382,9 +397,16 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className="min-w-[200px] flex-1 rounded-lg bg-[#E36630] px-6 py-3 font-medium text-white transition-colors hover:bg-[#cc5a2a]"
+                  className="min-w-[140px] flex-1 rounded-lg border-2 border-[#0F4C69] px-5 py-3 font-medium text-[#0F4C69] transition-colors hover:bg-[#0F4C69] hover:text-white"
                 >
                   Add to Cart
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBuyItNow}
+                  className="min-w-[140px] flex-1 rounded-lg bg-[#E36630] px-5 py-3 font-medium text-white transition-colors hover:bg-[#cc5a2a]"
+                >
+                  Buy it Now
                 </button>
               </div>
 

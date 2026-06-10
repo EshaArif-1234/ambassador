@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ProductModal, { ProductFormData } from '@/components/products/ProductModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
+import { downloadStockProductsPdf } from '@/utils/generateStockProductsPdf';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,9 +57,11 @@ const ProductsPage = () => {
   const [searchTerm,   setSearchTerm]  = useState('');
   const [filterCat,    setFilterCat]   = useState('all');
   const [filterStatus, setFilterStatus]= useState('all');
+  const [filterStock,  setFilterStock] = useState('all');
   const [successMsg,   setSuccessMsg]  = useState('');
   const [error,        setError]       = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [pdfLoading,    setPdfLoading]    = useState<'in_stock' | 'out_of_stock' | null>(null);
   const [currentPage,   setCurrentPage]   = useState(1);
 
   // Modal
@@ -81,6 +84,7 @@ const ProductsPage = () => {
       params.set('limit', String(ADMIN_PAGE_SIZE));
       if (searchTerm.trim())      params.set('search',   searchTerm.trim());
       if (filterStatus !== 'all') params.set('status',   filterStatus);
+      if (filterStock  !== 'all') params.set('stock',    filterStock);
       if (filterCat    !== 'all') params.set('category', filterCat);
 
       const res  = await fetch(`/api/admin/products?${params.toString()}`, { credentials: 'include' });
@@ -95,7 +99,7 @@ const ProductsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, filterCat, filterStatus]);
+  }, [searchTerm, filterCat, filterStatus, filterStock]);
 
   // Fetch categories once
   useEffect(() => {
@@ -106,7 +110,7 @@ const ProductsPage = () => {
   }, []);
 
   // Re-fetch when page or filters change; reset to page 1 on filter change
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCat, filterStatus]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterCat, filterStatus, filterStock]);
   useEffect(() => { fetchProducts(currentPage); }, [currentPage, fetchProducts]);
 
   // ── CRUD handlers ──────────────────────────────────────────────────────────
@@ -148,6 +152,29 @@ const ProductsPage = () => {
       showError((err as Error).message);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleDownloadStockPdf = async (stockType: 'in_stock' | 'out_of_stock') => {
+    setPdfLoading(stockType);
+    try {
+      const res = await fetch(`/api/admin/products/export?stock=${stockType}`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to export products.');
+      }
+      downloadStockProductsPdf(data.data, stockType);
+      showSuccess(
+        stockType === 'in_stock'
+          ? 'In stock products PDF downloaded.'
+          : 'Out of stock products PDF downloaded.'
+      );
+    } catch (err) {
+      showError((err as Error).message || 'Failed to generate PDF.');
+    } finally {
+      setPdfLoading(null);
     }
   };
 
@@ -226,13 +253,13 @@ const ProductsPage = () => {
         )}
 
         {/* Filters */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
           <div className="flex flex-col md:flex-row gap-3">
             <div className="flex-1 relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <input type="text" placeholder="Search products…" value={searchTerm}
+              <input type="text" placeholder="Search by name, slug, or product ID…" value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0F4C69]/30 focus:border-[#0F4C69]" />
             </div>
@@ -247,6 +274,37 @@ const ProductsPage = () => {
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
+            <select value={filterStock} onChange={e => setFilterStock(e.target.value)}
+              className="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0F4C69]/30">
+              <option value="all">All Stock</option>
+              <option value="in_stock">In Stock</option>
+              <option value="out_of_stock">Out of Stock</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 pt-1 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => handleDownloadStockPdf('in_stock')}
+              disabled={pdfLoading !== null}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-800 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfLoading === 'in_stock' ? 'Generating PDF…' : 'Download In Stock PDF'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDownloadStockPdf('out_of_stock')}
+              disabled={pdfLoading !== null}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-800 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfLoading === 'out_of_stock' ? 'Generating PDF…' : 'Download Out of Stock PDF'}
+            </button>
           </div>
         </div>
 
@@ -277,6 +335,7 @@ const ProductsPage = () => {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500 tracking-wider">
                   <tr>
+                    <th className="px-6 py-3 text-left">Product ID</th>
                     <th className="px-6 py-3 text-left">Product</th>
                     <th className="px-6 py-3 text-left">Categories</th>
                     <th className="px-6 py-3 text-left">Price</th>
@@ -290,6 +349,16 @@ const ProductsPage = () => {
                 <tbody className="divide-y divide-gray-100">
                   {paginated.map(product => (
                     <tr key={product._id} className="hover:bg-gray-50 transition-colors">
+
+                      {/* Product ID */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className="font-mono text-xs text-gray-600"
+                          title={product._id}
+                        >
+                          {product._id}
+                        </span>
+                      </td>
 
                       {/* Product */}
                       <td className="px-6 py-4">

@@ -1,4 +1,6 @@
-/** Cities available at checkout (keep in sync with CheckoutForm). */
+import { PAKISTAN_CITIES } from '@/data/pakistanCities';
+
+/** Cities with active online delivery (subset of Pakistan cities). */
 export const SHIPPING_CITIES = [
   'Lahore',
   'Karachi',
@@ -8,6 +10,8 @@ export const SHIPPING_CITIES = [
 ] as const;
 
 export type ShippingCity = (typeof SHIPPING_CITIES)[number];
+
+const PAKISTAN_CITY_SET = new Set(PAKISTAN_CITIES);
 
 export interface CheckoutContactFields {
   fullName: string;
@@ -25,7 +29,7 @@ export function parseLegacyAddress(raw: string): { street: string; city: string 
   const parts = trimmed.split(',').map((p) => p.trim()).filter(Boolean);
   if (parts.length >= 2) {
     const maybeCity = parts[parts.length - 1];
-    if (SHIPPING_CITIES.includes(maybeCity as ShippingCity)) {
+    if (PAKISTAN_CITY_SET.has(maybeCity)) {
       return {
         street: parts.slice(0, -1).join(', '),
         city: maybeCity,

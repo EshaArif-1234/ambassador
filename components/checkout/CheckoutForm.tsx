@@ -1,19 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useUser } from '@/contexts/UserContext';
 import { authApi } from '@/utils/auth.api';
-import {
-  checkoutDefaultsFromUser,
-  profileUpdateFromCheckout,
-  SHIPPING_CITIES,
-} from '@/utils/userAddress.util';
+import { checkoutDefaultsFromUser, profileUpdateFromCheckout } from '@/utils/userAddress.util';
+import { fetchPakistanCities } from '@/utils/cities.api';
 import AuthModal from '@/components/auth/AuthModal';
 
 const inputFocus =
   'focus:ring-2 focus:ring-[#E36630] focus:border-[#E36630] outline-none';
+
+/** Readable value + placeholder contrast on white fields */
+const inputBase =
+  'w-full rounded-lg border px-4 py-3 text-gray-900 placeholder:text-gray-600';
 
 interface CheckoutFormData {
   fullName: string;
@@ -42,6 +43,39 @@ const CheckoutForm = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<CheckoutFormData>(emptyForm);
   const prefilledFromProfile = useRef(false);
+
+  const [cities, setCities] = useState<string[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(true);
+  const [citiesError, setCitiesError] = useState<string | null>(null);
+
+  const cityOptions = useMemo(() => {
+    const list = [...cities];
+    const saved = (formData.city || user?.city || '').trim();
+    if (saved && !list.includes(saved)) list.unshift(saved);
+    return list;
+  }, [cities, formData.city, user?.city]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCitiesLoading(true);
+    setCitiesError(null);
+    fetchPakistanCities()
+      .then((data) => {
+        if (!cancelled) setCities(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setCitiesError((err as Error).message);
+          setCities([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCitiesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Logged-in: pre-fill from user profile (default phone, city, address)
   useEffect(() => {
@@ -210,9 +244,9 @@ const CheckoutForm = () => {
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
+                className={`${inputBase} ${inputFocus} ${
                   errors.fullName ? 'border-red-500' : 'border-gray-300'
-                } placeholder:text-gray-400`}
+                }`}
                 placeholder="Enter your full name"
               />
               {errors.fullName && (
@@ -229,9 +263,9 @@ const CheckoutForm = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
+                className={`${inputBase} ${inputFocus} ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
-                } placeholder:text-gray-400`}
+                } disabled:bg-gray-50 disabled:text-gray-800`}
                 placeholder="Enter your email"
                 disabled={Boolean(user)}
               />
@@ -250,9 +284,9 @@ const CheckoutForm = () => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
+                className={`${inputBase} ${inputFocus} ${
                   errors.phone ? 'border-red-500' : 'border-gray-300'
-                } placeholder:text-gray-400`}
+                }`}
                 placeholder="03XX-XXXXXXX"
               />
               {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
@@ -277,17 +311,23 @@ const CheckoutForm = () => {
                 name="city"
                 value={formData.city}
                 onChange={handleInputChange}
-                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
+                disabled={citiesLoading}
+                className={`${inputBase} ${inputFocus} ${
                   errors.city ? 'border-red-500' : 'border-gray-300'
-                }`}
+                } disabled:bg-gray-50 disabled:text-gray-600`}
               >
-                <option value="">Select city</option>
-                {SHIPPING_CITIES.map((c) => (
+                <option value="">
+                  {citiesLoading ? 'Loading cities…' : 'Select city'}
+                </option>
+                {cityOptions.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
                 ))}
               </select>
+              {citiesError && (
+                <p className="mt-1 text-sm text-red-600">{citiesError}</p>
+              )}
               {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
             </div>
 
@@ -298,7 +338,7 @@ const CheckoutForm = () => {
                 value={formData.address}
                 onChange={handleInputChange}
                 rows={3}
-                className={`w-full rounded-lg border px-4 py-3 ${inputFocus} ${
+                className={`${inputBase} ${inputFocus} ${
                   errors.address ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter your complete address"
@@ -317,7 +357,7 @@ const CheckoutForm = () => {
                 value={formData.deliveryNotes}
                 onChange={handleInputChange}
                 rows={2}
-                className={`w-full rounded-lg border border-gray-300 px-4 py-3 ${inputFocus}`}
+                className={`${inputBase} border-gray-300 ${inputFocus}`}
                 placeholder="Special instructions for delivery"
               />
             </div>
