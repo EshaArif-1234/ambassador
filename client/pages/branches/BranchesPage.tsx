@@ -53,7 +53,7 @@ const BranchesPage = () => {
       pincode: '54000',
       phone: '03302003735',
       email: 'info@ambassador.pk',
-      manager: 'Mr Abdul Raheem',
+      manager: 'Mr Syed Naeem-ul-Hassan',
       hours: 'Mon–Sat: 9:00 AM – 6:00 PM',
       services: ['Commercial Kitchen Setup', 'Equipment Sales', 'After-Sales Service', 'Spare Parts'],
       image: '/Images/home/slider 1.jpg',

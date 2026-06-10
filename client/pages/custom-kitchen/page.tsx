@@ -83,26 +83,14 @@ const CustomKitchenPage = () => {
 
       {/* ── Banner ───────────────────────────────────── */}
       <div className="relative h-96 md:h-[600px] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80" />
         <Image
-          src="/Images/custom-kitchen-dark.jpg"
+          src="/Images/CUSTOM-KITCHEN-WEB-BANNER-5.png"
           alt="Custom Kitchen Solutions"
           fill
           className="object-cover"
           priority
           style={{ objectPosition: 'center center' }}
         />
-        <div className="absolute inset-0 bg-black opacity-50" />
-        <div className="relative z-10 h-full flex items-center justify-center text-white">
-          <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">
-              Custom Kitchen Solutions
-            </h1>
-            <p className="text-xl md:text-2xl text-white/80 drop-shadow-lg max-w-2xl mx-auto">
-              Site surveys, 2D &amp; 3D design with your sign-off, fabrication, and turnkey installation by Ambassador experts.
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* ── Projects Section ─────────────────────────── */}
