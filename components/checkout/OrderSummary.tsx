@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCart, type CartItem } from '@/contexts/CartContext';
 import Image from 'next/image';
+import { getCheckoutTotals } from '@/utils/checkoutTotals';
 
 export type OrderSummaryCustomerInfo = {
   name?: string;
@@ -35,14 +36,10 @@ const OrderSummary = ({
   const { cartItems, removeFromCart } = useCart();
   const items = itemsProp ?? cartItems;
 
-  const computedSubtotal = items.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
-  const subtotal = subtotalProp ?? computedSubtotal;
-  const deliveryCharges =
-    deliveryChargesProp ?? (subtotal > 0 ? 200 : 0);
-  const total = totalProp ?? subtotal + deliveryCharges;
+  const computed = getCheckoutTotals(items);
+  const subtotal = subtotalProp ?? computed.subtotal;
+  const shippingCharges = deliveryChargesProp ?? computed.shippingCharges;
+  const total = totalProp ?? subtotal + shippingCharges;
 
   return (
     <div className="rounded-lg border bg-white p-6 sticky top-24">
@@ -163,9 +160,9 @@ const OrderSummary = ({
         </div>
 
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Delivery Charges</span>
+          <span className="text-gray-600">Shipping Charges</span>
           <span className="text-gray-900">
-            {deliveryCharges === 0 ? 'FREE' : `PKR ${deliveryCharges.toLocaleString()}`}
+            {shippingCharges === 0 ? 'FREE' : `PKR ${shippingCharges.toLocaleString()}`}
           </span>
         </div>
 

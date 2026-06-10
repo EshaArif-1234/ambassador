@@ -396,7 +396,7 @@ const PaymentGatewayPage = () => {
               </div>
             </div>
 
-            {/* Right Column - Order Summary & Delivery Information */}
+            {/* Right Column - Order Summary */}
             <div className="lg:col-span-1">
               {paymentData ? (
                 <OrderSummary
@@ -413,51 +413,6 @@ const PaymentGatewayPage = () => {
                   <p className="py-8 text-center text-sm text-gray-500">Loading order summary…</p>
                 </div>
               )}
-
-              {/* Delivery Charges Information */}
-              <div className="mt-6 rounded-lg border border-gray-300 bg-orange-50 p-6">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="w-6 h-6 text-yellow-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-lg font-semibold text-yellow-900 mb-2">Payment & Delivery Information</h3>
-                    <div className="text-yellow-800 space-y-2">
-                      <p>
-                        <strong>Important:</strong> We collect only the product payment online. Delivery charges will be calculated separately after order confirmation.
-                      </p>
-                      <div className=" rounded-lg p-3 mt-3">
-                        <p className="text-sm text-yellow-900 font-medium mb-2">What happens next:</p>
-                        <ol className="list-decimal list-inside space-y-1 text-sm">
-                          <li><strong>Online Payment:</strong> You pay only for the products now</li>
-                          <li><strong>Team Contact:</strong> Our team calls within 24 hours</li>
-                          <li><strong>Delivery Quote:</strong> We provide delivery charges based on your location and order size</li>
-                          <li><strong>Your Approval:</strong> You confirm or modify the order based on final charges</li>
-                          <li><strong>Delivery Payment:</strong> Delivery charges paid separately when confirmed</li>
-                        </ol>
-                      </div>
-                      <div className="mt-3">
-                        <p className="text-sm text-yellow-900">
-                          <strong>Delivery charges depend on:</strong>
-                        </p>
-                        <ul className="list-disc list-inside space-y-1 text-sm mt-1">
-                          <li>Your location and delivery address</li>
-                          <li>Order size and weight</li>
-                          <li>Installation requirements (if needed)</li>
-                          <li>Delivery timeline preferences</li>
-                        </ul>
-                      </div>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-                        <p className="text-sm text-blue-900">
-                          <strong>Benefit:</strong> You only pay for delivery charges after you approve the final quote. No hidden fees!
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>

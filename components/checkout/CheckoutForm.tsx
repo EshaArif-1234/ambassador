@@ -8,6 +8,7 @@ import { authApi } from '@/utils/auth.api';
 import { checkoutDefaultsFromUser, profileUpdateFromCheckout } from '@/utils/userAddress.util';
 import { fetchPakistanCities } from '@/utils/cities.api';
 import AuthModal from '@/components/auth/AuthModal';
+import { getCheckoutTotals } from '@/utils/checkoutTotals';
 
 const inputFocus =
   'focus:ring-2 focus:ring-[#E36630] focus:border-[#E36630] outline-none';
@@ -116,9 +117,7 @@ const CheckoutForm = () => {
     localStorage.setItem('checkoutFormData', JSON.stringify(formData));
   }, [formData, user]);
 
-  const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  const deliveryCharges = subtotal > 0 ? 200 : 0; // Fixed delivery charge
-  const total = subtotal + deliveryCharges;
+  const { subtotal, shippingCharges, deliveryCharges, total } = getCheckoutTotals(cartItems);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -363,10 +362,28 @@ const CheckoutForm = () => {
             </div>
           </div>
 
+          <div className="mt-4 space-y-2 border-t pt-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-medium text-gray-900">PKR {subtotal.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Shipping Charges</span>
+              <span className="font-medium text-gray-900">
+                {shippingCharges === 0 ? 'FREE' : `PKR ${shippingCharges.toLocaleString()}`}
+              </span>
+            </div>
+            <div className="flex justify-between border-t pt-2">
+              <span className="font-semibold text-gray-900">Total</span>
+              <span className="text-lg font-bold text-[#E36630]">PKR {total.toLocaleString()}</span>
+            </div>
+          </div>
+
           <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
             <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> Delivery is currently available only in Lahore, Karachi,
-              Islamabad, Rawalpindi, and Faisalabad.
+              <strong>Note:</strong> Standard shipping is PKR {shippingCharges.toLocaleString()} per
+              order. Delivery is available across Pakistan; remote areas may need extra charges
+              confirmed by our team.
             </p>
           </div>
         </div>

@@ -413,6 +413,175 @@ export async function sendContactConfirmationEmail(payload: ContactFormPayload):
   });
 }
 
+export interface OrderConfirmationEmailPayload {
+  customerName: string;
+  customerEmail: string;
+  orderNumber: string;
+  paymentId?: string;
+  paidAt?: string;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }>;
+  subtotal: number;
+  deliveryCharges: number;
+  totalAmount: number;
+  shippingAddress: {
+    street: string;
+    city: string;
+    country?: string;
+  };
+  deliveryNotes?: string;
+  paymentMethod?: string;
+}
+
+function formatMoneyPkr(amount: number): string {
+  return `PKR ${Number(amount || 0).toLocaleString('en-PK')}`;
+}
+
+function formatOrderEmailDate(iso?: string): string {
+  if (!iso) return new Date().toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' });
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  return date.toLocaleDateString('en-PK', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/** Order confirmation email after successful checkout. Does not throw if SMTP fails. */
+export async function sendOrderConfirmationEmail(
+  payload: OrderConfirmationEmailPayload
+): Promise<void> {
+  try {
+    const transporter = getTransporter();
+    const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+    const fromEmail = process.env.SMTP_USER!;
+    const siteUrl =
+      process.env.NEXT_PUBLIC_APP_URL ??
+      process.env.NEXT_PUBLIC_BASE_URL ??
+      'http://localhost:3000';
+
+    const nameSafe = escapeHtmlForEmail(payload.customerName.trim() || 'Customer');
+    const orderSafe = escapeHtmlForEmail(payload.orderNumber);
+    const paymentRefSafe = escapeHtmlForEmail(payload.paymentId?.trim() || '—');
+    const addressLine = escapeHtmlForEmail(
+      [payload.shippingAddress.street, payload.shippingAddress.city, payload.shippingAddress.country ?? 'Pakistan']
+        .filter(Boolean)
+        .join(', ')
+    );
+    const notesSafe = payload.deliveryNotes?.trim()
+      ? escapeHtmlForEmail(payload.deliveryNotes).replace(/\n/g, '<br/>')
+      : '';
+    const shippingCharges = Number(payload.deliveryCharges ?? 0);
+    const shippingLine =
+      shippingCharges === 0 ? 'FREE' : formatMoneyPkr(shippingCharges);
+
+    const itemRows = payload.items
+      .map(
+        (item) => `
+      <tr>
+        <td style="padding:10px 8px;border-bottom:1px solid #eee;color:#333;">${escapeHtmlForEmail(item.productName)}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #eee;color:#333;text-align:center;">${item.quantity}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #eee;color:#333;text-align:right;">${formatMoneyPkr(item.price)}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #eee;color:#333;text-align:right;">${formatMoneyPkr(item.total)}</td>
+      </tr>`
+      )
+      .join('');
+
+    const body = `
+    <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
+      Order Placed Successfully
+    </h2>
+    <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
+      Hi <strong>${nameSafe}</strong>,<br/>
+      Thank you for your order with Ambassador Kitchen Equipment. We have received your payment
+      and your order is now being processed.
+    </p>
+
+    <div style="background:#f0f7fa;border-left:4px solid #0F4C69;border-radius:8px;padding:16px 20px;margin:0 0 24px;">
+      <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0F4C69;text-transform:uppercase;letter-spacing:0.5px;">
+        Order Details
+      </p>
+      <p style="margin:0 0 4px;font-size:14px;color:#333;"><strong>Order Number:</strong> ${orderSafe}</p>
+      <p style="margin:0 0 4px;font-size:14px;color:#333;"><strong>Order Date:</strong> ${formatOrderEmailDate(payload.paidAt)}</p>
+      <p style="margin:0 0 4px;font-size:14px;color:#333;"><strong>Payment Reference:</strong> ${paymentRefSafe}</p>
+      <p style="margin:0;font-size:14px;color:#333;"><strong>Payment Method:</strong> Credit/Debit Card</p>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:0 0 16px;">
+      <thead>
+        <tr style="background:#f9fafb;">
+          <th style="padding:10px 8px;text-align:left;color:#666;font-size:12px;text-transform:uppercase;">Product</th>
+          <th style="padding:10px 8px;text-align:center;color:#666;font-size:12px;text-transform:uppercase;">Qty</th>
+          <th style="padding:10px 8px;text-align:right;color:#666;font-size:12px;text-transform:uppercase;">Price</th>
+          <th style="padding:10px 8px;text-align:right;color:#666;font-size:12px;text-transform:uppercase;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemRows || '<tr><td colspan="4" style="padding:12px;color:#666;">No items listed</td></tr>'}
+      </tbody>
+    </table>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:0 0 24px;">
+      <tr>
+        <td style="padding:6px 0;color:#555;">Product Subtotal</td>
+        <td style="padding:6px 0;color:#333;text-align:right;">${formatMoneyPkr(payload.subtotal)}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;color:#555;">Shipping Charges</td>
+        <td style="padding:6px 0;color:#333;text-align:right;">${shippingLine}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0 0;color:#1a1a1a;font-weight:700;border-top:1px solid #eee;">Total Paid</td>
+        <td style="padding:10px 0 0;color:#E36630;font-weight:700;text-align:right;border-top:1px solid #eee;">${formatMoneyPkr(payload.totalAmount)}</td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 8px;font-size:14px;color:#333;"><strong>Shipping Address:</strong> ${addressLine}</p>
+    ${notesSafe ? `<p style="margin:0 0 20px;font-size:14px;color:#333;"><strong>Delivery Notes:</strong> ${notesSafe}</p>` : '<div style="margin-bottom:20px;"></div>'}
+
+    <div style="background:#fff8f1;border:1px solid #fde6d6;border-radius:8px;padding:16px 20px;margin:0 0 24px;">
+      <p style="margin:0;font-size:14px;color:#7a4b2a;line-height:1.7;">
+        Your payment includes product subtotal and standard shipping charges.
+        Our team will contact you within <strong>24 hours</strong> to confirm your delivery schedule
+        and any installation requirements.
+      </p>
+    </div>
+
+    <div style="margin:28px 0;text-align:center;">
+      <a href="${siteUrl}/orders"
+        style="display:inline-block;background:#E36630;color:#ffffff;text-decoration:none;
+               font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;
+               letter-spacing:0.3px;">
+        Track Your Order
+      </a>
+    </div>
+
+    <p style="margin:0;color:#555555;font-size:14px;line-height:1.7;">
+      Questions? Call <strong>+92 331 4937412</strong> or email
+      <a href="mailto:${getContactInboxEmail()}" style="color:#0F4C69;">${getContactInboxEmail()}</a>.
+    </p>
+  `;
+
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to: payload.customerEmail,
+      subject: `Order Confirmation ${payload.orderNumber} — Ambassador Kitchen Equipment`,
+      html: baseTemplate('Order Confirmation', body),
+    });
+  } catch (err) {
+    console.warn('[sendOrderConfirmationEmail]', err);
+  }
+}
+
 /** Thank-you note after submitting a review. Does not throw if SMTP fails. */
 export async function sendReviewThankYouEmail(
   to: string,

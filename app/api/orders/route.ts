@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 
 import connectDB from '@/backend/config/db';
 
@@ -17,6 +17,8 @@ import {
 import { enrichOrderItemsList, mapRawOrderItem } from '@/utils/orderItems.util';
 
 import { syncUserContactFromCheckout } from '@/utils/syncUserContact.util';
+
+import { sendOrderConfirmationEmail } from '@/utils/email.util';
 
 import type { IOrderItem } from '@/backend/models/Order.model';
 
@@ -371,6 +373,70 @@ export async function POST(req: NextRequest) {
       deliveryNotes: orderData?.deliveryNotes ?? '',
 
     });
+
+
+
+    if (paymentStatus === 'paid' && normalizedEmail) {
+
+      after(async () => {
+
+        try {
+
+          await sendOrderConfirmationEmail({
+
+            customerName: customerInfo.name,
+
+            customerEmail: normalizedEmail,
+
+            orderNumber: orderId,
+
+            paymentId: paymentId ?? transactionId,
+
+            paidAt: paidAt ?? new Date().toISOString(),
+
+            items: items.map((item) => ({
+
+              productName: item.productName,
+
+              quantity: item.quantity,
+
+              price: item.price,
+
+              total: item.total,
+
+            })),
+
+            subtotal,
+
+            deliveryCharges,
+
+            totalAmount,
+
+            shippingAddress: {
+
+              street: street || customerInfo.address || 'N/A',
+
+              city: city || 'N/A',
+
+              country: 'Pakistan',
+
+            },
+
+            deliveryNotes: orderData?.deliveryNotes ?? '',
+
+            paymentMethod: methodLabel,
+
+          });
+
+        } catch (emailErr) {
+
+          console.warn('[POST /api/orders] confirmation email failed:', emailErr);
+
+        }
+
+      });
+
+    }
 
 
 

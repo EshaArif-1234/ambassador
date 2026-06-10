@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Image from 'next/image';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn } from '@/admin/lib/adminTableActionStyles';
+import { downloadOrdersPdf } from '@/utils/generateOrdersPdf';
 
 interface Order {
   id: string;
@@ -73,6 +74,7 @@ const OrdersPage = () => {
   const [orderToFail, setOrderToFail] = useState<Order | null>(null);
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'pending' | 'paid' | 'failed' | 'refunded'>('all');
   const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month' | 'recent'>('all');
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -385,6 +387,32 @@ const OrdersPage = () => {
 
   const filteredOrders = getFilteredOrders();
 
+  const handleDownloadOrdersPdf = () => {
+    setPdfLoading(true);
+    try {
+      downloadOrdersPdf(
+        filteredOrders.map((order) => ({
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone,
+          itemsCount: order.items.length,
+          totalAmount: order.totalAmount,
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          orderDate: order.orderDate,
+        })),
+        {
+          dateRange,
+          orderStatus: filterStatus,
+          paymentStatus: filterPaymentStatus,
+          search: searchTerm,
+        }
+      );
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   /** Cancelled orders cannot change fulfillment status (includes cancel + mark as failed). */
   const isOrderWorkflowLocked = (order: Order) => order.status === 'cancelled';
 
@@ -568,6 +596,23 @@ const OrdersPage = () => {
                 <option value="month">This Month</option>
               </select>
             </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-gray-500">
+              PDF export uses the current search, status, payment, and date range filters.
+            </p>
+            <button
+              type="button"
+              onClick={handleDownloadOrdersPdf}
+              disabled={pdfLoading}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#0F4C69]/30 bg-[#0F4C69]/5 px-4 py-2 text-sm font-medium text-[#0F4C69] transition-colors hover:bg-[#0F4C69]/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfLoading ? 'Generating PDF…' : 'Download Orders PDF'}
+            </button>
           </div>
         </div>
 
