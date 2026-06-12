@@ -188,10 +188,7 @@ export default function ImageSlider() {
         ))}
       </div>
 
-      {/* ── Slide counter ── */}
-      <div className="absolute bottom-6 right-6 z-30 text-xs font-semibold text-white/60 tabular-nums">
-        {String(current + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
-      </div>
+     
     </section>
   );
 }

@@ -8,6 +8,7 @@ import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
 import CartPopup from '@/components/products/CartPopup';
 import WishlistButton from '@/components/products/WishlistButton';
 import { useCart } from '@/contexts/CartContext';
+import AccountPageLoader from '@/components/account/AccountPageLoader';
 
 interface ApiCategoryRef {
   _id?: string;
@@ -183,6 +184,9 @@ const ProductsPage = () => {
       return [...set].join(',');
     })();
 
+    if (loading) return;
+    setLoading(true);
+    setLoadError(null);
     if (q.trim()) {
       p.set('search', q.trim());
     } else if (cat && cat !== ALL) {
@@ -372,19 +376,66 @@ const ProductsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#E3E6E6] py-8">
-      <div className="container mx-auto bg-[#E3E6E6] px-4">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">
-            <span className="text-[#E36630]">Premium</span> 
-            <span className="text-[#0F4C69]"> Products</span>
-          </h1>
-          <p className="text-lg text-gray-600">Browse our extensive collection of kitchen equipment</p>
+    <div className="min-h-screen bg-[#E3E6E6]">
+      <div className="sticky top-28 z-20 border-b border-gray-200 bg-white shadow-sm">
+        <div className="container mx-auto max-w-[1600px] px-4">
+          <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-h-[1.25rem] text-sm text-gray-600">
+              {!loading && (
+                <>
+                  {searchTerm.trim() ? (
+                    <>
+                      <span className="font-semibold">
+                        {total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)}
+                      </span>{' '}
+                      of <span className="font-semibold">{total}</span> results for{' '}
+                      <span className="font-semibold text-gray-800">&quot;{searchTerm.trim()}&quot;</span>
+                    </>
+                  ) : selectedCategory !== ALL ? (
+                    <>
+                      <span className="font-semibold">
+                        {total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)}
+                      </span>{' '}
+                      of <span className="font-semibold">{total}</span> results in{' '}
+                      <span className="font-semibold text-gray-800">{selectedCategory}</span>
+                    </>
+                  ) : (
+                    <>
+                      Showing{' '}
+                      <span className="font-semibold">
+                        {total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)}
+                      </span>{' '}
+                      of <span className="font-semibold">{total}</span> products
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="products-sort" className="text-sm text-gray-700 whitespace-nowrap">
+                Sort by:
+              </label>
+              <select
+                id="products-sort"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="min-w-[10rem] rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 outline-none focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
+              >
+                <option value="random">Featured Mix</option>
+                <option value="newest">Newest First</option>
+                <option value="name">Name</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+              </select>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="container mx-auto max-w-[1600px] px-4 py-8">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+          <aside className="w-full shrink-0 lg:w-64">
+            <div className="rounded-lg bg-white p-6 shadow-md">
               <h2 className="text-lg font-semibold text-gray-800 mb-6">Filters</h2>
 
               <div className="mb-6">
@@ -513,49 +564,28 @@ const ProductsPage = () => {
                 Clear All Filters
               </button>
             </div>
-          </div>
+          </aside>
 
-          <div className="flex-1">
-            <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="text-gray-600">
-                  {loading ? (
-                    <span>Loading products…</span>
-                  ) : (
-                    <>
-                      Showing{' '}
-                      <span className="font-semibold">
-                        {total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)}
-                      </span>{' '}
-                      of <span className="font-semibold">{total}</span> products
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-700">Sort by:</label>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 outline-none focus:border-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
-                  >
-                    <option value="random">Featured Mix</option>
-                    <option value="newest">Newest First</option>
-                    <option value="name">Name</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                  </select>
-                </div>
-              </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-gray-800 mb-4">
+                <span className="text-[#E36630]">Premium</span> 
+                <span className="text-[#0F4C69]"> Products</span>
+              </h1>
+              <p className="text-lg text-gray-600">Browse our extensive collection of kitchen equipment</p>
             </div>
 
+            <div>
             {loading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
+              <div className="flex min-h-[28rem] items-center justify-center rounded-lg bg-white shadow-md">
+                <div className="flex flex-col items-center gap-4">
                   <div
-                    key={i}
-                    className="min-h-[20rem] animate-pulse rounded-lg bg-gray-200 sm:h-64 sm:min-h-0"
+                    className="h-12 w-12 animate-spin rounded-full border-4 border-[#E36630] border-t-transparent"
+                    role="status"
+                    aria-label="Loading products"
                   />
-                ))}
+                  <p className="text-sm text-gray-500">Loading products…</p>
+                </div>
               </div>
             ) : filteredProducts.length > 0 ? (
               <div className="space-y-4">
@@ -743,6 +773,7 @@ const ProductsPage = () => {
                 </div>
               );
             })()}
+            </div>
           </div>
         </div>
       </div>
