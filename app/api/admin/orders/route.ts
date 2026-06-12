@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import Order from '@/backend/models/Order.model';
 import { requireAdmin } from '@/backend/lib/adminAuth';
+import { getDateRangeBounds, type OrderDateRange } from '@/utils/orderDateRange.util';
+import { isValidWorkflowTransition } from '@/utils/orderWorkflow.util';
 
 /** GET /api/admin/orders — list all orders with optional filters */
 export async function GET(req: NextRequest) {
@@ -26,6 +28,7 @@ export async function GET(req: NextRequest) {
         { customerEmail: { $regex: search, $options: 'i' } },
         { paymentId: { $regex: search, $options: 'i' } },
         { transactionId: { $regex: search, $options: 'i' } },
+        { 'items.productName': { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -33,21 +36,10 @@ export async function GET(req: NextRequest) {
     if (paymentStatus !== 'all') filter.paymentStatus = paymentStatus;
 
     if (dateRange !== 'all') {
-      const now = new Date();
-      let from: Date | null = null;
-      if (dateRange === 'today') {
-        from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      } else if (dateRange === 'week') {
-        from = new Date(now);
-        from.setDate(from.getDate() - 7);
-      } else if (dateRange === 'month') {
-        from = new Date(now);
-        from.setMonth(from.getMonth() - 1);
-      } else if (dateRange === 'recent') {
-        from = new Date(now);
-        from.setDate(from.getDate() - 3);
+      const { from, to } = getDateRangeBounds(dateRange as OrderDateRange);
+      if (from && to) {
+        filter.createdAt = { $gte: from, $lte: to };
       }
-      if (from) filter.createdAt = { $gte: from };
     }
 
     const orders = await Order.find(filter).sort({ createdAt: -1 }).lean();
@@ -74,6 +66,21 @@ export async function PATCH(req: NextRequest) {
 
     if (!id) {
       return NextResponse.json({ success: false, message: 'Order id is required.' }, { status: 400 });
+    }
+
+    const existing = await Order.findById(id).lean();
+    if (!existing) {
+      return NextResponse.json({ success: false, message: 'Order not found.' }, { status: 404 });
+    }
+
+    if (status !== undefined && !isValidWorkflowTransition(existing.status, status)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Invalid status change. Orders must advance one step at a time.',
+        },
+        { status: 400 }
+      );
     }
 
     const update: Record<string, unknown> = {};

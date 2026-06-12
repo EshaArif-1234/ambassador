@@ -1,12 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Image from 'next/image';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn } from '@/admin/lib/adminTableActionStyles';
 import { downloadOrdersPdf } from '@/utils/generateOrdersPdf';
+import { isOrderInDateRange, type OrderDateRange } from '@/utils/orderDateRange.util';
+import {
+  displayText,
+  formatFullShippingAddress,
+  formatOrderDateTime,
+  formatPaymentMethodLabel,
+  normalizeLineItemTotal,
+  quantityLabel,
+} from '@/utils/orderDisplay.util';
+import {
+  getNextWorkflowStatus,
+  getOrderStatusLabel,
+  getUpcomingWorkflowSteps,
+  isOrderWorkflowLocked,
+} from '@/utils/orderWorkflow.util';
 
 interface Order {
   id: string;
@@ -15,13 +31,17 @@ interface Order {
   customerEmail: string;
   customerPhone: string;
   items: OrderItem[];
+  subtotal: number;
+  deliveryCharges: number;
   totalAmount: number;
   currency: string;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  paymentMethod: string;
   orderDate: string;
+  updatedAt?: string;
   deliveryDate?: string;
-  shippingMethod: string;
+  deliveryNotes?: string;
   shippingAddress: {
     street: string;
     city: string;
@@ -40,6 +60,7 @@ interface Order {
 
 interface OrderItem {
   id: string;
+  productId?: string;
   productName: string;
   productImage: string;
   quantity: number;
@@ -55,6 +76,10 @@ function formatOrderMoney(amount: number): string {
   return `${ORDER_CURRENCY_LABEL} ${amount.toLocaleString('en-PK')}`;
 }
 
+function hasText(value?: string | null): value is string {
+  return Boolean(value?.trim());
+}
+
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,14 +91,18 @@ const OrdersPage = () => {
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('all');
+  const [filterStatus, setFilterStatus] = useState<
+    'all' | 'processing' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
+  >('all');
   const [showActionsDropdown, setShowActionsDropdown] = useState<string | null>(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
-  const [showFailedModal, setShowFailedModal] = useState(false);
-  const [failedReason, setFailedReason] = useState('');
-  const [orderToFail, setOrderToFail] = useState<Order | null>(null);
+  const [actionsMenuPos, setActionsMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  const ACTIONS_MENU_WIDTH = 208;
+  const ACTIONS_MENU_BASE_HEIGHT = 120;
+  const ACTIONS_MENU_STEP_HEIGHT = 40;
+
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'pending' | 'paid' | 'failed' | 'refunded'>('all');
-  const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month' | 'recent'>('all');
+  const [dateRange, setDateRange] = useState<OrderDateRange>('all');
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const fetchOrders = async () => {
@@ -83,28 +112,48 @@ const OrdersPage = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to load orders.');
       // Map MongoDB _id to id and normalise fields
-      const mapped: Order[] = (data.data as any[]).map((o: any) => ({
+      const mapped: Order[] = (data.data as any[]).map((o: any) => {
+        const items = (o.items ?? []).map((item: any, idx: number) => ({
+          id: item._id ?? String(idx),
+          productId: item.productId,
+          productName: item.productName ?? 'Unknown product',
+          productImage: item.productImage ?? '',
+          quantity: Number(item.quantity) || 0,
+          price: Number(item.price) || 0,
+          total: Number(item.total) || (Number(item.price) || 0) * (Number(item.quantity) || 0),
+          sku: item.sku,
+        }));
+        const subtotal =
+          typeof o.subtotal === 'number' && !Number.isNaN(o.subtotal)
+            ? o.subtotal
+            : items.reduce((sum: number, item: OrderItem) => sum + item.total, 0);
+        const deliveryCharges =
+          typeof o.deliveryCharges === 'number' && !Number.isNaN(o.deliveryCharges)
+            ? o.deliveryCharges
+            : 0;
+        const totalAmount =
+          typeof o.totalAmount === 'number' && !Number.isNaN(o.totalAmount)
+            ? o.totalAmount
+            : subtotal + deliveryCharges;
+
+        return {
         id: o._id,
         orderNumber: o.orderNumber,
         customerName: o.customerName,
         customerEmail: o.customerEmail,
         customerPhone: o.customerPhone,
-        items: (o.items ?? []).map((item: any, idx: number) => ({
-          id: item._id ?? String(idx),
-          productName: item.productName,
-          productImage: item.productImage ?? '',
-          quantity: item.quantity,
-          price: item.price,
-          total: item.total,
-          sku: item.sku,
-        })),
-        totalAmount: o.totalAmount,
+        items,
+        subtotal,
+        deliveryCharges,
+        totalAmount,
         currency: o.currency ?? 'PKR',
         status: o.status,
         paymentStatus: o.paymentStatus,
-        orderDate: o.createdAt ?? o.orderDate,
+        paymentMethod: o.paymentMethod ?? o.gatewayMethod ?? '',
+        orderDate: o.createdAt ?? o.orderDate ?? '',
+        updatedAt: o.updatedAt,
         deliveryDate: o.deliveryDate,
-        shippingMethod: o.paymentMethod ?? 'Standard',
+        deliveryNotes: o.deliveryNotes ?? '',
         shippingAddress: {
           street: o.shippingAddress?.street ?? '',
           city: o.shippingAddress?.city ?? '',
@@ -118,7 +167,8 @@ const OrdersPage = () => {
         transactionId: o.transactionId ?? '',
         gatewayMethod: o.gatewayMethod ?? '',
         paidAt: o.paidAt,
-      }));
+      };
+      });
       setOrders(mapped);
     } catch (err: any) {
       console.error(err);
@@ -132,19 +182,54 @@ const OrdersPage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close dropdown when clicking outside (table trigger uses .relative; menu is portaled fixed — exclude it)
+  // Close dropdown when clicking outside or scrolling
   useEffect(() => {
+    if (!showActionsDropdown) return;
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (!showActionsDropdown) return;
       const el = event.target as Element;
       if (el.closest('[data-order-actions-menu]')) return;
       if (el.closest('.order-actions-trigger')) return;
-      setShowActionsDropdown(null);
+      closeActionsMenu();
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showActionsDropdown]);
+
+  useEffect(() => {
+    if (!showActionsDropdown) return;
+
+    const updateMenuPosition = () => {
+      const button = document.querySelector(
+        `[data-order-trigger="${showActionsDropdown}"]`
+      ) as HTMLElement | null;
+      if (!button) return;
+
+      const activeOrder = orders.find((o) => o.orderNumber === showActionsDropdown);
+      const stepCount = activeOrder ? getUpcomingWorkflowSteps(activeOrder.status).length : 1;
+      const menuHeight = ACTIONS_MENU_BASE_HEIGHT + stepCount * ACTIONS_MENU_STEP_HEIGHT;
+
+      const rect = button.getBoundingClientRect();
+      const fitsBelow = rect.bottom + menuHeight + 8 <= window.innerHeight;
+      const top = fitsBelow
+        ? rect.bottom + 4
+        : Math.max(8, rect.top - menuHeight - 4);
+
+      setActionsMenuPos({
+        top,
+        left: Math.max(8, Math.min(rect.right - ACTIONS_MENU_WIDTH, window.innerWidth - ACTIONS_MENU_WIDTH - 8)),
+      });
+    };
+
+    updateMenuPosition();
+    window.addEventListener('scroll', updateMenuPosition, true);
+    window.addEventListener('resize', updateMenuPosition);
+    return () => {
+      window.removeEventListener('scroll', updateMenuPosition, true);
+      window.removeEventListener('resize', updateMenuPosition);
+    };
+  }, [showActionsDropdown, orders]);
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
@@ -175,7 +260,7 @@ const OrdersPage = () => {
   };
 
   const handleUpdateStatus = async (order: Order, newStatus: Order['status']) => {
-    if (isOrderWorkflowLocked(order)) return;
+    if (isOrderWorkflowLocked(order.status)) return;
     try {
       await fetch('/api/admin/orders', {
         method: 'PATCH',
@@ -193,7 +278,7 @@ const OrdersPage = () => {
   };
 
   const handleCancelOrder = (order: Order) => {
-    if (isOrderWorkflowLocked(order)) return;
+    if (isOrderWorkflowLocked(order.status)) return;
     setOrderToCancel(order);
     setCancelReason('');
     setShowCancelModal(true);
@@ -231,155 +316,157 @@ const OrdersPage = () => {
     setCancelReason('');
   };
 
-  const handleMarkAsProcessing = async (order: Order) => {
-    if (isOrderWorkflowLocked(order)) return;
+  const handleAdvanceOrder = async (order: Order) => {
+    if (isOrderWorkflowLocked(order.status)) return;
+
+    const nextStatus = getNextWorkflowStatus(order.status);
+    if (!nextStatus) return;
+
     const oid = order.id;
+    const deliveryDate =
+      nextStatus === 'delivered' ? new Date().toISOString().split('T')[0] : undefined;
+
     try {
-      await fetch('/api/admin/orders', {
-        method: 'PATCH', credentials: 'include',
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: oid, status: 'processing' }),
+        body: JSON.stringify({
+          id: oid,
+          status: nextStatus,
+          ...(deliveryDate ? { deliveryDate } : {}),
+        }),
       });
-    } catch { /* non-fatal */ }
-    setOrders(prev => prev.map(o => (o.id === oid ? { ...o, status: 'processing' as const } : o)));
-    setSelectedOrder(sel => sel?.id === oid ? { ...sel, status: 'processing' } : sel);
-  };
-
-  const handleMarkAsShipped = async (order: Order) => {
-    if (isOrderWorkflowLocked(order)) return;
-    const oid = order.id;
-    try {
-      await fetch('/api/admin/orders', {
-        method: 'PATCH', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: oid, status: 'shipped' }),
-      });
-    } catch { /* non-fatal */ }
-    setOrders(prev => prev.map(o => (o.id === oid ? { ...o, status: 'shipped' as const } : o)));
-    setSelectedOrder(sel => sel?.id === oid ? { ...sel, status: 'shipped' } : sel);
-  };
-
-  const handleMarkAsDispatched = async (order: Order) => {
-    if (isOrderWorkflowLocked(order)) return;
-    const oid = order.id;
-    try {
-      await fetch('/api/admin/orders', {
-        method: 'PATCH', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: oid, status: 'shipped' }),
-      });
-    } catch { /* non-fatal */ }
-    setOrders(prev => prev.map(o => (o.id === oid ? { ...o, status: 'shipped' as const } : o)));
-    setSelectedOrder(sel => sel?.id === oid ? { ...sel, status: 'shipped' } : sel);
-  };
-
-  const handleMarkAsDelivered = async (order: Order) => {
-    if (isOrderWorkflowLocked(order)) return;
-    const oid = order.id;
-    const deliveryDate = new Date().toISOString().split('T')[0];
-    try {
-      await fetch('/api/admin/orders', {
-        method: 'PATCH', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: oid, status: 'delivered', deliveryDate }),
-      });
-    } catch { /* non-fatal */ }
-    setOrders(prev =>
-      prev.map(o => o.id === oid ? { ...o, status: 'delivered' as const, deliveryDate } : o)
-    );
-    setSelectedOrder(sel => sel?.id === oid ? { ...sel, status: 'delivered', deliveryDate } : sel);
-  };
-
-  const handleMarkAsFailed = (order: Order) => {
-    if (isOrderWorkflowLocked(order)) return;
-    setOrderToFail(order);
-    setFailedReason('');
-    setShowFailedModal(true);
-    setShowActionsDropdown(null);
-  };
-
-  const confirmMarkAsFailed = async () => {
-    if (orderToFail && failedReason.trim()) {
-      const oid = orderToFail.id;
-      const reason = failedReason.trim();
-      try {
-        await fetch('/api/admin/orders', {
-          method: 'PATCH', credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: oid, status: 'cancelled', paymentStatus: 'failed', failedReason: reason }),
-        });
-      } catch { /* non-fatal */ }
-      setOrders(prev =>
-        prev.map(o =>
-          o.id === oid
-            ? { ...o, status: 'cancelled' as const, paymentStatus: 'failed' as const, failedReason: reason }
-            : o
-        )
-      );
-      setSelectedOrder(sel =>
-        sel?.id === oid
-          ? { ...sel, status: 'cancelled', paymentStatus: 'failed', failedReason: reason }
-          : sel
-      );
-      setShowFailedModal(false);
-      setOrderToFail(null);
-      setFailedReason('');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update order status.');
+    } catch {
+      return;
     }
+
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === oid
+          ? {
+              ...o,
+              status: nextStatus,
+              ...(deliveryDate ? { deliveryDate } : {}),
+            }
+          : o
+      )
+    );
+    setSelectedOrder((sel) =>
+      sel?.id === oid
+        ? { ...sel, status: nextStatus, ...(deliveryDate ? { deliveryDate } : {}) }
+        : sel
+    );
   };
 
-  // Function to handle dropdown positioning
-  const handleActionsClick = (event: React.MouseEvent, orderNumber: string) => {
-    const order = orders.find((o) => o.orderNumber === orderNumber);
-    if (order && isOrderWorkflowLocked(order)) return;
+  const closeActionsMenu = () => {
+    setShowActionsDropdown(null);
+    setActionsMenuPos(null);
+  };
 
-    const button = event.currentTarget;
-    const rect = button.getBoundingClientRect();
-    
-    // Position dropdown below and to the right of the button
-    setDropdownPosition({
-      top: rect.bottom + window.scrollY + 5,
-      left: rect.right - 200 + window.scrollX // 200px width dropdown, align right edge
+  const handleActionsClick = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    order: Order
+  ) => {
+    if (isOrderWorkflowLocked(order.status)) return;
+
+    if (showActionsDropdown === order.orderNumber) {
+      closeActionsMenu();
+      return;
+    }
+
+    const stepCount = getUpcomingWorkflowSteps(order.status).length;
+    const menuHeight = ACTIONS_MENU_BASE_HEIGHT + stepCount * ACTIONS_MENU_STEP_HEIGHT;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const fitsBelow = rect.bottom + menuHeight + 8 <= window.innerHeight;
+    const top = fitsBelow
+      ? rect.bottom + 4
+      : Math.max(8, rect.top - menuHeight - 4);
+
+    setActionsMenuPos({
+      top,
+      left: Math.max(8, Math.min(rect.right - ACTIONS_MENU_WIDTH, window.innerWidth - ACTIONS_MENU_WIDTH - 8)),
     });
-    
-    setShowActionsDropdown(showActionsDropdown === orderNumber ? null : orderNumber);
+    setShowActionsDropdown(order.orderNumber);
+  };
+
+  const renderActionsMenu = (order: Order) => {
+    const upcomingSteps = getUpcomingWorkflowSteps(order.status);
+
+    return (
+      <div
+        data-order-actions-menu
+        className="w-52 rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none"
+      >
+        <div className="border-b border-gray-100 px-4 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Current step</p>
+          <p className="text-sm font-medium capitalize text-gray-900">
+            {getOrderStatusLabel(order.status)}
+          </p>
+        </div>
+        <div className="py-1">
+          {upcomingSteps.map((step) => (
+            <button
+              key={step.status}
+              type="button"
+              disabled={!step.isAvailable}
+              onClick={() => {
+                if (!step.isAvailable) return;
+                handleAdvanceOrder(order);
+                closeActionsMenu();
+              }}
+              className={`flex w-full items-center px-4 py-2 text-left text-sm ${
+                step.isAvailable
+                  ? 'font-medium text-[#0F4C69] hover:bg-gray-100'
+                  : 'cursor-not-allowed text-gray-400'
+              }`}
+            >
+              <svg
+                className={`mr-3 h-4 w-4 ${step.isAvailable ? 'text-[#0F4C69]' : 'text-gray-300'}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              {step.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              handleCancelOrder(order);
+              closeActionsMenu();
+            }}
+            className="flex w-full items-center px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100"
+          >
+            <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Cancel Order
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const getFilteredOrders = () => {
     return orders.filter(order => {
-      const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.paymentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.transactionId.toLowerCase().includes(searchTerm.toLowerCase());
+      const term = searchTerm.toLowerCase();
+      const matchesSearch =
+        order.orderNumber.toLowerCase().includes(term) ||
+        order.customerName.toLowerCase().includes(term) ||
+        order.customerEmail.toLowerCase().includes(term) ||
+        order.paymentId.toLowerCase().includes(term) ||
+        order.transactionId.toLowerCase().includes(term) ||
+        order.items.some((item) => item.productName.toLowerCase().includes(term));
       const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
       const matchesPaymentStatus = filterPaymentStatus === 'all' || order.paymentStatus === filterPaymentStatus;
       
-      let matchesDate = true;
-      if (dateRange !== 'all') {
-        const orderDate = new Date(order.orderDate);
-        const today = new Date();
-        
-        switch (dateRange) {
-          case 'today':
-            matchesDate = orderDate.toDateString() === today.toDateString();
-            break;
-          case 'week':
-            const weekAgo = new Date(today);
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            matchesDate = orderDate >= weekAgo;
-            break;
-          case 'month':
-            const monthAgo = new Date(today);
-            monthAgo.setMonth(monthAgo.getMonth() - 1);
-            matchesDate = orderDate >= monthAgo;
-            break;
-          case 'recent':
-            const recentAgo = new Date(today);
-            recentAgo.setDate(recentAgo.getDate() - 3);
-            matchesDate = orderDate >= recentAgo;
-            break;
-        }
-      }
+      const matchesDate = isOrderInDateRange(order.orderDate, dateRange);
       
       return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
     });
@@ -413,13 +500,10 @@ const OrdersPage = () => {
     }
   };
 
-  /** Cancelled orders cannot change fulfillment status (includes cancel + mark as failed). */
-  const isOrderWorkflowLocked = (order: Order) => order.status === 'cancelled';
-
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed': return 'bg-blue-100 text-blue-800';
+      case 'confirmed': return 'bg-indigo-100 text-indigo-800';
       case 'processing': return 'bg-purple-100 text-purple-800';
       case 'shipped': return 'bg-indigo-100 text-indigo-800';
       case 'delivered': return 'bg-green-100 text-green-800';
@@ -479,7 +563,7 @@ const OrdersPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Orders</p>
-                <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{filteredOrders.length}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -493,7 +577,7 @@ const OrdersPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Delivered</p>
-                <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'delivered').length}</p>
+                <p className="text-2xl font-bold text-gray-900">{filteredOrders.filter(o => o.status === 'delivered').length}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -506,8 +590,8 @@ const OrdersPage = () => {
           <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'pending').length}</p>
+                <p className="text-sm text-gray-600 mb-1">Processing</p>
+                <p className="text-2xl font-bold text-gray-900">{filteredOrders.filter(o => o.status === 'processing').length}</p>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -523,7 +607,7 @@ const OrdersPage = () => {
                 <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {(() => {
-                    const paidOrders = orders.filter(o => o.paymentStatus === 'paid');
+                    const paidOrders = filteredOrders.filter(o => o.paymentStatus === 'paid');
                     if (paidOrders.length === 0) return '—';
                     const sum = paidOrders.reduce((s, o) => s + o.totalAmount, 0);
                     return formatOrderMoney(sum);
@@ -548,7 +632,7 @@ const OrdersPage = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search orders..."
+                placeholder="Search by order, customer, payment, or product..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none text-gray-900 focus:ring-orange-500 focus:border-transparent placeholder:text-gray-400"
               />
             </div>
@@ -560,9 +644,8 @@ const OrdersPage = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none text-gray-900 focus:ring-orange-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
                 <option value="processing">Processing</option>
+                <option value="confirmed">Dispatched</option>
                 <option value="shipped">Shipped</option>
                 <option value="delivered">Delivered</option>
                 <option value="cancelled">Cancelled</option>
@@ -655,8 +738,8 @@ const OrdersPage = () => {
                       {formatOrderMoney(order.totalAmount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(order.status)}`}>
-                        {order.status}
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(order.status)}`}>
+                        {getOrderStatusLabel(order.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -669,17 +752,18 @@ const OrdersPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="relative">
-                        {isOrderWorkflowLocked(order) ? (
+                        {isOrderWorkflowLocked(order.status) ? (
                           <span
-                            className="inline-flex cursor-not-allowed items-center px-3 py-2 text-xs font-medium text-gray-400 bg-gray-50 border border-gray-200 rounded-md"
-                            title="This order is closed — status cannot be changed."
+                            className="inline-flex cursor-not-allowed items-center px-3 py-2 text-xs font-medium text-gray-400 bg-gray-50 border border-gray-200 rounded-md capitalize"
+                            title="This order is complete — status cannot be changed."
                           >
-                            Closed
+                            {getOrderStatusLabel(order.status)}
                           </span>
                         ) : (
                         <button
                           type="button"
-                          onClick={(e) => handleActionsClick(e, order.orderNumber)}
+                          data-order-trigger={order.orderNumber}
+                          onClick={(e) => handleActionsClick(e, order)}
                           className="order-actions-trigger inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                         >
                           <span>Actions</span>
@@ -726,105 +810,22 @@ const OrdersPage = () => {
           </div>
         )}
 
-        {/* Actions Dropdown - Positioned outside table */}
-        {showActionsDropdown && (
-          <div 
-            data-order-actions-menu
-            className="fixed z-[9999] w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
-            style={{ 
-              top: `${dropdownPosition.top}px`, 
-              left: `${dropdownPosition.left}px` 
-            }}
-          >
-            <div className="py-1">
-              <button
-                type="button"
-                onClick={() => {
-                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsProcessing(order);
-                  setShowActionsDropdown(null);
-                }}
-                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-              >
-                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Mark as Processing
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsDispatched(order);
-                  setShowActionsDropdown(null);
-                }}
-                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-              >
-                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                Mark as Dispatched
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsShipped(order);
-                  setShowActionsDropdown(null);
-                }}
-                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-              >
-                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h4.586a1 1 0 01.707.293l3.414 3.414a1 1 0 010 1.414l-3.414 3.414A1 1 0 0118.586 16H16" />
-                </svg>
-                Mark as Shipped
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsDelivered(order);
-                  setShowActionsDropdown(null);
-                }}
-                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-              >
-                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Mark as Delivered
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order && !isOrderWorkflowLocked(order)) handleCancelOrder(order);
-                  setShowActionsDropdown(null);
-                }}
-                className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
-              >
-                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Cancel Order
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const order = orders.find(o => o.orderNumber === showActionsDropdown);
-                  if (order && !isOrderWorkflowLocked(order)) handleMarkAsFailed(order);
-                  setShowActionsDropdown(null);
-                }}
-                className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
-              >
-                <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Mark as Failed
-              </button>
-            </div>
-          </div>
-        )}
+        {showActionsDropdown &&
+          actionsMenuPos &&
+          typeof document !== 'undefined' &&
+          createPortal(
+            <div
+              data-order-actions-menu
+              className="fixed z-[9999]"
+              style={{ top: actionsMenuPos.top, left: actionsMenuPos.left }}
+            >
+              {(() => {
+                const activeOrder = orders.find((o) => o.orderNumber === showActionsDropdown);
+                return activeOrder ? renderActionsMenu(activeOrder) : null;
+              })()}
+            </div>,
+            document.body
+          )}
 
         {/* Delete Confirmation Modal */}
         <ConfirmModal
@@ -897,23 +898,32 @@ const OrdersPage = () => {
         )}
 
         {/* View Order Modal */}
-        {showViewModal && selectedOrder && (
+        {showViewModal && selectedOrder && (() => {
+          const hasPaymentRecord = hasText(selectedOrder.paymentId);
+          const hasSku = selectedOrder.items.some((item) => hasText(item.sku));
+          const paymentMethodLabel = formatPaymentMethodLabel(
+            selectedOrder.gatewayMethod || selectedOrder.paymentMethod
+          );
+
+          return (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Order {selectedOrder.orderNumber}</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Order {displayText(selectedOrder.orderNumber)}</h2>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    Placed {new Date(selectedOrder.orderDate).toLocaleDateString()}
+                    Placed {formatOrderDateTime(selectedOrder.orderDate)} · {quantityLabel(selectedOrder.items)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  {hasPaymentRecord && (
                   <Link
                     href={`/payments?paymentId=${encodeURIComponent(selectedOrder.paymentId)}`}
                     className="inline-flex items-center px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600"
                   >
                     View payment
                   </Link>
+                  )}
                   <button
                     type="button"
                     onClick={() => setShowViewModal(false)}
@@ -928,8 +938,8 @@ const OrdersPage = () => {
               <div className="p-6 space-y-6">
                 {/* Summary row */}
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(selectedOrder.status)}`}>
-                    {selectedOrder.status}
+                  <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(selectedOrder.status)}`}>
+                    {getOrderStatusLabel(selectedOrder.status)}
                   </span>
                   <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${getPaymentStatusBadgeColor(selectedOrder.paymentStatus)}`}>
                     Payment: {selectedOrder.paymentStatus}
@@ -945,14 +955,30 @@ const OrdersPage = () => {
                     <dl className="space-y-2 text-sm">
                       <div className="flex justify-between gap-4">
                         <dt className="text-gray-500">Order number</dt>
-                        <dd className="font-medium text-gray-900 text-right">{selectedOrder.orderNumber}</dd>
+                        <dd className="font-medium text-gray-900 text-right">{displayText(selectedOrder.orderNumber)}</dd>
                       </div>
                       <div className="flex justify-between gap-4">
-                        <dt className="text-gray-500">Delivery target</dt>
+                        <dt className="text-gray-500">Ordered on</dt>
                         <dd className="font-medium text-gray-900 text-right">
-                          {selectedOrder.deliveryDate ? new Date(selectedOrder.deliveryDate).toLocaleDateString() : '—'}
+                          {formatOrderDateTime(selectedOrder.orderDate)}
                         </dd>
                       </div>
+                      {selectedOrder.updatedAt && (
+                        <div className="flex justify-between gap-4">
+                          <dt className="text-gray-500">Last updated</dt>
+                          <dd className="font-medium text-gray-900 text-right">
+                            {formatOrderDateTime(selectedOrder.updatedAt)}
+                          </dd>
+                        </div>
+                      )}
+                      {selectedOrder.deliveryDate && (
+                        <div className="flex justify-between gap-4">
+                          <dt className="text-gray-500">Delivered on</dt>
+                          <dd className="font-medium text-gray-900 text-right">
+                            {formatOrderDateTime(selectedOrder.deliveryDate)}
+                          </dd>
+                        </div>
+                      )}
                     </dl>
                   </div>
 
@@ -961,15 +987,15 @@ const OrdersPage = () => {
                     <dl className="space-y-2 text-sm">
                       <div className="flex justify-between gap-4">
                         <dt className="text-gray-500">Name</dt>
-                        <dd className="font-medium text-gray-900 text-right">{selectedOrder.customerName}</dd>
+                        <dd className="font-medium text-gray-900 text-right">{displayText(selectedOrder.customerName)}</dd>
                       </div>
                       <div className="flex justify-between gap-4">
                         <dt className="text-gray-500">Email</dt>
-                        <dd className="font-medium text-gray-900 text-right break-all">{selectedOrder.customerEmail}</dd>
+                        <dd className="font-medium text-gray-900 text-right break-all">{displayText(selectedOrder.customerEmail)}</dd>
                       </div>
                       <div className="flex justify-between gap-4">
                         <dt className="text-gray-500">Phone</dt>
-                        <dd className="font-medium text-gray-900 text-right">{selectedOrder.customerPhone}</dd>
+                        <dd className="font-medium text-gray-900 text-right">{displayText(selectedOrder.customerPhone)}</dd>
                       </div>
                     </dl>
                   </div>
@@ -978,46 +1004,58 @@ const OrdersPage = () => {
                 <div className="rounded-xl border border-gray-200 p-4 bg-gray-50/50">
                   <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Payment</h3>
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    <div className="flex justify-between gap-4 sm:col-span-2">
-                      <dt className="text-gray-500">Payment record</dt>
-                      <dd className="font-mono text-xs text-gray-900">{selectedOrder.paymentId}</dd>
+                    {hasPaymentRecord && (
+                      <div className="flex justify-between gap-4 sm:col-span-2">
+                        <dt className="text-gray-500">Payment ID</dt>
+                        <dd className="font-mono text-xs text-gray-900">{selectedOrder.paymentId}</dd>
+                      </div>
+                    )}
+                    {hasText(selectedOrder.transactionId) && (
+                      <div className="flex justify-between gap-4 sm:col-span-2">
+                        <dt className="text-gray-500">Transaction ID</dt>
+                        <dd className="font-mono text-xs text-gray-900 truncate max-w-[12rem] sm:max-w-none" title={selectedOrder.transactionId}>
+                          {selectedOrder.transactionId}
+                        </dd>
+                      </div>
+                    )}
+                    {paymentMethodLabel !== '—' && (
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-gray-500">Payment method</dt>
+                        <dd className="font-medium text-gray-900 text-right">{paymentMethodLabel}</dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-500">Payment status</dt>
+                      <dd className="font-medium text-gray-900 text-right capitalize">{selectedOrder.paymentStatus}</dd>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <dt className="text-gray-500">Transaction</dt>
-                      <dd className="font-mono text-xs text-gray-900 truncate max-w-[12rem] sm:max-w-none" title={selectedOrder.transactionId}>
-                        {selectedOrder.transactionId}
-                      </dd>
+                      <dt className="text-gray-500">Currency</dt>
+                      <dd className="font-medium text-gray-900 text-right">{selectedOrder.currency}</dd>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <dt className="text-gray-500">Method</dt>
-                      <dd className="font-medium text-gray-900 text-right">{selectedOrder.gatewayMethod}</dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-gray-500">Amount</dt>
+                      <dt className="text-gray-500">Total amount</dt>
                       <dd className="font-semibold text-gray-900">{formatOrderMoney(selectedOrder.totalAmount)}</dd>
                     </div>
                     {selectedOrder.paidAt && (
                       <div className="flex justify-between gap-4 sm:col-span-2">
                         <dt className="text-gray-500">Paid at</dt>
-                        <dd className="text-gray-900 text-right">{new Date(selectedOrder.paidAt).toLocaleString()}</dd>
+                        <dd className="text-gray-900 text-right">{formatOrderDateTime(selectedOrder.paidAt)}</dd>
                       </div>
                     )}
                   </dl>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="rounded-xl border border-gray-200 p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Shipping method</h3>
-                    <p className="text-sm text-gray-900">{selectedOrder.shippingMethod}</p>
-                  </div>
-                  <div className="rounded-xl border border-gray-200 p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Shipping address</h3>
-                    <p className="text-sm text-gray-900 leading-relaxed">
-                      {selectedOrder.shippingAddress.street}<br />
-                      {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}<br />
-                      {selectedOrder.shippingAddress.country}
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-gray-200 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Shipping address</h3>
+                  <p className="text-sm text-gray-900 leading-relaxed">
+                    {formatFullShippingAddress(selectedOrder.shippingAddress)}
+                  </p>
+                  {hasText(selectedOrder.deliveryNotes) && (
+                    <div className="mt-3 border-t border-gray-100 pt-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 mb-1">Delivery notes</p>
+                      <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedOrder.deliveryNotes}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1027,14 +1065,18 @@ const OrdersPage = () => {
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                          {hasSku && (
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                          )}
                           <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unit</th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Line total</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {selectedOrder.items.map((item) => (
+                        {selectedOrder.items.map((item) => {
+                          const lineTotal = normalizeLineItemTotal(item);
+                          return (
                           <tr key={item.id}>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3 min-w-0">
@@ -1053,23 +1095,40 @@ const OrdersPage = () => {
                                     </div>
                                   )}
                                 </div>
-                                <span className="text-sm font-medium text-gray-900 truncate">{item.productName}</span>
+                                <span className="text-sm font-medium text-gray-900 truncate block">{displayText(item.productName)}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-xs font-mono text-gray-600">{item.sku ?? '—'}</td>
-                            <td className="px-4 py-3 text-sm text-gray-900 text-right">{item.quantity}</td>
+                            {hasSku && (
+                              <td className="px-4 py-3 text-xs font-mono text-gray-600">
+                                {hasText(item.sku) ? item.sku : '—'}
+                              </td>
+                            )}
+                            <td className="px-4 py-3 text-sm text-gray-900 text-right">{item.quantity || '—'}</td>
                             <td className="px-4 py-3 text-sm text-gray-900 text-right">
                               {formatOrderMoney(item.price)}
                             </td>
                             <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
-                              {formatOrderMoney(item.total)}
+                              {formatOrderMoney(lineTotal)}
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                       <tfoot className="bg-gray-50">
                         <tr>
-                          <td colSpan={4} className="px-4 py-3 text-sm font-medium text-gray-900 text-right">Order total</td>
+                          <td colSpan={hasSku ? 4 : 3} className="px-4 py-3 text-sm text-gray-600 text-right">Subtotal</td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                            {formatOrderMoney(selectedOrder.subtotal)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td colSpan={hasSku ? 4 : 3} className="px-4 py-3 text-sm text-gray-600 text-right">Delivery charges</td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                            {formatOrderMoney(selectedOrder.deliveryCharges)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td colSpan={hasSku ? 4 : 3} className="px-4 py-3 text-sm font-medium text-gray-900 text-right">Total amount</td>
                           <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">
                             {formatOrderMoney(selectedOrder.totalAmount)}
                           </td>
@@ -1107,53 +1166,9 @@ const OrdersPage = () => {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
-        {/* Failed Reason Modal */}
-        {showFailedModal && orderToFail && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Mark as Failed - Reason</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Please provide a reason for marking this order as failed:
-                    </label>
-                    <textarea
-                      value={failedReason}
-                      onChange={(e) => setFailedReason(e.target.value)}
-                      rows={4}
-                      className="w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="Enter reason for failure..."
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 mt-6">
-                  <button
-                    onClick={() => {
-                      setShowFailedModal(false);
-                      setOrderToFail(null);
-                      setFailedReason('');
-                    }}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmMarkAsFailed}
-                    disabled={!failedReason.trim()}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    Mark as Failed
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );

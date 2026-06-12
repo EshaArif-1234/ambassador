@@ -1,4 +1,4 @@
-import { after, NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 import connectDB from '@/backend/config/db';
 
@@ -342,7 +342,7 @@ export async function POST(req: NextRequest) {
 
       currency: 'PKR',
 
-      status: 'pending',
+      status: 'processing',
 
       paymentStatus: paymentStatus === 'paid' ? 'paid' : 'pending',
 
@@ -378,63 +378,69 @@ export async function POST(req: NextRequest) {
 
     if (paymentStatus === 'paid' && normalizedEmail) {
 
-      after(async () => {
+      try {
 
-        try {
+        const emailResult = await sendOrderConfirmationEmail({
 
-          await sendOrderConfirmationEmail({
+          customerName: customerInfo.name,
 
-            customerName: customerInfo.name,
+          customerEmail: normalizedEmail,
 
-            customerEmail: normalizedEmail,
+          orderNumber: orderId,
 
-            orderNumber: orderId,
+          paymentId: paymentId ?? transactionId,
 
-            paymentId: paymentId ?? transactionId,
+          paidAt: paidAt ?? new Date().toISOString(),
 
-            paidAt: paidAt ?? new Date().toISOString(),
+          items: items.map((item) => ({
 
-            items: items.map((item) => ({
+            productName: item.productName,
 
-              productName: item.productName,
+            quantity: item.quantity,
 
-              quantity: item.quantity,
+            price: item.price,
 
-              price: item.price,
+            total: item.total,
 
-              total: item.total,
+          })),
 
-            })),
+          subtotal,
 
-            subtotal,
+          deliveryCharges,
 
-            deliveryCharges,
+          totalAmount,
 
-            totalAmount,
+          shippingAddress: {
 
-            shippingAddress: {
+            street: street || customerInfo.address || 'N/A',
 
-              street: street || customerInfo.address || 'N/A',
+            city: city || 'N/A',
 
-              city: city || 'N/A',
+            country: 'Pakistan',
 
-              country: 'Pakistan',
+          },
 
-            },
+          deliveryNotes: orderData?.deliveryNotes ?? '',
 
-            deliveryNotes: orderData?.deliveryNotes ?? '',
+          paymentMethod: methodLabel,
 
-            paymentMethod: methodLabel,
+        });
 
-          });
+        if (!emailResult.ok) {
 
-        } catch (emailErr) {
+          console.error(
 
-          console.warn('[POST /api/orders] confirmation email failed:', emailErr);
+            `[POST /api/orders] confirmation email failed for ${normalizedEmail}: ${emailResult.error}`
+
+          );
 
         }
 
-      });
+      } catch (emailErr) {
+
+        console.error('[POST /api/orders] confirmation email failed:', emailErr);
+
+      }
 
     }
 

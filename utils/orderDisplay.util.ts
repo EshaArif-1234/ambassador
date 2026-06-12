@@ -29,6 +29,83 @@ export function quantityLabel(items: { quantity?: number }[]): string {
   return `${qty} item${qty !== 1 ? 's' : ''}`;
 }
 
+export function displayText(value?: string | null): string {
+  const v = value?.trim();
+  return v ? v : '—';
+}
+
+export function formatOrderDateTime(value?: string | Date | null): string {
+  if (value == null || value === '') return '—';
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime())
+    ? '—'
+    : date.toLocaleString('en-PK', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+}
+
+export function formatPaymentMethodLabel(method?: string): string {
+  const raw = method?.trim();
+  if (!raw) return '—';
+  const key = raw.toLowerCase();
+  if (key === 'card' || key === 'credit/debit card') return 'Credit/Debit Card';
+  if (key === 'bank' || key === 'bank transfer') return 'Bank Transfer';
+  if (key === 'online') return 'Online';
+  return raw;
+}
+
+export function normalizeLineItemTotal(item: {
+  price?: number;
+  quantity?: number;
+  total?: number;
+}): number {
+  if (typeof item.total === 'number' && !Number.isNaN(item.total)) return item.total;
+  return (Number(item.price) || 0) * (Number(item.quantity) || 0);
+}
+
+export function resolveOrderSubtotal(order: {
+  subtotal?: number;
+  items: { price?: number; quantity?: number; total?: number }[];
+}): number {
+  if (typeof order.subtotal === 'number' && !Number.isNaN(order.subtotal)) return order.subtotal;
+  return order.items.reduce((sum, item) => sum + normalizeLineItemTotal(item), 0);
+}
+
+export function resolveOrderDeliveryCharges(order: {
+  deliveryCharges?: number;
+  subtotal?: number;
+  totalAmount?: number;
+}): number {
+  if (typeof order.deliveryCharges === 'number' && !Number.isNaN(order.deliveryCharges)) {
+    return order.deliveryCharges;
+  }
+  const subtotal = order.subtotal ?? 0;
+  const total = order.totalAmount ?? 0;
+  return Math.max(total - subtotal, 0);
+}
+
+export function formatFullShippingAddress(addr?: {
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+}): string {
+  if (!addr) return '—';
+  const parts = [
+    isValidAddressPart(addr.street) ? addr.street : null,
+    isValidAddressPart(addr.city) ? addr.city : null,
+    isValidAddressPart(addr.state) ? addr.state : null,
+    isValidAddressPart(addr.zipCode) ? addr.zipCode : null,
+    isValidAddressPart(addr.country) ? addr.country : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(', ') : '—';
+}
+
 type OrderMetaInput = {
   status: string;
   createdAt: string;

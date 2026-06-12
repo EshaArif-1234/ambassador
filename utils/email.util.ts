@@ -2,14 +2,18 @@ import nodemailer, { type Transporter } from 'nodemailer';
 
 let cachedTransporter: Transporter | null = null;
 
-/** Reuse a pooled SMTP connection across requests (faster than a new handshake each time). */
+function resetTransporter(): void {
+  cachedTransporter = null;
+}
+
+/** Gmail-compatible SMTP transport (trimmed credentials, TLS on 587). */
 function getTransporter(): Transporter {
   if (cachedTransporter) return cachedTransporter;
 
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT ?? '587', 10);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const user = process.env.SMTP_USER?.trim();
+  const pass = (process.env.SMTP_PASS ?? '').trim();
 
   if (!host || !user || !pass) {
     throw new Error('SMTP configuration is incomplete. Check SMTP_HOST, SMTP_USER, SMTP_PASS in .env.local');
@@ -20,16 +24,19 @@ function getTransporter(): Transporter {
     port,
     secure: port === 465,
     auth: { user, pass },
-    pool: true,
-    maxConnections: 2,
-    maxMessages: 50,
-    connectionTimeout: 8_000,
-    greetingTimeout: 8_000,
-    socketTimeout: 12_000,
+    requireTLS: port === 587,
+    tls: { minVersion: 'TLSv1.2' },
+    connectionTimeout: 15_000,
+    greetingTimeout: 15_000,
+    socketTimeout: 30_000,
   });
 
   return cachedTransporter;
 }
+
+export type EmailSendResult =
+  | { ok: true; messageId: string; response?: string }
+  | { ok: false; error: string };
 
 // ─── HTML Templates ────────────────────────────────────────────────────────────
 
@@ -456,14 +463,63 @@ function formatOrderEmailDate(iso?: string): string {
   });
 }
 
-/** Order confirmation email after successful checkout. Does not throw if SMTP fails. */
+function buildOrderConfirmationPlainText(payload: OrderConfirmationEmailPayload): string {
+  const shippingCharges = Number(payload.deliveryCharges ?? 0);
+  const shippingLine = shippingCharges === 0 ? 'FREE' : formatMoneyPkr(shippingCharges);
+  const addressLine = [
+    payload.shippingAddress.street,
+    payload.shippingAddress.city,
+    payload.shippingAddress.country ?? 'Pakistan',
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  const itemLines = payload.items
+    .map(
+      (item) =>
+        `- ${item.productName} x${item.quantity} — ${formatMoneyPkr(item.total)}`
+    )
+    .join('\n');
+
+  return [
+    `Hi ${payload.customerName.trim() || 'Customer'},`,
+    '',
+    'Thank you for your order with Ambassador Kitchen Equipment.',
+    '',
+    `Order Number: ${payload.orderNumber}`,
+    `Order Date: ${formatOrderEmailDate(payload.paidAt)}`,
+    `Payment Reference: ${payload.paymentId?.trim() || '—'}`,
+    `Payment Method: ${payload.paymentMethod?.trim() || 'Online'}`,
+    '',
+    'Items:',
+    itemLines || '- (none listed)',
+    '',
+    `Subtotal: ${formatMoneyPkr(payload.subtotal)}`,
+    `Shipping: ${shippingLine}`,
+    `Total Paid: ${formatMoneyPkr(payload.totalAmount)}`,
+    '',
+    `Shipping Address: ${addressLine}`,
+    payload.deliveryNotes?.trim() ? `Delivery Notes: ${payload.deliveryNotes.trim()}` : '',
+    '',
+    'Track your order in your account orders page.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/** Order confirmation email after successful checkout. */
 export async function sendOrderConfirmationEmail(
   payload: OrderConfirmationEmailPayload
-): Promise<void> {
-  try {
+): Promise<EmailSendResult> {
+  const to = payload.customerEmail.trim().toLowerCase();
+  if (!to) {
+    return { ok: false, error: 'Customer email is empty.' };
+  }
+
+  const attemptSend = async (): Promise<{ messageId: string; response?: string }> => {
     const transporter = getTransporter();
     const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
-    const fromEmail = process.env.SMTP_USER!;
+    const fromEmail = process.env.SMTP_USER!.trim();
     const siteUrl =
       process.env.NEXT_PUBLIC_APP_URL ??
       process.env.NEXT_PUBLIC_BASE_URL ??
@@ -513,7 +569,7 @@ export async function sendOrderConfirmationEmail(
       <p style="margin:0 0 4px;font-size:14px;color:#333;"><strong>Order Number:</strong> ${orderSafe}</p>
       <p style="margin:0 0 4px;font-size:14px;color:#333;"><strong>Order Date:</strong> ${formatOrderEmailDate(payload.paidAt)}</p>
       <p style="margin:0 0 4px;font-size:14px;color:#333;"><strong>Payment Reference:</strong> ${paymentRefSafe}</p>
-      <p style="margin:0;font-size:14px;color:#333;"><strong>Payment Method:</strong> Credit/Debit Card</p>
+      <p style="margin:0;font-size:14px;color:#333;"><strong>Payment Method:</strong> ${escapeHtmlForEmail(payload.paymentMethod?.trim() || 'Online')}</p>
     </div>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:0 0 16px;">
@@ -571,15 +627,43 @@ export async function sendOrderConfirmationEmail(
     </p>
   `;
 
-    await transporter.sendMail({
+    const subject = `Order Confirmation ${payload.orderNumber} — Ambassador Kitchen Equipment`;
+    const text = buildOrderConfirmationPlainText(payload);
+
+    const info = await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
-      to: payload.customerEmail,
-      subject: `Order Confirmation ${payload.orderNumber} — Ambassador Kitchen Equipment`,
+      to,
+      replyTo: fromEmail,
+      subject,
+      text,
       html: baseTemplate('Order Confirmation', body),
     });
-  } catch (err) {
-    console.warn('[sendOrderConfirmationEmail]', err);
+
+    return {
+      messageId: info.messageId,
+      response: typeof info.response === 'string' ? info.response : undefined,
+    };
+  };
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const result = await attemptSend();
+      return { ok: true, messageId: result.messageId, response: result.response };
+    } catch (err) {
+      resetTransporter();
+      const message = err instanceof Error ? err.message : String(err);
+      if (attempt === 2) {
+        console.error('[sendOrderConfirmationEmail] failed', {
+          to,
+          orderNumber: payload.orderNumber,
+          error: message,
+        });
+        return { ok: false, error: message };
+      }
+    }
   }
+
+  return { ok: false, error: 'Unknown SMTP error' };
 }
 
 /** Thank-you note after submitting a review. Does not throw if SMTP fails. */

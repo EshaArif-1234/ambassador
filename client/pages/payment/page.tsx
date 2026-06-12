@@ -25,7 +25,9 @@ interface PaymentData {
 }
 
 /** Persist the completed order to MongoDB. Returns Mongo _id when available. */
-async function saveOrderToDb(orderPayload: Record<string, unknown>): Promise<string | undefined> {
+async function saveOrderToDb(
+  orderPayload: Record<string, unknown>
+): Promise<{ ok: boolean; id?: string; message?: string }> {
   try {
     const res = await fetch('/api/orders', {
       method: 'POST',
@@ -34,10 +36,15 @@ async function saveOrderToDb(orderPayload: Record<string, unknown>): Promise<str
       body: JSON.stringify(orderPayload),
     });
     const json = await res.json();
+    if (!res.ok) {
+      console.error('[saveOrderToDb]', json?.message ?? res.statusText);
+      return { ok: false, message: json?.message ?? 'Failed to save order.' };
+    }
     const id = json?.data?._id;
-    return id != null ? String(id) : undefined;
-  } catch {
-    return undefined;
+    return { ok: true, id: id != null ? String(id) : undefined };
+  } catch (err) {
+    console.error('[saveOrderToDb]', err);
+    return { ok: false, message: 'Failed to save order.' };
   }
 }
 
@@ -160,13 +167,20 @@ const PaymentGatewayPage = () => {
           paidAt: new Date().toISOString(),
         };
 
-        const dbOrderId = await saveOrderToDb({
+        const saveResult = await saveOrderToDb({
           ...orderData,
           transactionId: payId,
           gatewayMethod: `Credit/Debit Card (•••• ${formData.cardNumber.replace(/\s/g, '').slice(-4)})`,
         });
 
-        localStorage.setItem('lastOrder', JSON.stringify({ ...orderData, dbOrderId }));
+        if (!saveResult.ok) {
+          setErrors({
+            submit: saveResult.message ?? 'Order could not be saved. Please try again or contact support.',
+          });
+          return;
+        }
+
+        localStorage.setItem('lastOrder', JSON.stringify({ ...orderData, dbOrderId: saveResult.id }));
 
         localStorage.removeItem('paymentData');
         clearCart();
