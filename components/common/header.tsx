@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -8,6 +8,25 @@ import { useUser } from '@/contexts/UserContext';
 import { useCart } from '@/contexts/CartContext';
 
 type CategoryItem = { title: string; slug?: string; image?: string };
+
+type SearchSuggestion = {
+  _id: string;
+  name: string;
+  images: string[];
+  categories?: Array<{ title?: string } | string>;
+};
+
+const SEARCH_SUGGESTION_LIMIT = 8;
+const SEARCH_MIN_CHARS = 2;
+const SEARCH_DEBOUNCE_MS = 280;
+const DEFAULT_PRODUCT_IMAGE = '/Images/home/stainless-steal.webp';
+
+function suggestionCategoryTitle(categories: SearchSuggestion['categories']): string {
+  if (!categories?.length) return '';
+  const first = categories[0];
+  return typeof first === 'string' ? first : first?.title ?? '';
+}
+
 
 const Header = () => {
   const router = useRouter();
@@ -20,9 +39,14 @@ const Header = () => {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [selectedCategoryTitle, setSelectedCategoryTitle] = useState<string | null>(null);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const cartRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const categoriesRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useUser();
   const { cartItems, removeFromCart, cartCount } = useCart();
 
@@ -60,11 +84,63 @@ const Header = () => {
       if (categoriesRef.current && !categoriesRef.current.contains(event.target as Node)) {
         setIsCategoryOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setSuggestionsOpen(false);
+        setActiveSuggestionIndex(-1);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  /** Live product suggestions while typing */
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < SEARCH_MIN_CHARS) {
+      setSearchSuggestions([]);
+      setSuggestionsLoading(false);
+      setSuggestionsOpen(false);
+      setActiveSuggestionIndex(-1);
+      return;
+    }
+
+    let cancelled = false;
+    setSuggestionsLoading(true);
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          search: q,
+          limit: String(SEARCH_SUGGESTION_LIMIT),
+          sort: 'name_asc',
+        });
+        const res = await fetch(`/api/products?${params.toString()}`, { cache: 'no-store' });
+        const json = await res.json();
+        if (cancelled) return;
+        if (json?.success && Array.isArray(json.data)) {
+          setSearchSuggestions(json.data as SearchSuggestion[]);
+          setSuggestionsOpen(true);
+          setActiveSuggestionIndex(-1);
+        } else {
+          setSearchSuggestions([]);
+          setSuggestionsOpen(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setSearchSuggestions([]);
+          setSuggestionsOpen(true);
+        }
+      } finally {
+        if (!cancelled) setSuggestionsLoading(false);
+      }
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
   /** Keep header search UI in sync when viewing /products (search OR category, not both) */
   useEffect(() => {
@@ -93,14 +169,25 @@ const Header = () => {
     router.replace(buildProductsHref(params));
   };
 
+  const closeSuggestions = useCallback(() => {
+    setSuggestionsOpen(false);
+    setActiveSuggestionIndex(-1);
+  }, []);
+
   /** Product name search — all categories, case-insensitive on the server */
   const runProductSearch = (query: string) => {
     const q = query.trim();
     setSearchQuery(q);
     setSelectedCategoryTitle(null);
+    closeSuggestions();
     const params = new URLSearchParams();
     if (q) params.set('search', q);
     router.push(buildProductsHref(params));
+  };
+
+  const openProduct = (productId: string) => {
+    closeSuggestions();
+    router.push(`/products/${productId}`);
   };
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,13 +206,46 @@ const Header = () => {
 
   const handleClearSearch = () => {
     setSearchQuery('');
+    closeSuggestions();
     if (pathname === '/products' && urlSearchParams.get('search')?.trim()) {
       clearSearchFromUrl();
     }
   };
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!suggestionsOpen || searchSuggestions.length === 0) {
+      if (e.key === 'Escape') closeSuggestions();
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIndex((i) => Math.min(i + 1, searchSuggestions.length - 1));
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIndex((i) => Math.max(i - 1, 0));
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeSuggestions();
+      return;
+    }
+    if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
+      e.preventDefault();
+      const picked = searchSuggestions[activeSuggestionIndex];
+      if (picked) openProduct(picked._id);
+    }
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeSuggestionIndex >= 0 && searchSuggestions[activeSuggestionIndex]) {
+      openProduct(searchSuggestions[activeSuggestionIndex]._id);
+      return;
+    }
     runProductSearch(searchQuery);
   };
 
@@ -134,6 +254,7 @@ const Header = () => {
     setSelectedCategoryTitle(title);
     setSearchQuery('');
     setIsCategoryOpen(false);
+    closeSuggestions();
     const params = new URLSearchParams();
     if (title) params.set('category', title);
     const qs = params.toString();
@@ -165,21 +286,111 @@ const Header = () => {
             onSubmit={handleSearch}
             className="order-3 flex w-full min-w-0 max-w-4xl flex-1 basis-full items-stretch sm:order-none sm:basis-auto sm:px-2 md:mx-2 lg:mx-4 xl:max-w-5xl xl:mx-6"
           >
-            <div className="flex min-h-[44px] min-w-0 flex-1 items-center rounded-l-full border border-r-0 border-gray-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+            <div
+              ref={searchRef}
+              className="relative flex min-h-[44px] min-w-0 flex-1 items-center rounded-l-full border border-r-0 border-gray-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
+            >
               <label htmlFor="header-search" className="sr-only">
                 Search for products
               </label>
               <input
                 id="header-search"
                 type="text"
-                role="searchbox"
+                role="combobox"
+                aria-expanded={suggestionsOpen}
+                aria-controls="header-search-suggestions"
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  activeSuggestionIndex >= 0 ? `header-search-option-${activeSuggestionIndex}` : undefined
+                }
                 enterKeyHint="search"
                 value={searchQuery}
                 onChange={handleSearchInputChange}
+                onKeyDown={handleSearchKeyDown}
+                onFocus={() => {
+                  if (searchQuery.trim().length >= SEARCH_MIN_CHARS) setSuggestionsOpen(true);
+                }}
                 placeholder="Search for products"
                 autoComplete="off"
                 className="min-w-0 flex-1 rounded-l-full border-0 bg-transparent py-2.5 pl-4 pr-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0 sm:py-3 sm:pl-5 sm:text-[15px] [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
               />
+
+              {suggestionsOpen && searchQuery.trim().length >= SEARCH_MIN_CHARS && (
+                <div
+                  id="header-search-suggestions"
+                  role="listbox"
+                  className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-[0_10px_40px_-12px_rgba(15,23,42,0.2)]"
+                >
+                  {suggestionsLoading ? (
+                    <div className="space-y-2 px-3 py-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <div className="h-11 w-11 shrink-0 animate-pulse rounded-lg bg-gray-100" />
+                          <div className="flex-1 space-y-1.5">
+                            <div className="h-3.5 w-3/4 animate-pulse rounded bg-gray-100" />
+                            <div className="h-3 w-1/3 animate-pulse rounded bg-gray-100" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : searchSuggestions.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-gray-500">
+                      No products found for &quot;{searchQuery.trim()}&quot;
+                    </p>
+                  ) : (
+                    <>
+                      <ul className="max-h-[min(22rem,60vh)] overflow-y-auto py-1">
+                        {searchSuggestions.map((product, index) => {
+                          const active = index === activeSuggestionIndex;
+                          const category = suggestionCategoryTitle(product.categories);
+                          const image = product.images?.[0] || DEFAULT_PRODUCT_IMAGE;
+                          return (
+                            <li key={product._id}>
+                              <button
+                                type="button"
+                                id={`header-search-option-${index}`}
+                                role="option"
+                                aria-selected={active}
+                                onMouseEnter={() => setActiveSuggestionIndex(index)}
+                                onClick={() => openProduct(product._id)}
+                                className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                                  active ? 'bg-orange-50' : 'hover:bg-gray-50'
+                                }`}
+                              >
+                                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                                  <Image
+                                    src={image}
+                                    alt=""
+                                    fill
+                                    className="object-cover"
+                                    sizes="44px"
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-medium text-gray-900">{product.name}</p>
+                                  {category ? (
+                                    <p className="truncate text-xs text-gray-500">{category}</p>
+                                  ) : null}
+                                </div>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => runProductSearch(searchQuery)}
+                        className="flex w-full items-center justify-center gap-1.5 border-t border-gray-100 px-4 py-2.5 text-sm font-medium text-[#0F4C69] transition-colors hover:bg-gray-50"
+                      >
+                        View all results
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
               {searchQuery ? (
                 <button
                   type="button"
