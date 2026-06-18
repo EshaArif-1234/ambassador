@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ImageSlider from '../../../components/home page/ImageSlider';
+import SaleSection from '../../../components/home page/SaleSection';
 import CategoryCard from '../../../components/home page/CategoryCard';
 import StatsSection from '../../../components/home page/StatsSection';
 import WhyChooseUs from '../../../components/home page/WhyChooseUs';
@@ -17,9 +18,38 @@ interface StorefrontCategory {
   image: string;
 }
 
+const INITIAL_ROWS = 4;
+const ROWS_PER_STEP = 4;
+
+function useCategoryGridColumns() {
+  const [columns, setColumns] = useState(4);
+
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      if (w >= 1280) setColumns(4);
+      else if (w >= 1024) setColumns(3);
+      else if (w >= 768) setColumns(2);
+      else setColumns(1);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return columns;
+}
+
 const HomePage = () => {
   const [categories, setCategories] = useState<StorefrontCategory[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [visibleRows, setVisibleRows] = useState(INITIAL_ROWS);
+  const columns = useCategoryGridColumns();
+
+  const visibleCount = Math.min(visibleRows * columns, categories.length);
+  const visibleCategories = categories.slice(0, visibleCount);
+  const hasMoreCategories = visibleCount < categories.length;
+  const canShowLess = visibleRows > INITIAL_ROWS;
 
   useEffect(() => {
     let cancelled = false;
@@ -39,11 +69,24 @@ const HomePage = () => {
     return () => { cancelled = true; };
   }, []);
 
+  const handleShowMore = () => {
+    const totalRows = Math.ceil(categories.length / columns);
+    setVisibleRows((rows) => Math.min(rows + ROWS_PER_STEP, totalRows));
+  };
+
+  const handleShowLess = () => {
+    setVisibleRows(INITIAL_ROWS);
+  };
+
   return (
     <div className="min-h-screen bg-white">
 
       {/* ── 1. Hero Banner Slider ─────────────────────────── */}
       <ImageSlider />
+
+      {/* ── 2. On Sale Products ───────────────────────────── */}
+      <SaleSection />
+
       <ClientLogosSlider />
       <CustomKitchenHighlight />
 
@@ -69,7 +112,7 @@ const HomePage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {categoriesLoading ? (
-              Array.from({ length: 8 }).map((_, i) => (
+              Array.from({ length: INITIAL_ROWS * columns }).map((_, i) => (
                 <div
                   key={i}
                   className="rounded-lg border border-gray-100 bg-gray-50 overflow-hidden animate-pulse"
@@ -86,7 +129,7 @@ const HomePage = () => {
                 No categories to show yet.
               </p>
             ) : (
-              categories.map((category) => (
+              visibleCategories.map((category) => (
                 <CategoryCard
                   key={category._id}
                   title={category.title}
@@ -96,6 +139,35 @@ const HomePage = () => {
               ))
             )}
           </div>
+
+          {!categoriesLoading && categories.length > INITIAL_ROWS * columns && (
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              {hasMoreCategories && (
+                <button
+                  type="button"
+                  onClick={handleShowMore}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#0F4C69] px-8 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-[#0d3d55]"
+                >
+                  Show More
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              )}
+              {canShowLess && (
+                <button
+                  type="button"
+                  onClick={handleShowLess}
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-[#E36630] bg-white px-8 py-3 text-sm font-semibold text-[#E36630] transition-colors hover:bg-[#E36630] hover:text-white"
+                >
+                  Show Less
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </section>
       <StatsSection />

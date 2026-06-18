@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
     const maxPrice  = parseFloat(searchParams.get('maxPrice') ?? '0')  || 0;
     const brandsRaw = (searchParams.get('brands')   ?? '').trim();
     const featsRaw  = (searchParams.get('features') ?? '').trim();
+    const onSale      = searchParams.get('sale') === '1';
     const sortBy    = searchParams.get('sort') ?? 'newest';
     const excludeId = (searchParams.get('exclude') ?? '').trim();
 
@@ -105,6 +106,16 @@ export async function GET(req: NextRequest) {
     if (featsRaw) {
       // AND logic — product must have every selected feature, not just one
       filter.features = { $all: featsRaw.split(',').map((f) => f.trim()).filter(Boolean) };
+    }
+
+    if (onSale) {
+      filter.$or = [
+        { features: 'on_sale' },
+        {
+          price: { $exists: true, $gt: 0 },
+          $expr: { $lt: ['$price', '$originalPrice'] },
+        },
+      ];
     }
 
     const sortMap: Record<string, Record<string, 1 | -1>> = {
