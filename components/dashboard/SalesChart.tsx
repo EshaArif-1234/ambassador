@@ -1,210 +1,383 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
+import { cn } from '@/lib/utils';
+
+interface ChartPoint {
+  label: string;
+  sales: number;
+  orders: number;
+}
+
+type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly';
+type ActiveMetric = 'sales' | 'orders';
+
+const chartConfig = {
+  overview: { label: 'Overview' },
+  sales: { label: 'Sales', color: 'hsl(var(--chart-1))' },
+  orders: { label: 'Orders', color: 'hsl(var(--chart-2))' },
+} satisfies ChartConfig;
+
+const PERIOD_OPTIONS: { value: TimeRange; label: string; description: string }[] = [
+  { value: 'daily', label: 'Daily', description: 'Last 7 days' },
+  { value: 'weekly', label: 'Weekly', description: 'Last 4 weeks' },
+  { value: 'monthly', label: 'Monthly', description: 'Last 6 months' },
+  { value: 'yearly', label: 'Yearly', description: 'Last 5 years' },
+];
+
+function formatPkr(value: number): string {
+  return `PKR ${Math.round(value).toLocaleString('en-PK')}`;
+}
+
+function formatTotal(value: number, type: ActiveMetric): string {
+  if (type === 'sales') return formatPkr(value);
+  return value.toLocaleString('en-PK');
+}
+
+function SalesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+  );
+}
+
+function OrdersIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+      />
+    </svg>
+  );
+}
+
+function MetricCard({
+  type,
+  value,
+  active,
+  onClick,
+  hasData,
+}: {
+  type: ActiveMetric;
+  value: number;
+  active: boolean;
+  onClick: () => void;
+  hasData: boolean;
+}) {
+  const isSales = type === 'sales';
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'group relative flex flex-col gap-2 rounded-xl border p-4 text-left transition-all duration-200',
+        active
+          ? isSales
+            ? 'border-orange-200 bg-orange-50/80 shadow-sm ring-1 ring-orange-200/60'
+            : 'border-blue-200 bg-blue-50/80 shadow-sm ring-1 ring-blue-200/60'
+          : 'border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/40'
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <div
+          className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
+            active
+              ? isSales
+                ? 'bg-orange-500 text-white'
+                : 'bg-blue-500 text-white'
+              : 'bg-muted text-muted-foreground group-hover:bg-muted/80'
+          )}
+        >
+          {isSales ? <SalesIcon className="h-4 w-4" /> : <OrdersIcon className="h-4 w-4" />}
+        </div>
+        {active && (
+          <span
+            className={cn(
+              'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+              isSales ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+            )}
+          >
+            Active
+          </span>
+        )}
+      </div>
+      <div>
+        <p className="text-xs font-medium text-muted-foreground">{chartConfig[type].label}</p>
+        <p
+          className={cn(
+            'mt-0.5 text-xl font-bold leading-tight tracking-tight sm:text-2xl',
+            active ? 'text-foreground' : 'text-foreground/80'
+          )}
+        >
+          {hasData ? formatTotal(value, type) : '—'}
+        </p>
+      </div>
+    </button>
+  );
+}
+
+function PeriodSelector({
+  value,
+  onChange,
+  className,
+}: {
+  value: TimeRange;
+  onChange: (range: TimeRange) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'inline-flex rounded-xl border border-border bg-muted/50 p-1',
+        className
+      )}
+      role="group"
+      aria-label="Select time period"
+    >
+      {PERIOD_OPTIONS.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={cn(
+            'rounded-lg px-3 py-1.5 text-xs font-medium transition-all sm:px-4 sm:text-sm',
+            value === option.value
+              ? 'bg-background text-foreground shadow-sm ring-1 ring-border/60'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ChartHeaderSkeleton() {
+  return (
+    <div className="animate-pulse border-b bg-gradient-to-br from-muted/40 via-background to-background px-6 py-5">
+      <div className="h-6 w-40 rounded bg-muted" />
+      <div className="mt-2 h-4 w-56 rounded bg-muted" />
+      <div className="mt-4 h-9 w-full max-w-md rounded-xl bg-muted" />
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="h-24 rounded-xl bg-muted" />
+        <div className="h-24 rounded-xl bg-muted" />
+      </div>
+    </div>
+  );
+}
 
 const SalesChart = () => {
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dataType, setDataType] = useState<'sales' | 'orders'>('sales');
-  const [timeRange, setTimeRange] = useState<'weekly' | 'monthly'>('monthly');
+  const [error, setError] = useState<string | null>(null);
+  const [activeChart, setActiveChart] = useState<ActiveMetric>('sales');
+  const [timeRange, setTimeRange] = useState<TimeRange>('monthly');
 
   useEffect(() => {
-    // Simulate API call for chart data
+    let cancelled = false;
+
     const fetchChartData = async () => {
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate empty data scenario (randomly return empty data for demo)
-      const shouldReturnEmpty = Math.random() > 0.8; // 20% chance of empty data
-      
-      let data: any[] = [];
-      
-      if (!shouldReturnEmpty) {
-        if (timeRange === 'monthly') {
-          data = [
-            { month: 'Jan', sales: 185000, orders: 82 },
-            { month: 'Feb', sales: 225000, orders: 95 },
-            { month: 'Mar', sales: 198000, orders: 87 },
-            { month: 'Apr', sales: 267000, orders: 112 },
-            { month: 'May', sales: 312000, orders: 134 },
-            { month: 'Jun', sales: 289000, orders: 123 },
-          ];
-        } else {
-          // Weekly data
-          data = [
-            { week: 'Week 1', sales: 45000, orders: 20 },
-            { week: 'Week 2', sales: 52000, orders: 23 },
-            { week: 'Week 3', sales: 48000, orders: 21 },
-            { week: 'Week 4', sales: 61000, orders: 28 },
-          ];
+      setError(null);
+      try {
+        const res = await fetch(`/api/admin/sales-chart?range=${timeRange}`, {
+          credentials: 'include',
+        });
+        const json = await res.json();
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.message || 'Failed to load chart data.');
         }
+        if (!cancelled) {
+          setChartData(json.data as ChartPoint[]);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setChartData([]);
+          setError(err instanceof Error ? err.message : 'Failed to load chart data.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      
-      setChartData(data);
-      setLoading(false);
     };
 
     fetchChartData();
+    return () => {
+      cancelled = true;
+    };
   }, [timeRange]);
 
-  const maxSales = Math.max(...chartData.map(d => d.sales), 1);
-  const maxOrders = Math.max(...chartData.map(d => d.orders), 1);
+  const totals = useMemo(
+    () => ({
+      sales: chartData.reduce((sum, d) => sum + d.sales, 0),
+      orders: chartData.reduce((sum, d) => sum + d.orders, 0),
+    }),
+    [chartData]
+  );
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Sales Overview</h3>
-        <div className="animate-pulse">
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+  const hasData = chartData.some((d) => d.sales > 0 || d.orders > 0);
+  const activePeriod = PERIOD_OPTIONS.find((p) => p.value === timeRange);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex flex-col space-y-4 mb-6">
-        {/* Chart Title */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-800">Sales Overview</h3>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">Sales</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">Orders</span>
+    <Card className="py-0">
+      {loading ? (
+        <ChartHeaderSkeleton />
+      ) : (
+        <div className="border-b bg-gradient-to-br from-muted/40 via-background to-background">
+          <div className="px-6 py-5">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0 flex-1 space-y-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold tracking-tight text-foreground">
+                      Sales Overview
+                    </h3>
+                  </div>
+                  <p className="mt-1.5 text-sm text-muted-foreground">
+                    {activePeriod?.description ?? 'Revenue and order trends'}
+                  </p>
+                </div>
+
+                <PeriodSelector value={timeRange} onChange={setTimeRange} className="w-full sm:w-auto" />
+              </div>
+
+              <div className="grid w-full grid-cols-2 gap-3 sm:min-w-[300px] lg:w-auto lg:min-w-[340px]">
+                <MetricCard
+                  type="sales"
+                  value={totals.sales}
+                  active={activeChart === 'sales'}
+                  onClick={() => setActiveChart('sales')}
+                  hasData={hasData}
+                />
+                <MetricCard
+                  type="orders"
+                  value={totals.orders}
+                  active={activeChart === 'orders'}
+                  onClick={() => setActiveChart('orders')}
+                  hasData={hasData}
+                />
+              </div>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Chart Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-          {/* Data Type Toggle */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">View:</span>
-            <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
-              <button
-                onClick={() => setDataType('sales')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  dataType === 'sales'
-                    ? 'bg-orange-500 text-white shadow-sm'
-                    : 'text-gray-700 hover:text-gray-900'
-                }`}
-              >
-                Sales
-              </button>
-              <button
-                onClick={() => setDataType('orders')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  dataType === 'orders'
-                    ? 'bg-orange-500 text-white shadow-sm'
-                    : 'text-gray-700 hover:text-gray-900'
-                }`}
-              >
-                Orders
-              </button>
-            </div>
+      <CardContent className="overflow-visible px-2 pt-4 pb-8 sm:px-6 sm:pt-6">
+        {loading ? (
+          <div className="animate-pulse">
+            <div className="h-[250px] rounded-lg bg-muted" />
           </div>
-
-          {/* Time Range Toggle */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Period:</span>
-            <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
-              <button
-                onClick={() => setTimeRange('weekly')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  timeRange === 'weekly'
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-gray-700 hover:text-gray-900'
-                }`}
-              >
-                Weekly
-              </button>
-              <button
-                onClick={() => setTimeRange('monthly')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  timeRange === 'monthly'
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-gray-700 hover:text-gray-900'
-                }`}
-              >
-                Monthly
-              </button>
-            </div>
+        ) : error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
           </div>
-        </div>
-      </div>
-
-      <div className="h-64 relative">
-        {chartData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        ) : !hasData ? (
+          <div className="flex h-[250px] flex-col items-center justify-center text-center">
+            <svg
+              className="mb-4 h-12 w-12 text-muted-foreground/40"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
             </svg>
-            <p className="text-gray-500 text-lg font-medium mb-2">No activity</p>
-            <p className="text-gray-400 text-sm">No data available for the selected period</p>
+            <p className="text-sm font-medium text-muted-foreground">No activity</p>
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              No data available for the selected period
+            </p>
           </div>
         ) : (
-          /* Chart with grid lines */
-          <div className="relative h-full">
-            {/* Grid Lines */}
-            <div className="absolute inset-0 flex flex-col justify-between">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="border-b border-gray-100"></div>
-              ))}
-            </div>
-            
-            {/* Bars */}
-            <div className="absolute inset-0 flex items-end justify-between space-x-2 pb-2">
-              {chartData.map((data, index) => (
-                <div key={index} className="flex-1 flex flex-col items-center group">
-                  <div className="w-full relative">
-                    {/* Single bar based on selected data type */}
-                    <div 
-                      className={`w-full rounded-t-sm transition-all duration-500 hover:opacity-80 cursor-pointer ${
-                        dataType === 'sales' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-500 hover:bg-blue-600'
-                      }`}
-                      style={{ 
-                        height: `${(data[dataType] / (dataType === 'sales' ? maxSales : maxOrders)) * 140}px`,
-                        opacity: loading ? 0 : 1,
-                        transform: loading ? 'translateY(20px)' : 'translateY(0)'
-                      }}
-                      title={`${dataType === 'sales' ? 'PKR' + data.sales.toLocaleString() : data.orders + ' orders'}`}
-                    ></div>
-                    
-                    {/* Hover tooltip placeholder */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                      {dataType === 'sales' ? 'PKR' + data.sales.toLocaleString() : data.orders + ' orders'}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500 mt-1">
-                    {timeRange === 'monthly' ? data.month : data.week}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ChartContainer config={chartConfig} className="aspect-auto h-[280px] min-h-[280px] w-full">
+            <AreaChart
+              accessibilityLayer
+              data={chartData}
+              margin={{ top: 8, right: 12, left: 12, bottom: 28 }}
+            >
+              <defs>
+                <linearGradient id="fillSales" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-sales)" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="var(--color-sales)" stopOpacity={0.1} />
+                </linearGradient>
+                <linearGradient id="fillOrders" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-orders)" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="var(--color-orders)" stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={12}
+                minTickGap={timeRange === 'daily' ? 8 : 24}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    className="w-[180px]"
+                    nameKey="overview"
+                    indicator="dot"
+                    labelFormatter={(value) => String(value)}
+                    formatter={(value, name) => {
+                      const num = Number(value);
+                      if (name === 'sales') {
+                        return [formatPkr(num), chartConfig.sales.label];
+                      }
+                      return [
+                        `${num.toLocaleString('en-PK')} orders`,
+                        chartConfig.orders.label,
+                      ];
+                    }}
+                  />
+                }
+              />
+              <Area
+                dataKey={activeChart}
+                type="natural"
+                fill={activeChart === 'sales' ? 'url(#fillSales)' : 'url(#fillOrders)'}
+                stroke={`var(--color-${activeChart})`}
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ChartContainer>
         )}
-      </div>
-
-      {/* Chart Legend */}
-      <div className="mt-6">
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-sm text-gray-600">
-            Total {dataType === 'sales' ? 'Sales' : 'Orders'} ({timeRange === 'monthly' ? 'Monthly' : 'Weekly'})
-          </p>
-          <p className="text-xl font-bold text-gray-900">
-            {dataType === 'sales' 
-              ? `PKR ${chartData.reduce((sum, d) => sum + d.sales, 0).toLocaleString()}`
-              : chartData.reduce((sum, d) => sum + d.orders, 0)
-            }
-          </p>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
