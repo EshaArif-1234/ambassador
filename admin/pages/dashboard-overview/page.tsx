@@ -29,7 +29,7 @@ const DashboardOverview = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/admin/stats');
+        const res = await fetch('/api/admin/stats', { credentials: 'include' });
         const json = await res.json();
         if (json.success) {
           setStats(json.data);

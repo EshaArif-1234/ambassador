@@ -2,13 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { fmtOrderDate, totalItemQuantity } from '@/utils/orderDisplay.util';
+
+type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled';
 
 interface Order {
   id: string;
+  orderNumber: string;
   customerName: string;
   email: string;
   total: number;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  status: OrderStatus;
   date: string;
   items: number;
 }
@@ -16,86 +26,88 @@ interface Order {
 interface RecentOrdersProps {
   title: string;
   filter?: 'pending' | 'all';
+  limit?: number;
 }
 
-const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) => {
+interface ApiOrderRow {
+  _id: string;
+  orderNumber?: string;
+  customerName?: string;
+  customerEmail?: string;
+  totalAmount?: number;
+  status?: OrderStatus;
+  createdAt?: string;
+  items?: Array<{ quantity?: number }>;
+}
+
+const RecentOrders: React.FC<RecentOrdersProps> = ({
+  title,
+  filter = 'all',
+  limit = 8,
+}) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate API call
+    let cancelled = false;
+
     const fetchOrders = async () => {
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const mockOrders: Order[] = [
-        {
-          id: 'ORD-001',
-          customerName: 'John Doe',
-          email: 'john.doe@email.com',
-          total: 45999,
-          status: 'pending',
-          date: '2024-03-30',
-          items: 3
-        },
-        {
-          id: 'ORD-002',
-          customerName: 'Jane Smith',
-          email: 'jane.smith@email.com',
-          total: 28500,
-          status: 'completed',
-          date: '2024-03-30',
-          items: 2
-        },
-        {
-          id: 'ORD-003',
-          customerName: 'Mike Johnson',
-          email: 'mike.johnson@email.com',
-          total: 125000,
-          status: 'processing',
-          date: '2024-03-29',
-          items: 5
-        },
-        {
-          id: 'ORD-004',
-          customerName: 'Sarah Wilson',
-          email: 'sarah.wilson@email.com',
-          total: 18999,
-          status: 'pending',
-          date: '2024-03-29',
-          items: 1
-        },
-        {
-          id: 'ORD-005',
-          customerName: 'David Brown',
-          email: 'david.brown@email.com',
-          total: 67000,
-          status: 'completed',
-          date: '2024-03-28',
-          items: 4
+      setError(null);
+      try {
+        const params = new URLSearchParams({ limit: String(limit) });
+        if (filter === 'pending') params.set('status', 'pending');
+
+        const res = await fetch(`/api/admin/orders?${params.toString()}`, {
+          credentials: 'include',
+        });
+        const json = await res.json();
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.message || 'Failed to load recent orders.');
         }
-      ];
 
-      const filteredOrders = filter === 'pending' 
-        ? mockOrders.filter(order => order.status === 'pending')
-        : mockOrders;
+        if (cancelled) return;
 
-      setOrders(filteredOrders);
-      setLoading(false);
+        const mapped: Order[] = (json.data as ApiOrderRow[]).map((o) => ({
+          id: String(o._id),
+          orderNumber: o.orderNumber?.trim() || String(o._id).slice(-8).toUpperCase(),
+          customerName: o.customerName?.trim() || 'Guest',
+          email: o.customerEmail?.trim() || '—',
+          total: Number(o.totalAmount) || 0,
+          status: o.status ?? 'pending',
+          date: o.createdAt ? fmtOrderDate(o.createdAt) : '—',
+          items: totalItemQuantity(o.items ?? []),
+        }));
+
+        setOrders(mapped);
+      } catch (err) {
+        if (!cancelled) {
+          setOrders([]);
+          setError(err instanceof Error ? err.message : 'Failed to load recent orders.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     fetchOrders();
-  }, [filter]);
+    return () => { cancelled = true; };
+  }, [filter, limit]);
 
-  const getStatusBadge = (status: string) => {
-    const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full';
-    
+  const getStatusBadge = (status: OrderStatus) => {
+    const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap';
+
     switch (status) {
       case 'pending':
         return `${baseClasses} bg-orange-100 text-orange-800`;
+      case 'confirmed':
+        return `${baseClasses} bg-indigo-100 text-indigo-800`;
       case 'processing':
         return `${baseClasses} bg-blue-100 text-blue-800`;
-      case 'completed':
+      case 'shipped':
+        return `${baseClasses} bg-cyan-100 text-cyan-800`;
+      case 'delivered':
         return `${baseClasses} bg-green-100 text-green-800`;
       case 'cancelled':
         return `${baseClasses} bg-red-100 text-red-800`;
@@ -104,15 +116,20 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
     }
   };
 
+  const formatStatusLabel = (status: OrderStatus) =>
+    status.charAt(0).toUpperCase() + status.slice(1);
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="animate-pulse grid grid-cols-5 gap-4">
+              <div className="col-span-2 h-4 bg-gray-200 rounded" />
+              <div className="h-4 bg-gray-200 rounded" />
+              <div className="h-4 bg-gray-200 rounded" />
+              <div className="h-4 bg-gray-200 rounded" />
             </div>
           ))}
         </div>
@@ -125,25 +142,32 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
         <Link
-          href="/admin/orders"
+          href="/orders-management"
           className="text-sm text-orange-500 hover:text-orange-600 font-medium transition-colors"
         >
           View All →
         </Link>
       </div>
 
-      {orders.length === 0 ? (
+      {error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : orders.length === 0 ? (
         <div className="text-center py-12">
           <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
           <p className="text-gray-500 text-lg font-medium mb-2">No orders yet</p>
-          <p className="text-gray-400 text-sm">When orders are placed, they will appear here</p>
+          <p className="text-gray-400 text-sm">
+            {filter === 'pending'
+              ? 'No pending orders at the moment'
+              : 'When orders are placed, they will appear here'}
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto">
-          {/* Table Header */}
-          <div className="grid grid-cols-5 gap-4 pb-3 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wide">
+          <div className="grid grid-cols-5 gap-4 pb-3 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wide min-w-[36rem]">
             <div>Customer</div>
             <div>Order ID</div>
             <div>Date</div>
@@ -151,36 +175,37 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ title, filter = 'all' }) =>
             <div>Status</div>
           </div>
 
-          {/* Table Rows */}
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 min-w-[36rem]">
             {orders.map((order) => (
-              <div key={order.id} className="grid grid-cols-5 gap-4 py-3 hover:bg-gray-50 transition-colors">
-                {/* Customer */}
+              <div
+                key={order.id}
+                className="grid grid-cols-5 gap-4 py-3 hover:bg-gray-50 transition-colors"
+              >
                 <div className="min-w-0">
                   <p className="font-medium text-gray-900 truncate">{order.customerName}</p>
                   <p className="text-sm text-gray-500 truncate">{order.email}</p>
                 </div>
 
-                {/* Order ID */}
                 <div className="min-w-0">
-                  <p className="font-mono text-sm text-gray-900">#{order.id}</p>
+                  <p className="font-mono text-sm text-gray-900">#{order.orderNumber}</p>
                 </div>
 
-                {/* Date */}
                 <div className="min-w-0">
                   <p className="text-sm text-gray-600">{order.date}</p>
                 </div>
 
-                {/* Amount */}
                 <div className="min-w-0">
-                  <p className="font-semibold text-gray-900">PKR {order.total.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500">{order.items} items</p>
+                  <p className="font-semibold text-gray-900">
+                    PKR {order.total.toLocaleString('en-PK')}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {order.items} item{order.items !== 1 ? 's' : ''}
+                  </p>
                 </div>
 
-                {/* Status */}
                 <div className="min-w-0">
                   <span className={getStatusBadge(order.status)}>
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    {formatStatusLabel(order.status)}
                   </span>
                 </div>
               </div>

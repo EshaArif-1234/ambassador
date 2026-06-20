@@ -42,7 +42,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const orders = await Order.find(filter).sort({ createdAt: -1 }).lean();
+    const limitParam = searchParams.get('limit');
+    const limit = limitParam
+      ? Math.min(50, Math.max(1, parseInt(limitParam, 10) || 0))
+      : 0;
+
+    let query = Order.find(filter).sort({ createdAt: -1 });
+    if (limit > 0) query = query.limit(limit);
+
+    const orders = await query.lean();
 
     return NextResponse.json({ success: true, data: orders });
   } catch (err: any) {
