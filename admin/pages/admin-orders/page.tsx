@@ -646,7 +646,7 @@ const OrdersPage = () => {
                 <option value="all">All Status</option>
                 <option value="processing">Processing</option>
                 <option value="confirmed">Dispatched</option>
-                <option value="shipped">Shipped</option>
+                <option value="shipped">Shipment</option>
                 <option value="delivered">Delivered</option>
                 <option value="cancelled">Cancelled</option>
               </select>

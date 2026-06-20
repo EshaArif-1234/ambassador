@@ -6,6 +6,42 @@ export type OrderFulfillmentStatus =
   | 'delivered'
   | 'cancelled';
 
+/**
+ * Single source of truth — matches Orders Management actions menu:
+ * Processing → Dispatched → Shipment → Delivered (+ Cancelled).
+ */
+export const ORDER_STATUS_DISPLAY: Record<OrderFulfillmentStatus, string> = {
+  pending: 'Pending',
+  processing: 'Processing',
+  confirmed: 'Dispatched',
+  shipped: 'Shipment',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+};
+
+/** DB status values (includes legacy pending). */
+export const ORDER_FULFILLMENT_STATUSES: OrderFulfillmentStatus[] = [
+  'pending',
+  'processing',
+  'confirmed',
+  'shipped',
+  'delivered',
+  'cancelled',
+];
+
+/** Active workflow statuses shown on dashboard charts. */
+export const ORDER_STATUS_CHART_ORDER: OrderFulfillmentStatus[] = [
+  'processing',
+  'confirmed',
+  'shipped',
+  'delivered',
+  'cancelled',
+];
+
+export function getOrderStatusDisplayLabel(status: string): string {
+  return ORDER_STATUS_DISPLAY[status as OrderFulfillmentStatus] ?? status;
+}
+
 /** Linear fulfillment path after checkout. */
 export const ORDER_WORKFLOW_STEPS: OrderFulfillmentStatus[] = [
   'processing',
@@ -21,22 +57,8 @@ const NEXT_STATUS: Partial<Record<OrderFulfillmentStatus, OrderFulfillmentStatus
   shipped: 'delivered',
 };
 
-const NEXT_ACTION_LABEL: Partial<Record<OrderFulfillmentStatus, string>> = {
-  pending: 'Dispatched',
-  processing: 'Dispatched',
-  confirmed: 'Shipment',
-  shipped: 'Delivered',
-};
-
-const WORKFLOW_STEP_LABELS: Partial<Record<OrderFulfillmentStatus, string>> = {
-  confirmed: 'Dispatched',
-  shipped: 'Shipment',
-  delivered: 'Delivered',
-};
-
 export function getOrderStatusLabel(status: string): string {
-  if (status === 'confirmed') return 'dispatched';
-  return status;
+  return getOrderStatusDisplayLabel(status);
 }
 
 export function isOrderWorkflowLocked(status: string): boolean {
@@ -50,9 +72,11 @@ export function getNextWorkflowStatus(
   return NEXT_STATUS[current as OrderFulfillmentStatus] ?? null;
 }
 
+/** Label on the next action button (e.g. Processing → "Dispatched"). */
 export function getNextWorkflowActionLabel(current: string): string | null {
-  if (isOrderWorkflowLocked(current)) return null;
-  return NEXT_ACTION_LABEL[current as OrderFulfillmentStatus] ?? null;
+  const next = getNextWorkflowStatus(current);
+  if (!next) return null;
+  return ORDER_STATUS_DISPLAY[next];
 }
 
 export function getUpcomingWorkflowSteps(current: string): Array<{
@@ -75,7 +99,7 @@ export function getUpcomingWorkflowSteps(current: string): Array<{
   while (cursor) {
     steps.push({
       status: cursor,
-      label: WORKFLOW_STEP_LABELS[cursor] ?? cursor,
+      label: ORDER_STATUS_DISPLAY[cursor],
       isAvailable: cursor === next,
     });
     cursor = getNextWorkflowStatus(cursor);

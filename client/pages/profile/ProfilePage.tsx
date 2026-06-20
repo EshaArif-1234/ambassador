@@ -8,6 +8,7 @@ import { authApi } from '@/utils/auth.api';
 import { fetchPakistanCities } from '@/utils/cities.api';
 import Link from 'next/link';
 import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
+import { getOrderStatusDisplayLabel } from '@/utils/orderWorkflow.util';
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
@@ -30,12 +31,12 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending:    'Pending',
-  confirmed:  'Confirmed',
-  processing: 'Processing',
-  shipped:    'Shipped',
-  delivered:  'Delivered',
-  cancelled:  'Cancelled',
+  pending:    getOrderStatusDisplayLabel('pending'),
+  confirmed:  getOrderStatusDisplayLabel('confirmed'),
+  processing: getOrderStatusDisplayLabel('processing'),
+  shipped:    getOrderStatusDisplayLabel('shipped'),
+  delivered:  getOrderStatusDisplayLabel('delivered'),
+  cancelled:  getOrderStatusDisplayLabel('cancelled'),
 };
 
 export default function ProfilePage() {

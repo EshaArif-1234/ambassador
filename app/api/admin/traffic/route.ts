@@ -6,11 +6,10 @@ import { requireAdmin } from '@/backend/lib/adminAuth';
 import {
   buildDateBuckets,
   findBucketIndex,
-  getDayBucketIndex,
   getMonthBucketIndex,
   getOverallRangeStart,
-  getWeekBucketIndex,
-  getYearBucketIndex,
+  getRangeDescription,
+  getRangeLabel,
   parseChartRange,
 } from '@/lib/adminChartRanges';
 
@@ -18,14 +17,6 @@ type TrafficPoint = { label: string; orders: number; users: number };
 
 const ORDER_MATCH = { status: { $nin: ['cancelled'] } };
 const USER_MATCH = { role: { $ne: 'admin' } };
-
-function emptyBuckets(range: ReturnType<typeof parseChartRange>): TrafficPoint[] {
-  return buildDateBuckets(range).map((bucket) => ({
-    label: bucket.label,
-    orders: 0,
-    users: 0,
-  }));
-}
 
 /** GET /api/admin/traffic?range=daily|weekly|monthly|yearly */
 export async function GET(req: NextRequest) {
@@ -39,115 +30,62 @@ export async function GET(req: NextRequest) {
     const range = parseChartRange(searchParams.get('range'), 'weekly');
     const now = new Date();
     const buckets = buildDateBuckets(range, now);
-    const result = emptyBuckets(range);
+    const result: TrafficPoint[] = buckets.map((bucket) => ({
+      label: bucket.label,
+      orders: 0,
+      users: 0,
+    }));
 
-    if (range === 'daily') {
-      const rangeStart = getOverallRangeStart(buckets);
-      const [orders, users] = await Promise.all([
-        Order.find({ createdAt: { $gte: rangeStart, $lte: now }, ...ORDER_MATCH })
-          .select('createdAt')
-          .lean(),
-        User.find({ createdAt: { $gte: rangeStart, $lte: now }, ...USER_MATCH })
-          .select('createdAt')
-          .lean(),
-      ]);
+    const rangeStart = getOverallRangeStart(buckets);
 
-      for (const order of orders) {
-        const idx = getDayBucketIndex(new Date(order.createdAt), rangeStart, buckets.length);
-        if (idx >= 0) result[idx].orders += 1;
-      }
-      for (const user of users) {
-        const idx = getDayBucketIndex(new Date(user.createdAt), rangeStart, buckets.length);
-        if (idx >= 0) result[idx].users += 1;
-      }
-    } else if (range === 'weekly') {
-      const rangeStart = getOverallRangeStart(buckets);
-      const [orders, users] = await Promise.all([
-        Order.find({ createdAt: { $gte: rangeStart, $lte: now }, ...ORDER_MATCH })
-          .select('createdAt')
-          .lean(),
-        User.find({ createdAt: { $gte: rangeStart, $lte: now }, ...USER_MATCH })
-          .select('createdAt')
-          .lean(),
-      ]);
-
-      for (const order of orders) {
-        const idx = getWeekBucketIndex(new Date(order.createdAt), rangeStart, buckets.length);
-        if (idx >= 0) result[idx].orders += 1;
-      }
-      for (const user of users) {
-        const idx = getWeekBucketIndex(new Date(user.createdAt), rangeStart, buckets.length);
-        if (idx >= 0) result[idx].users += 1;
-      }
-    } else if (range === 'monthly') {
-      const rangeStart = getOverallRangeStart(buckets);
+    if (range === 'yearly') {
+      const startYear = now.getFullYear();
       const [orderRows, userRows] = await Promise.all([
         Order.aggregate([
           { $match: { createdAt: { $gte: rangeStart, $lte: now }, ...ORDER_MATCH } },
-          {
-            $group: {
-              _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
-              count: { $sum: 1 },
-            },
-          },
+          { $group: { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
         ]),
         User.aggregate([
           { $match: { createdAt: { $gte: rangeStart, $lte: now }, ...USER_MATCH } },
-          {
-            $group: {
-              _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
-              count: { $sum: 1 },
-            },
-          },
+          { $group: { _id: { month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
         ]),
       ]);
 
-      const startYear = rangeStart.getFullYear();
-      const startMonth = rangeStart.getMonth();
-
       for (const row of orderRows) {
-        const idx = getMonthBucketIndex(row._id.year, row._id.month, startYear, startMonth);
+        const idx = getMonthBucketIndex(startYear, row._id.month, startYear, 0);
         if (idx >= 0 && idx < result.length) result[idx].orders = Number(row.count) || 0;
       }
       for (const row of userRows) {
-        const idx = getMonthBucketIndex(row._id.year, row._id.month, startYear, startMonth);
+        const idx = getMonthBucketIndex(startYear, row._id.month, startYear, 0);
         if (idx >= 0 && idx < result.length) result[idx].users = Number(row.count) || 0;
       }
     } else {
-      const rangeStart = getOverallRangeStart(buckets);
-      const startYear = rangeStart.getFullYear();
-      const [orderRows, userRows] = await Promise.all([
-        Order.aggregate([
-          { $match: { createdAt: { $gte: rangeStart, $lte: now }, ...ORDER_MATCH } },
-          {
-            $group: {
-              _id: { year: { $year: '$createdAt' } },
-              count: { $sum: 1 },
-            },
-          },
-        ]),
-        User.aggregate([
-          { $match: { createdAt: { $gte: rangeStart, $lte: now }, ...USER_MATCH } },
-          {
-            $group: {
-              _id: { year: { $year: '$createdAt' } },
-              count: { $sum: 1 },
-            },
-          },
-        ]),
+      const [orders, users] = await Promise.all([
+        Order.find({ createdAt: { $gte: rangeStart, $lte: now }, ...ORDER_MATCH })
+          .select('createdAt')
+          .lean(),
+        User.find({ createdAt: { $gte: rangeStart, $lte: now }, ...USER_MATCH })
+          .select('createdAt')
+          .lean(),
       ]);
 
-      for (const row of orderRows) {
-        const idx = getYearBucketIndex(row._id.year, startYear, buckets.length);
-        if (idx >= 0) result[idx].orders = Number(row.count) || 0;
+      for (const order of orders) {
+        const idx = findBucketIndex(new Date(order.createdAt), buckets);
+        if (idx >= 0) result[idx].orders += 1;
       }
-      for (const row of userRows) {
-        const idx = getYearBucketIndex(row._id.year, startYear, buckets.length);
-        if (idx >= 0) result[idx].users = Number(row.count) || 0;
+      for (const user of users) {
+        const idx = findBucketIndex(new Date(user.createdAt), buckets);
+        if (idx >= 0) result[idx].users += 1;
       }
     }
 
-    return NextResponse.json({ success: true, data: result, range });
+    return NextResponse.json({
+      success: true,
+      data: result,
+      range,
+      rangeLabel: getRangeLabel(buckets),
+      description: getRangeDescription(range, now),
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch traffic data.';
     console.error('[GET /api/admin/traffic]', err);

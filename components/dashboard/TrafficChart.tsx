@@ -19,6 +19,7 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
+import { getChartPeriodOptions, type ChartRange } from '@/lib/adminChartRanges';
 
 interface DataPoint {
   label: string;
@@ -26,7 +27,7 @@ interface DataPoint {
   users: number;
 }
 
-type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly';
+type TimeRange = ChartRange;
 
 const chartConfig = {
   activity: { label: 'Activity' },
@@ -34,12 +35,7 @@ const chartConfig = {
   users: { label: 'New Users', color: 'hsl(var(--chart-2))' },
 } satisfies ChartConfig;
 
-const PERIOD_OPTIONS: { value: TimeRange; label: string; description: string }[] = [
-  { value: 'daily', label: 'Daily', description: 'Orders & registrations — last 7 days' },
-  { value: 'weekly', label: 'Weekly', description: 'Orders & registrations — last 4 weeks' },
-  { value: 'monthly', label: 'Monthly', description: 'Orders & registrations — last 6 months' },
-  { value: 'yearly', label: 'Yearly', description: 'Orders & registrations — last 5 years' },
-];
+const PERIOD_OPTIONS = getChartPeriodOptions();
 
 function PeriodSelector({
   value,
@@ -211,7 +207,8 @@ const TrafficChart = () => {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={12}
-                minTickGap={timeRange === 'daily' ? 8 : 16}
+                minTickGap={timeRange === 'daily' ? 4 : 16}
+                interval={timeRange === 'daily' ? 'preserveStartEnd' : 'preserveStart'}
               />
               <ChartTooltip
                 cursor={false}
@@ -226,7 +223,7 @@ const TrafficChart = () => {
               />
               <Area
                 dataKey="users"
-                type="natural"
+                type={timeRange === 'daily' ? 'monotone' : 'natural'}
                 fill="url(#fillUsers)"
                 stroke="var(--color-users)"
                 stackId="a"
@@ -234,7 +231,7 @@ const TrafficChart = () => {
               />
               <Area
                 dataKey="orders"
-                type="natural"
+                type={timeRange === 'daily' ? 'monotone' : 'natural'}
                 fill="url(#fillOrders)"
                 stroke="var(--color-orders)"
                 stackId="a"

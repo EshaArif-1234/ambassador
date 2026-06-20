@@ -4,25 +4,17 @@ import Order from '@/backend/models/Order.model';
 import { requireAdmin } from '@/backend/lib/adminAuth';
 import {
   buildDateBuckets,
-  getDayBucketIndex,
+  findBucketIndex,
   getMonthBucketIndex,
   getOverallRangeStart,
-  getWeekBucketIndex,
-  getYearBucketIndex,
+  getRangeDescription,
+  getRangeLabel,
   parseChartRange,
 } from '@/lib/adminChartRanges';
 
 type ChartPoint = { label: string; sales: number; orders: number };
 
 const ORDER_MATCH = { status: { $nin: ['cancelled'] } };
-
-function emptySalesBuckets(range: ReturnType<typeof parseChartRange>): ChartPoint[] {
-  return buildDateBuckets(range).map((bucket) => ({
-    label: bucket.label,
-    sales: 0,
-    orders: 0,
-  }));
-}
 
 /** GET /api/admin/sales-chart?range=daily|weekly|monthly|yearly */
 export async function GET(req: NextRequest) {
@@ -36,35 +28,15 @@ export async function GET(req: NextRequest) {
     const range = parseChartRange(searchParams.get('range'), 'monthly');
     const now = new Date();
     const buckets = buildDateBuckets(range, now);
-    const result = emptySalesBuckets(range);
+    const result: ChartPoint[] = buckets.map((bucket) => ({
+      label: bucket.label,
+      sales: 0,
+      orders: 0,
+    }));
 
-    if (range === 'daily' || range === 'weekly') {
-      const rangeStart = getOverallRangeStart(buckets);
-      const orders = await Order.find({
-        createdAt: { $gte: rangeStart, $lte: now },
-        ...ORDER_MATCH,
-      })
-        .select('totalAmount createdAt')
-        .lean();
+    const rangeStart = getOverallRangeStart(buckets);
 
-      for (const order of orders) {
-        const created = new Date(order.createdAt);
-        const idx =
-          range === 'daily'
-            ? getDayBucketIndex(created, rangeStart, buckets.length)
-            : getWeekBucketIndex(created, rangeStart, buckets.length);
-
-        if (idx >= 0) {
-          result[idx].sales += Number(order.totalAmount) || 0;
-          result[idx].orders += 1;
-        }
-      }
-
-      return NextResponse.json({ success: true, data: result, range });
-    }
-
-    if (range === 'monthly') {
-      const rangeStart = getOverallRangeStart(buckets);
+    if (range === 'yearly') {
       const rows = await Order.aggregate([
         {
           $match: {
@@ -74,56 +46,46 @@ export async function GET(req: NextRequest) {
         },
         {
           $group: {
-            _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+            _id: { month: { $month: '$createdAt' } },
             sales: { $sum: '$totalAmount' },
             orders: { $sum: 1 },
           },
         },
-        { $sort: { '_id.year': 1, '_id.month': 1 } },
+        { $sort: { '_id.month': 1 } },
       ]);
 
-      const startYear = rangeStart.getFullYear();
-      const startMonth = rangeStart.getMonth();
-
+      const startYear = now.getFullYear();
       for (const row of rows) {
-        const idx = getMonthBucketIndex(row._id.year, row._id.month, startYear, startMonth);
+        const idx = getMonthBucketIndex(startYear, row._id.month, startYear, 0);
         if (idx >= 0 && idx < result.length) {
           result[idx].sales = Number(row.sales) || 0;
           result[idx].orders = Number(row.orders) || 0;
         }
       }
+    } else {
+      const orders = await Order.find({
+        createdAt: { $gte: rangeStart, $lte: now },
+        ...ORDER_MATCH,
+      })
+        .select('totalAmount createdAt')
+        .lean();
 
-      return NextResponse.json({ success: true, data: result, range });
-    }
-
-    const rangeStart = getOverallRangeStart(buckets);
-    const startYear = rangeStart.getFullYear();
-    const rows = await Order.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: rangeStart, $lte: now },
-          ...ORDER_MATCH,
-        },
-      },
-      {
-        $group: {
-          _id: { year: { $year: '$createdAt' } },
-          sales: { $sum: '$totalAmount' },
-          orders: { $sum: 1 },
-        },
-      },
-      { $sort: { '_id.year': 1 } },
-    ]);
-
-    for (const row of rows) {
-      const idx = getYearBucketIndex(row._id.year, startYear, buckets.length);
-      if (idx >= 0) {
-        result[idx].sales = Number(row.sales) || 0;
-        result[idx].orders = Number(row.orders) || 0;
+      for (const order of orders) {
+        const idx = findBucketIndex(new Date(order.createdAt), buckets);
+        if (idx >= 0) {
+          result[idx].sales += Number(order.totalAmount) || 0;
+          result[idx].orders += 1;
+        }
       }
     }
 
-    return NextResponse.json({ success: true, data: result, range });
+    return NextResponse.json({
+      success: true,
+      data: result,
+      range,
+      rangeLabel: getRangeLabel(buckets),
+      description: getRangeDescription(range, now),
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch sales chart.';
     console.error('[GET /api/admin/sales-chart]', err);

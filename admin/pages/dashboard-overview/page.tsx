@@ -7,6 +7,7 @@ import SalesChart from '@/components/dashboard/SalesChart';
 import TrafficChart from '@/components/dashboard/TrafficChart';
 import RecentOrders from '@/components/dashboard/RecentOrders';
 import TopSellingProducts from '@/components/dashboard/TopSellingProducts';
+import OrderStatusChart from '@/components/dashboard/OrderStatusChart';
 
 interface Stats {
   totalOrders: number;
@@ -110,53 +111,7 @@ const DashboardOverview = () => {
 
         {/* Additional Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Order Status Summary</h3>
-
-            {/* Donut Chart */}
-            <div className="flex items-center justify-center mb-6">
-              <div className="relative w-40 h-40">
-                <svg className="w-40 h-40 transform -rotate-90">
-                  <circle cx="80" cy="80" r="60" fill="none" stroke="#e5e7eb" strokeWidth="20" />
-                  <circle
-                    cx="80" cy="80" r="60" fill="none" stroke="#10b981" strokeWidth="20"
-                    strokeDasharray={`${totalOrders > 0 ? (completedOrders / totalOrders) * 377 : 0} 377`}
-                    className="transition-all duration-500"
-                  />
-                  <circle
-                    cx="80" cy="80" r="60" fill="none" stroke="#f97316" strokeWidth="20"
-                    strokeDasharray={`${totalOrders > 0 ? (pendingOrders / totalOrders) * 377 : 0} 377`}
-                    strokeDashoffset={`-${totalOrders > 0 ? (completedOrders / totalOrders) * 377 : 0}`}
-                    className="transition-all duration-500"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-gray-900">{totalOrders}</span>
-                  <span className="text-sm text-gray-500">Total Orders</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Legend */}
-            <div className="space-y-3">
-              {[
-                { label: 'Delivered',  count: completedOrders,                         color: 'bg-green-500',  textColor: 'text-green-600'  },
-                { label: 'Pending',    count: pendingOrders,                            color: 'bg-orange-500', textColor: 'text-orange-600' },
-                { label: 'Processing', count: stats?.ordersByStatus.processing ?? 0,   color: 'bg-blue-500',   textColor: 'text-blue-600'   },
-                { label: 'Shipped',    count: stats?.ordersByStatus.shipped    ?? 0,   color: 'bg-cyan-500',   textColor: 'text-cyan-600'   },
-                { label: 'Confirmed',  count: stats?.ordersByStatus.confirmed  ?? 0,   color: 'bg-indigo-500', textColor: 'text-indigo-600' },
-                { label: 'Cancelled',  count: stats?.ordersByStatus.cancelled  ?? 0,   color: 'bg-red-400',    textColor: 'text-red-600'    },
-              ].map(({ label, count, color, textColor }) => (
-                <div key={label} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-3 h-3 ${color} rounded-full`} />
-                    <span className="text-sm font-medium text-gray-700">{label}</span>
-                  </div>
-                  <span className={`text-sm font-bold ${textColor}`}>{count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <OrderStatusChart />
 
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Stats</h3>

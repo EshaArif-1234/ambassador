@@ -189,7 +189,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </div>
 
           {/* Page content */}
-          <main className="p-6 pt-20">
+          <main className="p-6 pt-2">
             {children}
           </main>
 

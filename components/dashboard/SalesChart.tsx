@@ -10,6 +10,7 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
+import { getChartPeriodOptions, type ChartRange } from '@/lib/adminChartRanges';
 
 interface ChartPoint {
   label: string;
@@ -17,21 +18,16 @@ interface ChartPoint {
   orders: number;
 }
 
-type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly';
+type TimeRange = ChartRange;
 type ActiveMetric = 'sales' | 'orders';
+
+const PERIOD_OPTIONS = getChartPeriodOptions();
 
 const chartConfig = {
   overview: { label: 'Overview' },
   sales: { label: 'Sales', color: 'hsl(var(--chart-1))' },
   orders: { label: 'Orders', color: 'hsl(var(--chart-2))' },
 } satisfies ChartConfig;
-
-const PERIOD_OPTIONS: { value: TimeRange; label: string; description: string }[] = [
-  { value: 'daily', label: 'Daily', description: 'Last 7 days' },
-  { value: 'weekly', label: 'Weekly', description: 'Last 4 weeks' },
-  { value: 'monthly', label: 'Monthly', description: 'Last 6 months' },
-  { value: 'yearly', label: 'Yearly', description: 'Last 5 years' },
-];
 
 function formatPkr(value: number): string {
   return `PKR ${Math.round(value).toLocaleString('en-PK')}`;
@@ -343,7 +339,8 @@ const SalesChart = () => {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={12}
-                minTickGap={timeRange === 'daily' ? 8 : 24}
+                minTickGap={timeRange === 'daily' ? 4 : 24}
+                interval={timeRange === 'daily' ? 'preserveStartEnd' : 'preserveStart'}
               />
               <ChartTooltip
                 cursor={false}
@@ -368,10 +365,12 @@ const SalesChart = () => {
               />
               <Area
                 dataKey={activeChart}
-                type="natural"
+                type={timeRange === 'daily' ? 'monotone' : 'natural'}
                 fill={activeChart === 'sales' ? 'url(#fillSales)' : 'url(#fillOrders)'}
                 stroke={`var(--color-${activeChart})`}
                 strokeWidth={2}
+                dot={timeRange === 'daily' ? { r: 3, fill: `var(--color-${activeChart})` } : false}
+                activeDot={{ r: 5 }}
               />
             </AreaChart>
           </ChartContainer>
