@@ -56,7 +56,7 @@ const BranchesPage = () => {
       manager: 'Mr Syed Naeem-ul-Hassan',
       hours: 'Mon–Sat: 9:00 AM – 6:00 PM',
       services: ['Commercial Kitchen Setup', 'Equipment Sales', 'After-Sales Service', 'Spare Parts'],
-      image: '/Images/home/slider 1.jpg',
+      image: '/Images/fazaia-show.png',
       coordinates: { lat: 31.367931, lng: 74.235808 },
     },
     {
