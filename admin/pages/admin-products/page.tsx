@@ -6,6 +6,7 @@ import ProductModal, { ProductFormData } from '@/components/products/ProductModa
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
 import { downloadStockProductsPdf } from '@/utils/generateStockProductsPdf';
+import PageLoader from '@/components/ui/PageLoader';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -320,9 +321,7 @@ const ProductsPage = () => {
           </div>
 
           {loading ? (
-            <div className="p-12 flex justify-center">
-              <div className="w-8 h-8 border-2 border-[#0F4C69] border-t-transparent rounded-full animate-spin" />
-            </div>
+            <PageLoader message="Loading products…" fullScreen={false} className="min-h-0 bg-white py-12" />
           ) : paginated.length === 0 ? (
             <div className="p-12 text-center">
               <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

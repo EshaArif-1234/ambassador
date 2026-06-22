@@ -31,7 +31,7 @@ const CertificatesSection = () => {
 
   return (
     <>
-      <section className="py-16 border-t border-gray-200">
+      <section className="py-16 border-t border-gray-200 bg-gray-50/80">
         <div className="container mx-auto px-4">
 
           {/* ── Header ───────────────────────────────────── */}
@@ -57,7 +57,7 @@ const CertificatesSection = () => {
               <div
                 key={index}
                 onClick={() => setSelectedImage(cert.image)}
-                className="group bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-[#E36630] hover:shadow-lg transition-all duration-300 cursor-pointer"
+                className="group bg-white border border-gray-200 rounded-xl overflow-hidden shadow-[0_8px_28px_rgba(0,0,0,0.12),0_2px_10px_rgba(0,0,0,0.06)] hover:border-[#E36630]/50 hover:shadow-[0_16px_44px_rgba(0,0,0,0.18),0_6px_16px_rgba(227,102,48,0.14)] hover:-translate-y-1 transition-all duration-300 cursor-pointer"
               >
                 {/* Image area */}
                 <div className="relative h-56 w-full overflow-hidden">

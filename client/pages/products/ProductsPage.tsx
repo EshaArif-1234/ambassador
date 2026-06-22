@@ -8,7 +8,7 @@ import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
 import CartPopup from '@/components/products/CartPopup';
 import WishlistButton from '@/components/products/WishlistButton';
 import { useCart } from '@/contexts/CartContext';
-import AccountPageLoader from '@/components/account/AccountPageLoader';
+import PageLoader from '@/components/ui/PageLoader';
 
 interface ApiCategoryRef {
   _id?: string;
@@ -577,16 +577,11 @@ const ProductsPage = () => {
 
             <div>
             {loading ? (
-              <div className="flex min-h-[28rem] items-center justify-center rounded-lg bg-white shadow-md">
-                <div className="flex flex-col items-center gap-4">
-                  <div
-                    className="h-12 w-12 animate-spin rounded-full border-4 border-[#E36630] border-t-transparent"
-                    role="status"
-                    aria-label="Loading products"
-                  />
-                  <p className="text-sm text-gray-500">Loading products…</p>
-                </div>
-              </div>
+              <PageLoader
+                message="Loading products…"
+                fullScreen={false}
+                className="rounded-lg bg-white shadow-md"
+              />
             ) : filteredProducts.length > 0 ? (
               <div className="space-y-4">
                 {filteredProducts.map((product) => {

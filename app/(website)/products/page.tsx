@@ -2,10 +2,11 @@
 
 import { Suspense } from 'react';
 import ProductsPage from '@/client/pages/products/ProductsPage';
+import PageLoader from '@/components/ui/PageLoader';
 
 export default function Products() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<PageLoader message="Loading products…" fullScreen={false} className="min-h-[60vh]" />}>
       <ProductsPage />
     </Suspense>
   );

@@ -1,10 +1,11 @@
 import { Suspense } from 'react';
 import ProductDetailPage from '@/client/pages/products/ProductDetailPage';
+import PageLoader from '@/components/ui/PageLoader';
 
 export default async function Product({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" /></div>}>
+    <Suspense fallback={<PageLoader message="Loading product…" fullScreen={false} className="min-h-[60vh]" />}>
       <ProductDetailPage productId={id} />
     </Suspense>
   );

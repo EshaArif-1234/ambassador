@@ -74,7 +74,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-screen bg-gray-100/70 flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 relative">
       <button
         type="button"
         onClick={() => router.back()}
@@ -87,7 +87,7 @@ export default function SignUpPage() {
       </button>
 
       <div className="max-w-6xl mx-auto w-full">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-[0_8px_28px_rgba(0,0,0,0.12),0_2px_10px_rgba(0,0,0,0.06)]">
           <div className="flex flex-col lg:flex-row">
             <SignUpMarketingSection />
 

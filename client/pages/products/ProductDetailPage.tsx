@@ -16,6 +16,7 @@ import ProductRatingDropdown, {
 import CartPopup from '@/components/products/CartPopup';
 import WishlistButton from '@/components/products/WishlistButton';
 import { useCart } from '@/contexts/CartContext';
+import PageLoader from '@/components/ui/PageLoader';
 
 interface CategoryRef {
   title?: string;
@@ -261,12 +262,24 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
     router.push('/checkout');
   };
 
+  const backButton = (
+    <button
+      type="button"
+      onClick={() => router.back()}
+      className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-md transition-shadow hover:shadow-lg"
+    >
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+      Back
+    </button>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="container mx-auto px-4">
-          <div className="h-96 max-w-4xl animate-pulse rounded-lg bg-gray-200" />
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 pt-6">{backButton}</div>
+        <PageLoader message="Loading product…" fullScreen={false} className="min-h-[70vh]" />
       </div>
     );
   }
@@ -274,11 +287,14 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   if (notFound || !product) {
     return (
       <div className="min-h-screen bg-gray-50 py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Product not found</h1>
-          <Link href="/products" className="font-medium text-[#E36630] hover:text-[#cc5a2a]">
-            Back to products
-          </Link>
+        <div className="container mx-auto px-4">
+          <div className="mb-8">{backButton}</div>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">Product not found</h1>
+            <Link href="/products" className="font-medium text-[#E36630] hover:text-[#cc5a2a]">
+              Back to products
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -287,7 +303,8 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
-        <div className="mb-6">
+        <div className="mb-6 flex flex-col gap-4">
+          {backButton}
           <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
             <Link href="/" className="transition-colors hover:text-[#E36630]">
               Home

@@ -32,9 +32,9 @@ const CustomKitchenHighlight = () => (
     <div className="container relative mx-auto px-4 py-12 md:py-20 lg:py-24">
       <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
         <div className="relative order-2 lg:order-1">
-          <div className="relative aspect-[4/3] min-h-[240px] overflow-hidden rounded-2xl shadow-2xl shadow-black/30 ring-1 ring-white/10 lg:aspect-auto lg:h-[min(380px,50vh)] lg:min-h-[280px]">
+          <div className="relative aspect-[4/3] min-h-[280px] overflow-hidden rounded-2xl shadow-2xl shadow-black/30 ring-1 ring-white/10 lg:aspect-auto lg:h-[min(460px,55vh)] lg:min-h-[340px]">
             <Image
-              src="/Images/custom-kitchen-dark.jpg"
+              src="/Images/Nestle-For-Web.webp"
               alt="Custom commercial kitchen design and installation"
               fill
               className="object-cover object-center"
