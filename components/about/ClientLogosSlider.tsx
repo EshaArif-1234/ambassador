@@ -66,24 +66,27 @@ const half = Math.ceil(logos.length / 2);
 const row1 = logos.slice(0, half);
 const row2 = logos.slice(half);
 
-const SEGMENT_GAP  = 'gap-4 sm:gap-5 md:gap-6 lg:gap-7';
+const SEGMENT_GAP  = 'gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-7';
 /** Matches gap so the seam between duplicated segments has the same spacing as between logos; keeps -50% loop exact. */
-const SEGMENT_TAIL = 'pr-4 sm:pr-5 md:pr-6 lg:pr-7';
+const SEGMENT_TAIL = 'pr-3 sm:pr-4 md:pr-5 lg:pr-6 xl:pr-7';
+
+const FADE_LEFT  = 'pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[#E3E6E6] to-transparent sm:w-12 md:w-16 lg:w-24';
+const FADE_RIGHT = 'pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[#E3E6E6] to-transparent sm:w-12 md:w-16 lg:w-24';
 
 interface LogoCardProps {
   logo: { id: string; logo: string; name: string };
 }
 
 const LogoCard = ({ logo }: LogoCardProps) => (
-  <div className="group h-16 w-16 shrink-0 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 xl:h-28 xl:w-28">
-    <div className="relative h-full w-full overflow-hidden rounded-full border-2 border-gray-100 bg-white shadow-sm transition-all duration-300 hover:border-[#E36630] hover:shadow-md hover:-translate-y-1">
-      <div className="absolute inset-2 sm:inset-2.5 md:inset-3 lg:inset-[0.875rem] xl:inset-4">
+  <div className="group h-14 w-14 shrink-0 sm:h-16 sm:w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 xl:h-28 xl:w-28">
+    <div className="relative h-full w-full overflow-hidden rounded-full border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:border-[#E36630] hover:shadow-md hover:-translate-y-1 sm:border-2">
+      <div className="absolute inset-1.5 sm:inset-2 md:inset-2.5 lg:inset-3 xl:inset-4">
         <div className="relative h-full w-full">
           <Image
             src={logo.logo}
             alt={logo.name}
             fill
-            sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, (max-width: 1024px) 96px, 112px"
+            sizes="(max-width: 640px) 56px, (max-width: 768px) 64px, (max-width: 1024px) 80px, 112px"
             className="object-contain transition-transform duration-300 group-hover:scale-110"
             draggable={false}
             onError={(e) => {
@@ -139,10 +142,22 @@ const ClientLogosSlider = () => {
           -webkit-backface-visibility: hidden;
         }
         .marquee-inner-left {
-          animation: marquee-left 45s linear infinite;
+          animation: marquee-left 55s linear infinite;
         }
         .marquee-inner-right {
-          animation: marquee-right 45s linear infinite;
+          animation: marquee-right 55s linear infinite;
+        }
+        @media (min-width: 640px) {
+          .marquee-inner-left,
+          .marquee-inner-right {
+            animation-duration: 50s;
+          }
+        }
+        @media (min-width: 768px) {
+          .marquee-inner-left,
+          .marquee-inner-right {
+            animation-duration: 45s;
+          }
         }
         .marquee-track:hover .marquee-inner {
           animation-play-state: paused;
@@ -156,30 +171,30 @@ const ClientLogosSlider = () => {
         }
       `}</style>
 
-      <section className="border-t border-gray-200 bg-[#E3E6E6] py-10 md:py-16">
+      <section className="border-t border-gray-200 bg-[#E3E6E6] py-8 sm:py-10 md:py-16">
         <div className="container mx-auto px-4">
-          <div className="mb-12 text-center">
-            <span className="mb-4 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-[#0F4C69]">
-              <span className="h-px w-8 bg-[#0F4C69]" />
+          <div className="mb-8 text-center sm:mb-10 md:mb-12">
+            <span className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#0F4C69] sm:mb-4 sm:gap-2 sm:text-sm sm:tracking-widest">
+              <span className="h-px w-6 bg-[#0F4C69] sm:w-8" />
               Trusted By
-              <span className="h-px w-8 bg-[#0F4C69]" />
+              <span className="h-px w-6 bg-[#0F4C69] sm:w-8" />
             </span>
-            <h2 className="mb-4 text-3xl font-bold leading-tight text-gray-900 md:text-4xl">
+            <h2 className="mb-3 text-2xl font-bold leading-tight text-gray-900 sm:mb-4 sm:text-3xl md:text-4xl">
               Businesses That <span className="text-[#E36630]">Rely on Us</span>
             </h2>
-            <p className="mx-auto max-w-2xl text-base leading-relaxed text-gray-500 md:text-lg">
+            <p className="mx-auto max-w-2xl px-1 text-sm leading-relaxed text-gray-500 sm:text-base md:text-lg">
               From five-star hotels to fast-food chains — over 1,200 businesses across Pakistan trust Ambassador
               for their commercial kitchen needs.
             </p>
-            <div className="mx-auto mt-5 h-1 w-16 rounded-full bg-[#E36630]" />
+            <div className="mx-auto mt-4 h-1 w-12 rounded-full bg-[#E36630] sm:mt-5 sm:w-16" />
           </div>
         </div>
 
         <div className="overflow-x-hidden overflow-y-visible">
           {/* Row 1 — scrolls left */}
-          <div className="marquee-track relative mb-6">
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#FAFAFA] to-transparent" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#FAFAFA] to-transparent" />
+          <div className="marquee-track relative mb-4 sm:mb-5 md:mb-6">
+            <div className={FADE_LEFT} aria-hidden />
+            <div className={FADE_RIGHT} aria-hidden />
 
             <div className="marquee-inner marquee-inner-left">
               <LogoSegment items={row1} prefix="r1a" />
@@ -189,8 +204,8 @@ const ClientLogosSlider = () => {
 
           {/* Row 2 — scrolls right */}
           <div className="marquee-track relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#FAFAFA] to-transparent" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#FAFAFA] to-transparent" />
+            <div className={FADE_LEFT} aria-hidden />
+            <div className={FADE_RIGHT} aria-hidden />
 
             <div className="marquee-inner marquee-inner-right">
               <LogoSegment items={row2} prefix="r2a" />

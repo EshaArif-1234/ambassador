@@ -1,5 +1,5 @@
 'use client';
-import Image from 'next/image';
+
 import Link from 'next/link';
 
 interface CategoryCardProps {
@@ -12,25 +12,26 @@ interface CategoryCardProps {
 
 const CategoryCard = ({ title, image, category, children }: CategoryCardProps) => {
   const href = category ? `/products?category=${encodeURIComponent(category)}` : '/products';
-  
+
   return (
-    <Link href={href} className="block">
-      <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
-        <div className="h-56 sm:h-64 md:h-[358px] relative">
+    <Link href={href} className="block h-full">
+      <div className="flex h-full flex-col overflow-hidden rounded-lg bg-white shadow-md transition-shadow duration-300 hover:shadow-xl sm:rounded-xl">
+        <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-white">
           {image ? (
             <img
               src={image}
               alt={title}
-              className="w-full h-full object-cover"
+              className="h-full w-full object-contain object-center"
             />
           ) : (
             children
           )}
         </div>
-        <div className="p-4">
-          <h3 className="text-[28px] leading-[40px] text-center  font-semibold text-[#0F4C69] mb-2">{title}</h3>
+        <div className="flex flex-1 flex-col justify-center p-3 sm:p-4">          <h3 className="mb-1.5 line-clamp-2 text-center text-lg font-semibold leading-snug text-[#0F4C69] sm:mb-2 sm:text-xl md:text-2xl md:leading-tight lg:text-[28px] lg:leading-[40px]">
+            {title}
+          </h3>
           <div className="flex justify-center">
-            <span className="text-[#E36630] text-center hover:text-[#E36630]/80 font-medium transition-colors inline-block">
+            <span className="inline-block text-center text-xs font-medium text-[#E36630] transition-colors hover:text-[#E36630]/80 sm:text-sm">
               See More →
             </span>
           </div>
