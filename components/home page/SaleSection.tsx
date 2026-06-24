@@ -271,63 +271,72 @@ export default function SaleSection() {
             </svg>
           </Link>
         </div>
+      </div>
 
-        {loading ? (
-          <div className="flex gap-5 overflow-hidden">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-[22rem] w-[17rem] shrink-0 animate-pulse rounded-2xl border border-white/10 bg-white/10"
-              />
+      {loading ? (
+        <div className="flex w-full gap-5 overflow-hidden">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[22rem] w-[17rem] shrink-0 animate-pulse rounded-2xl border border-white/10 bg-white/10 first:ml-4 last:mr-4 sm:first:ml-6 sm:last:mr-6"
+            />
+          ))}
+        </div>
+      ) : (
+        <div
+          ref={viewportRef}
+          className="relative w-full overflow-hidden pb-2"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          onFocus={() => setPaused(true)}
+          onBlur={() => setPaused(false)}
+          onTouchStart={() => setPaused(true)}
+          onTouchEnd={() => setPaused(false)}
+        >
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 z-[5] w-10 bg-gradient-to-r from-[#0c3548] to-transparent sm:w-16"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-10 bg-gradient-to-l from-[#0a3d52] to-transparent sm:w-16"
+            aria-hidden
+          />
+
+          {canLoop && (
+            <>
+              <button
+                type="button"
+                onClick={() => nudge('left')}
+                aria-label="Previous sale product"
+                className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[#0F4C69]/90 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-[#E36630] sm:left-5 sm:h-11 sm:w-11 md:left-6"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => nudge('right')}
+                aria-label="Next sale product"
+                className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[#0F4C69]/90 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-[#E36630] sm:right-5 sm:h-11 sm:w-11 md:right-6"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </>
+          )}
+          <div
+            ref={trackRef}
+            className="flex w-max gap-5 pl-4 sm:pl-6"
+            style={{ willChange: canLoop ? 'transform' : undefined }}
+          >
+            {loopProducts.map((product, index) => (
+              <SaleProductCard key={`${product._id}-${index}`} product={product} />
             ))}
           </div>
-        ) : (
-          <div
-            ref={viewportRef}
-            className="relative overflow-hidden pb-2"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            onFocus={() => setPaused(true)}
-            onBlur={() => setPaused(false)}
-            onTouchStart={() => setPaused(true)}
-            onTouchEnd={() => setPaused(false)}
-          >
-            {canLoop && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => nudge('left')}
-                  aria-label="Previous sale product"
-                  className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[#0F4C69]/90 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-[#E36630] sm:left-3 sm:h-11 sm:w-11"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => nudge('right')}
-                  aria-label="Next sale product"
-                  className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[#0F4C69]/90 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-[#E36630] sm:right-3 sm:h-11 sm:w-11"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </>
-            )}
-            <div
-              ref={trackRef}
-              className="flex w-max gap-5"
-              style={{ willChange: canLoop ? 'transform' : undefined }}
-            >
-              {loopProducts.map((product, index) => (
-                <SaleProductCard key={`${product._id}-${index}`} product={product} />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
