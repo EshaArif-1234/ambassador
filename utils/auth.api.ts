@@ -8,6 +8,7 @@ export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
+  errors?: Record<string, string>;
 }
 
 export interface ApiUser {
@@ -55,6 +56,16 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
+export class AuthApiError extends Error {
+  errors?: Record<string, string>;
+
+  constructor(message: string, errors?: Record<string, string>) {
+    super(message);
+    this.name = 'AuthApiError';
+    this.errors = errors;
+  }
+}
+
 export interface UpdateProfilePayload {
   fullName?: string;
   phoneNumber?: string;
@@ -76,7 +87,7 @@ async function request<T>(
   const data: ApiResponse<T> = await res.json();
 
   if (!res.ok) {
-    throw new Error(data.message || 'Something went wrong. Please try again.');
+    throw new AuthApiError(data.message || 'Something went wrong. Please try again.', data.errors);
   }
 
   return data;

@@ -67,7 +67,13 @@ const AdminHeader = () => {
               {/* Profile Dropdown */}
               {showProfileMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50" ref={profileRef}>
-                 
+                  <Link
+                    href="/admin-settings?section=security"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Change Password
+                  </Link>
                   <button
                     onClick={logout}
                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"

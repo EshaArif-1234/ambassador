@@ -1,13 +1,41 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 
+/** Default session length for admin and user logins. */
+export const DEFAULT_SESSION_SECONDS = 2 * 60 * 60; // 2 hours
+
 const secret = () => {
   const s = process.env.JWT_SECRET;
   if (!s) throw new Error('JWT_SECRET is not defined.');
   return s;
 };
 
-const expiresIn = () => process.env.JWT_EXPIRES_IN ?? '7d';
+const expiresIn = () => process.env.JWT_EXPIRES_IN ?? '2h';
+
+/** Parse JWT_EXPIRES_IN (e.g. 2h, 30m, 7d) into cookie maxAge seconds. */
+export function sessionMaxAgeSeconds(): number {
+  const raw = expiresIn().trim();
+  const match = raw.match(/^(\d+)\s*([smhdw])?$/i);
+  if (!match) return DEFAULT_SESSION_SECONDS;
+
+  const value = parseInt(match[1], 10);
+  if (!Number.isFinite(value) || value <= 0) return DEFAULT_SESSION_SECONDS;
+
+  switch ((match[2] ?? 's').toLowerCase()) {
+    case 's':
+      return value;
+    case 'm':
+      return value * 60;
+    case 'h':
+      return value * 60 * 60;
+    case 'd':
+      return value * 24 * 60 * 60;
+    case 'w':
+      return value * 7 * 24 * 60 * 60;
+    default:
+      return DEFAULT_SESSION_SECONDS;
+  }
+}
 
 export const signToken = (userId: string): string => {
   return jwt.sign({ id: userId }, secret(), {
@@ -50,8 +78,7 @@ export function authCookieOptions(maxAge: number) {
 
 /** Attach a signed JWT as an httpOnly cookie on a NextResponse. */
 export const attachCookie = (response: NextResponse, token: string): void => {
-  const days = parseInt(expiresIn(), 10) || 7;
-  response.cookies.set('token', token, authCookieOptions(days * 24 * 60 * 60));
+  response.cookies.set('token', token, authCookieOptions(sessionMaxAgeSeconds()));
 };
 
 /** Clear the JWT cookie on a NextResponse. */

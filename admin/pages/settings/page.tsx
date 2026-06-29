@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import AdminChangePasswordCard from '@/components/dashboard/AdminChangePasswordCard';
 
 interface SettingsSection {
   id: string;
@@ -75,6 +76,13 @@ const AdminSettingsPage = () => {
   const [activeSection, setActiveSection] = useState('general');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+
+  useEffect(() => {
+    const section = new URLSearchParams(window.location.search).get('section');
+    if (section && ['general', 'company', 'notifications', 'security', 'payment', 'email'].includes(section)) {
+      setActiveSection(section);
+    }
+  }, []);
 
   // Settings sections
   const sections: SettingsSection[] = [
@@ -459,6 +467,8 @@ const AdminSettingsPage = () => {
       case 'security':
         return (
           <div className="space-y-6">
+            <AdminChangePasswordCard />
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

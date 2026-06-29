@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { authApi } from '@/utils/auth.api';
+import { authApi, AuthApiError } from '@/utils/auth.api';
+import { validatePasswordChange } from '@/utils/passwordValidation.util';
 import AuthHeader from '../../../components/common/AuthHeader';
 import ChangePasswordForm from '../../../components/changepassword/ChangePasswordForm';
 import SuccessState from '../../../components/changepassword/SuccessState';
@@ -42,38 +43,12 @@ export default function ChangePasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   const validateForm = (): boolean => {
-    const newErrors: Errors = {};
-
-    // Old Password (authenticated change only)
-    if (isAuthenticatedChange && !formData.oldPassword) {
-      newErrors.oldPassword = 'Current password is required';
-    }
-
-    // New Password Validation
-    if (!formData.newPassword) {
-      newErrors.newPassword = 'New password is required';
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
-    } else if (formData.newPassword.length > 50) {
-      newErrors.newPassword = 'Password must be less than 50 characters';
-    } else if (!/(?=.*[a-z])/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one lowercase letter';
-    } else if (!/(?=.*[A-Z])/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one uppercase letter';
-    } else if (!/(?=.*\d)/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one number';
-    } else if (!/(?=.*[@$!%*?&])/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one special character (@$!%*?&)';
-    } else if (isAuthenticatedChange && formData.oldPassword && formData.oldPassword === formData.newPassword) {
-      newErrors.newPassword = 'New password must be different from the current password';
-    }
-
-    // Confirm Password Validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your new password';
-    } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
+    const newErrors = validatePasswordChange({
+      oldPassword: formData.oldPassword,
+      newPassword: formData.newPassword,
+      confirmPassword: formData.confirmPassword,
+      requireOldPassword: isAuthenticatedChange,
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -106,10 +81,14 @@ export default function ChangePasswordPage() {
       }
       setIsSuccess(true);
     } catch (error) {
-      setErrors(prev => ({
-        ...prev,
-        submit: (error as Error).message || 'An error occurred. Please try again.',
-      }));
+      if (error instanceof AuthApiError && error.errors) {
+        setErrors({ ...error.errors, submit: error.message });
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          submit: (error as Error).message || 'An error occurred. Please try again.',
+        }));
+      }
     } finally {
       setIsLoading(false);
     }
