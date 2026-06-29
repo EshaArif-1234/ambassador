@@ -71,7 +71,7 @@ const BranchesPage = () => {
       manager: 'Mr Rashid',
       hours: 'Mon–Sat: 9:00 AM – 6:00 PM',
       services: ['Restaurant Equipment', 'Hotel Supplies', 'Installation Service', 'Maintenance'],
-      image: '/Images/home/slider 2.jpg',
+      image: '/Images/branch-1.png',
       coordinates: { lat: 31.5204, lng: 74.3587 },
     },
     {
@@ -86,7 +86,7 @@ const BranchesPage = () => {
       manager: 'Mr Abid Moen',
       hours: 'Mon–Sat: 9:00 AM – 6:00 PM',
       services: ['Bakery Equipment', 'Food Processing', 'Custom Solutions', 'Technical Support'],
-      image: '/Images/home/slider 3.jpg',
+      image: '/Images/branch-2.png',
       coordinates: { lat: 33.600344, lng: 73.060206 },
     },
   ];
