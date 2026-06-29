@@ -4,9 +4,16 @@ import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
+import CheckoutComingSoon from '@/components/checkout/CheckoutComingSoon';
+import { CHECKOUT_ENABLED } from '@/lib/checkoutEnabled';
 
 const CheckoutPage = () => {
   const { cartItems } = useCart();
+
+  if (!CHECKOUT_ENABLED) {
+    return <CheckoutComingSoon />;
+  }
+
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

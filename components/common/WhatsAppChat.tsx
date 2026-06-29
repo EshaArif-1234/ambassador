@@ -1,12 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { openWhatsApp } from '@/utils/whatsapp.util';
 
-/**
- * Set your WhatsApp business number in international format — no + or spaces.
- * Example: 923001234567  →  +92 300 123 4567
- */
-const PHONE_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '923001234567';
 const WELCOME_MESSAGE = 'How can I help you? :)';
 
 function nowTime() {
@@ -41,11 +37,8 @@ const WhatsAppChatWidget = () => {
     const text = input.trim();
     if (!text) return;
 
+    openWhatsApp(text);
     setInput('');
-
-    // Open WhatsApp with pre-filled message directly — no bubble added
-    const encoded = encodeURIComponent(text);
-    window.open(`https://wa.me/${PHONE_NUMBER}?text=${encoded}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import OrderSummary from '@/components/checkout/OrderSummary';
+import CheckoutComingSoon from '@/components/checkout/CheckoutComingSoon';
+import { CHECKOUT_ENABLED } from '@/lib/checkoutEnabled';
 import { useCart, type CartItem } from '@/contexts/CartContext';
 
 interface PaymentData {
@@ -511,4 +513,13 @@ const PaymentGatewayPage = () => {
   );
 };
 
-export default PaymentGatewayPage;
+function PaymentComingSoonPage() {
+  return <CheckoutComingSoon />;
+}
+
+export default function PaymentPage() {
+  if (!CHECKOUT_ENABLED) {
+    return <PaymentComingSoonPage />;
+  }
+  return <PaymentGatewayPage />;
+}
