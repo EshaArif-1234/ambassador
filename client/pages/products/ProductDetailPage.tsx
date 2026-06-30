@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import ProductDetailGallery from '@/components/products/ProductDetailGallery';
 import {
   PRODUCT_PLACEHOLDER,
@@ -17,6 +17,13 @@ import CartPopup from '@/components/products/CartPopup';
 import WishlistButton from '@/components/products/WishlistButton';
 import { useCart } from '@/contexts/CartContext';
 import PageLoader from '@/components/ui/PageLoader';
+import {
+  COLLECTION_PATH,
+  catalogueHref,
+  collectionCategoryPath,
+  primaryCategorySlug,
+  productDetailPath,
+} from '@/lib/siteRoutes';
 
 interface CategoryRef {
   title?: string;
@@ -47,7 +54,7 @@ interface CatalogProductRow {
   price?: number;
   originalPrice: number;
   images: string[];
-  categories?: { title?: string }[];
+  categories?: { title?: string; slug?: string }[];
 }
 
 interface ReviewRow {
@@ -83,11 +90,14 @@ function rowDisplayPrice(p: { price?: number; originalPrice: number }): number {
 
 const ProductDetailPage = ({ productId }: { productId: string }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<CatalogProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [showCartPopup, setShowCartPopup] = useState(false);
   const relatedScrollRef = useRef<HTMLDivElement>(null);
@@ -138,20 +148,36 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
     (async () => {
       setLoading(true);
       setNotFound(false);
+      setUnavailable(false);
+      setLoadError(null);
+      setProduct(null);
+      setReviews([]);
+      setRelatedProducts([]);
+
       try {
-        const res = await fetch(`/api/products/${productId}`, { cache: 'no-store' });
-        const json = await res.json();
-        if (res.status === 404 || !json?.success) {
-          if (!cancelled) setNotFound(true);
+        const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, { cache: 'no-store' });
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+
+        if (res.status === 404) {
+          if (json?.code === 'unavailable') setUnavailable(true);
+          else setNotFound(true);
           return;
         }
-        if (cancelled) return;
+
+        if (!res.ok || !json?.success || !json?.data?.product) {
+          setLoadError(json?.message || 'Could not load this product. Please try again.');
+          return;
+        }
+
         const p = json.data.product as ProductDetail;
         const rev = (json.data.reviews ?? []) as ReviewRow[];
         setProduct(p);
         setReviews(rev);
       } catch {
-        if (!cancelled) setNotFound(true);
+        if (!cancelled) {
+          setLoadError('Could not load this product. Please check your connection and try again.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -160,6 +186,18 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       cancelled = true;
     };
   }, [productId]);
+
+  useEffect(() => {
+    if (!product) return;
+    const catSlug = primaryCategorySlug(product.categories);
+    if (!catSlug) return;
+    const canonical = productDetailPath(String(product._id), catSlug);
+    const normalized =
+      pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+    if (normalized !== canonical) {
+      router.replace(canonical, { scroll: false });
+    }
+  }, [product, pathname, router]);
 
   useEffect(() => {
     if (!product) return;
@@ -229,6 +267,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
     product.originalPrice > product.price;
 
   const categoryLine = product?.categories?.map((c) => c.title).filter(Boolean).join(' · ');
+  const primaryCat = product?.categories?.[0];
   const brandTags = product ? normalizeBrandTags(product.brands) : [];
 
   const buildCartItem = () => {
@@ -284,16 +323,40 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
     );
   }
 
-  if (notFound || !product) {
+  if (notFound || unavailable || loadError || !product) {
     return (
       <div className="min-h-screen bg-gray-50 py-16">
         <div className="container mx-auto px-4">
           <div className="mb-8">{backButton}</div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">Product not found</h1>
-            <Link href="/products" className="font-medium text-[#E36630] hover:text-[#cc5a2a]">
-              Back to products
-            </Link>
+          <div className="text-center max-w-md mx-auto">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">
+              {unavailable
+                ? 'Product no longer available'
+                : loadError
+                  ? 'Unable to load product'
+                  : 'Product not found'}
+            </h1>
+            <p className="text-gray-600 mb-6">
+              {unavailable
+                ? 'This item has been removed from our catalog.'
+                : loadError
+                  ? loadError
+                  : 'The product may have been removed or the link is incorrect.'}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              {loadError ? (
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="rounded-lg bg-[#0F4C69] px-6 py-3 text-white transition-colors hover:bg-[#0d4259]"
+                >
+                  Try again
+                </button>
+              ) : null}
+              <Link href={COLLECTION_PATH} className="rounded-lg bg-[#E36630] px-6 py-3 font-medium text-white transition-colors hover:bg-[#cc5a2a]">
+                Browse products
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -310,9 +373,20 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
               Home
             </Link>
             <span>/</span>
-            <Link href="/products" className="transition-colors hover:text-[#E36630]">
+            <Link href={COLLECTION_PATH} className="transition-colors hover:text-[#E36630]">
               Products
             </Link>
+            {primaryCat?.slug && primaryCat.title ? (
+              <>
+                <span>/</span>
+                <Link
+                  href={collectionCategoryPath(primaryCat.slug)}
+                  className="transition-colors hover:text-[#E36630]"
+                >
+                  {primaryCat.title}
+                </Link>
+              </>
+            ) : null}
             <span>/</span>
             <span className="text-gray-800 line-clamp-2">{product.name}</span>
           </nav>
@@ -513,9 +587,10 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                     {relatedProducts.length >= 16 ? ' (showing first 16)' : ''}
                     {' · '}
                     <Link
-                      href={`/products?category=${encodeURIComponent(
-                        product.categories?.[0]?.title ?? ''
-                      )}`}
+                      href={catalogueHref({
+                        categorySlug: product.categories?.[0]?.slug,
+                        category: product.categories?.[0]?.title ?? '',
+                      })}
                       className="font-medium text-[#0F4C69] hover:text-[#E36630]"
                     >
                       View all
@@ -556,7 +631,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                 return (
                   <Link
                     key={r._id}
-                    href={`/products/${r._id}`}
+                    href={productDetailPath(r._id, primaryCategorySlug(r.categories))}
                     className="w-40 shrink-0 snap-start overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-48"
                   >
                     <div className="relative h-40 w-full bg-[#E5E5E5] sm:h-44">

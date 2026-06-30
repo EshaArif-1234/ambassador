@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { CATALOGUE_PATH } from '@/lib/siteRoutes';
 
 interface NotFoundScreenProps {
   title?: string;
@@ -95,7 +96,7 @@ export default function NotFoundScreen({
                   <a href="/" className="text-orange-500 hover:text-orange-600 block">
                     → Homepage
                   </a>
-                  <a href="/products" className="text-orange-500 hover:text-orange-600 block">
+                  <a href={CATALOGUE_PATH} className="text-orange-500 hover:text-orange-600 block">
                     → Browse Products
                   </a>
                   <a href="/login" className="text-orange-500 hover:text-orange-600 block">

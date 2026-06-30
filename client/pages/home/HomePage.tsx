@@ -136,6 +136,7 @@ const HomePage = () => {
                   title={category.title}
                   image={category.image || undefined}
                   category={category.title}
+                  categorySlug={category.slug}
                 />
               ))
             )}

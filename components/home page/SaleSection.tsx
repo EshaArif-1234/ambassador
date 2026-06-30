@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { catalogueHref, productDetailPath, primaryCategorySlug } from '@/lib/siteRoutes';
 
 interface SaleProduct {
   _id: string;
@@ -11,7 +12,7 @@ interface SaleProduct {
   originalPrice: number;
   images: string[];
   stock?: number;
-  categories?: Array<{ title?: string }>;
+  categories?: Array<{ title?: string; slug?: string }>;
 }
 
 const DEFAULT_IMAGE = '/Images/home/stainless-steal.webp';
@@ -39,13 +40,15 @@ function SaleProductCard({ product }: { product: SaleProduct }) {
   const outOfStock = (product.stock ?? 0) <= 0;
   const image = product.images?.[0] || DEFAULT_IMAGE;
   const category = categoryTitle(product.categories);
+  const categorySlug = primaryCategorySlug(product.categories);
+  const detailHref = productDetailPath(product._id, categorySlug);
 
   return (
     <article
       data-sale-card
       className="group relative w-[14rem] shrink-0 overflow-hidden rounded-xl border border-white/15 bg-white/95 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.5)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 sm:w-[15.5rem] sm:rounded-2xl md:w-[16.5rem] lg:w-[17rem] lg:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)]"
     >
-      <Link href={`/products/${product._id}`} className="relative block h-36 overflow-hidden bg-[#EEF5F9] sm:h-40 md:h-44 lg:h-48">
+      <Link href={detailHref} className="relative block h-36 overflow-hidden bg-[#EEF5F9] sm:h-40 md:h-44 lg:h-48">
         <Image
           src={image}
           alt={product.name}
@@ -72,7 +75,7 @@ function SaleProductCard({ product }: { product: SaleProduct }) {
             {category}
           </p>
         ) : null}
-        <Link href={`/products/${product._id}`}>
+        <Link href={detailHref}>
           <h3 className="line-clamp-2 text-xs font-bold leading-snug text-gray-900 transition-colors group-hover:text-[#E36630] sm:text-sm">
             {product.name}
           </h3>
@@ -90,7 +93,7 @@ function SaleProductCard({ product }: { product: SaleProduct }) {
         </div>
 
         <Link
-          href={`/products/${product._id}`}
+          href={detailHref}
           className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0F4C69] py-2 text-[11px] font-bold text-white transition-colors hover:bg-[#0d3d55] sm:rounded-xl sm:py-2.5 sm:text-xs"
         >
           Shop Now
@@ -264,7 +267,7 @@ export default function SaleSection() {
           </div>
 
           <Link
-            href="/products?features=on_sale"
+            href={catalogueHref({ features: 'on_sale' })}
             className="inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-full bg-[#E36630] px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#E36630]/30 transition-all hover:bg-[#cc5a2a] hover:shadow-[#E36630]/40 sm:w-auto sm:max-w-none sm:px-5 sm:text-sm"
           >
             View All Sales

@@ -1,17 +1,23 @@
 'use client';
 
 import Link from 'next/link';
+import { COLLECTION_PATH, catalogueHref, collectionCategoryPath } from '@/lib/siteRoutes';
 
 interface CategoryCardProps {
   title: string;
   image?: string;
   category?: string;
+  categorySlug?: string;
   onSeeMore?: () => void;
   children?: React.ReactNode;
 }
 
-const CategoryCard = ({ title, image, category, children }: CategoryCardProps) => {
-  const href = category ? `/products?category=${encodeURIComponent(category)}` : '/products';
+const CategoryCard = ({ title, image, category, categorySlug, children }: CategoryCardProps) => {
+  const href = categorySlug
+    ? collectionCategoryPath(categorySlug)
+    : category
+      ? catalogueHref({ category })
+      : COLLECTION_PATH;
 
   return (
     <Link href={href} className="block h-full">

@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { CATALOGUE_PATH } from '@/lib/siteRoutes';
 import { getPublishedCaseStudies } from '@/client/data/customKitchenCases';
 
 const projects = getPublishedCaseStudies().map((c) => ({
@@ -206,7 +207,7 @@ const CustomKitchenPage = () => {
               Get Free Consultation
             </Link>
             <Link
-              href="/products"
+              href={CATALOGUE_PATH}
               className="px-8 py-3 border-2 border-white/30 text-white font-semibold rounded-lg hover:bg-white hover:text-[#0F4C69] transition-colors"
             >
               View Ambassador Products

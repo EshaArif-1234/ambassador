@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { CATALOGUE_PATH } from '@/lib/siteRoutes';
 import { useUser } from '@/contexts/UserContext';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
@@ -205,7 +206,7 @@ export default function OrdersPage() {
             </svg>
             <p className="text-gray-500 font-medium">No orders found</p>
             <Link
-              href="/products"
+              href={CATALOGUE_PATH}
               className="mt-4 inline-block px-6 py-2 bg-[#E36630] text-white rounded-xl text-sm hover:bg-[#cc5a2a]"
             >
               Start Shopping

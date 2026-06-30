@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { COLLECTION_PATH } from '@/lib/siteRoutes';
 
 /** Public routes — keep in sync with main site navigation */
 const SERVICE_LINKS = [
-  { label: 'Products', href: '/products' },
+  { label: 'Products', href: COLLECTION_PATH },
   { label: 'Custom kitchen', href: '/custom-kitchen' },
   { label: 'Gallery', href: '/gallery' },
   { label: 'About', href: '/about' },

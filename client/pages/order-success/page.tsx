@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { CATALOGUE_PATH } from '@/lib/siteRoutes';
 import Image from 'next/image';
 import { useUser } from '@/contexts/UserContext';
 import type { CartItem } from '@/contexts/CartContext';
@@ -162,7 +163,7 @@ const OrderSuccessPage = () => {
       <div className="container mx-auto px-4">
         <div className="mb-6 flex justify-end">
           <Link
-            href="/products"
+            href={CATALOGUE_PATH}
             className="flex items-center text-[#E36630] hover:text-[#cc5a2a]"
           >
             Continue Shopping
@@ -315,7 +316,7 @@ const OrderSuccessPage = () => {
                   {user ? 'Track Your Order' : 'Login to Track Order'}
                 </Link>
                 <Link
-                  href="/products"
+                  href={CATALOGUE_PATH}
                   className="block w-full rounded-lg border border-gray-300 py-3 px-4 text-center font-medium text-gray-700 transition-colors hover:bg-gray-50"
                 >
                   Continue Shopping

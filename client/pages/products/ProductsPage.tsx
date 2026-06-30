@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
@@ -9,6 +9,12 @@ import CartPopup from '@/components/products/CartPopup';
 import WishlistButton from '@/components/products/WishlistButton';
 import { useCart } from '@/contexts/CartContext';
 import PageLoader from '@/components/ui/PageLoader';
+import {
+  COLLECTION_PATH,
+  collectionCategoryPath,
+  productDetailPath,
+  slugFromCollectionPath,
+} from '@/lib/siteRoutes';
 
 interface ApiCategoryRef {
   _id?: string;
@@ -37,6 +43,7 @@ interface Product {
   name: string;
   description: string;
   category: string;
+  categorySlug: string | undefined;
   categoryTitles: string[];
   price: number;
   originalPrice: number;
@@ -56,10 +63,10 @@ function normalizeBrandTags(raw: unknown): string[] {
 }
 
 function mapApiToProduct(p: ApiProductRow): Product {
-  const cats = Array.isArray(p.categories)
-    ? p.categories.map((c) => c.title).filter((t): t is string => Boolean(t))
-    : [];
+  const catRefs = Array.isArray(p.categories) ? p.categories : [];
+  const cats = catRefs.map((c) => c.title).filter((t): t is string => Boolean(t));
   const category = cats[0] ?? 'Uncategorized';
+  const categorySlug = catRefs.find((c) => c.slug)?.slug ?? catRefs[0]?.slug;
   const displayPrice =
     p.price != null && p.price > 0 ? p.price : p.originalPrice ?? 0;
   const image = p.images?.[0] || '/Images/home/stainless-steal.webp';
@@ -71,6 +78,7 @@ function mapApiToProduct(p: ApiProductRow): Product {
     name: p.name,
     description: (p.about ?? '').trim(),
     category,
+    categorySlug: categorySlug || undefined,
     categoryTitles: cats,
     price: displayPrice,
     originalPrice: p.originalPrice ?? displayPrice,
@@ -123,20 +131,32 @@ const SORT_MAP: Record<string, string> = {
 
 const PAGE_SIZE = 12;
 
-const ProductsPage = () => {
+type CategoryMeta = { title: string; slug: string };
+
+interface ProductsPageProps {
+  /** When routed via /our-collection/[categorySlug] */
+  categorySlugFromPath?: string;
+}
+
+const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   const searchParams  = useSearchParams();
   const router        = useRouter();
+  const pathname      = usePathname();
   const isMounted     = useRef(false);
 
   // ── Initialise all filter state from URL on first render ──
   const [products,  setProducts]  = useState<Product[]>([]);
   const [categories,setCategories]= useState<string[]>([ALL]);
+  const [categoryMeta, setCategoryMeta] = useState<CategoryMeta[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [total,     setTotal]     = useState(0);
   const [totalPages,setTotalPages]= useState(0);
 
-  const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || ALL);
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    if (categorySlugFromPath) return ALL;
+    return searchParams.get('category') || ALL;
+  });
   const [searchTerm,  setSearchTerm]  = useState(() => searchParams.get('search')  || '');
   const [shuffleSeed] = useState(() => Date.now());
   const [sortBy,      setSortBy]      = useState(() => searchParams.get('sort')    || 'random');
@@ -167,62 +187,129 @@ const ProductsPage = () => {
   const [addedProduct,  setAddedProduct]  = useState<Product | null>(null);
   const { addToCart } = useCart();
 
-  // ── Write all active filters back to the URL (replaceState — no history entry) ──
-  const syncURL = useCallback((overrides: Record<string, string> = {}) => {
-    const p = new URLSearchParams();
-    const cat  = overrides.category  ?? selectedCategory;
-    const q    = overrides.search    ?? searchTerm;
-    const sort = overrides.sort      ?? sortBy;
-    const page = overrides.page      ?? String(currentPage);
-    const minP = overrides.minPrice  ?? String(priceRange.min);
-    const maxP = overrides.maxPrice  ?? String(priceRange.max);
-    const feat = overrides.features  ?? FEATURE_FILTERS.filter(({ key }) => features[key as ProductFeatureFilterKey]).map(({ apiFlag }) => apiFlag).join(',');
-    const br   = overrides.brands    ?? (() => {
-      const set = new Set(BRAND_FILTERS.filter(({ key }) => brands[key as BrandFilterKey]).map(({ apiSlug }) => apiSlug));
-      if (availability.readyToShip) set.add('imported');
-      if (availability.customOrder) set.add('ambassador');
-      return [...set].join(',');
-    })();
+  const buildListingPath = useCallback(
+    (overrides: Record<string, string> = {}) => {
+      const p = new URLSearchParams();
+      const cat = overrides.category ?? selectedCategory;
+      const q = (overrides.search ?? searchTerm).trim();
+      const sort = overrides.sort ?? sortBy;
+      const page = overrides.page ?? String(currentPage);
+      const minP = overrides.minPrice ?? String(priceRange.min);
+      const maxP = overrides.maxPrice ?? String(priceRange.max);
+      const feat =
+        overrides.features ??
+        FEATURE_FILTERS.filter(({ key }) => features[key as ProductFeatureFilterKey])
+          .map(({ apiFlag }) => apiFlag)
+          .join(',');
+      const br =
+        overrides.brands ??
+        (() => {
+          const set = new Set(
+            BRAND_FILTERS.filter(({ key }) => brands[key as BrandFilterKey]).map(({ apiSlug }) => apiSlug)
+          );
+          if (availability.readyToShip) set.add('imported');
+          if (availability.customOrder) set.add('ambassador');
+          return [...set].join(',');
+        })();
 
-    if (loading) return;
-    setLoading(true);
-    setLoadError(null);
-    if (q.trim()) {
-      p.set('search', q.trim());
-    } else if (cat && cat !== ALL) {
-      p.set('category', cat);
-    }
-    if (sort !== 'random')    p.set('sort',      sort);
-    if (page !== '1')         p.set('page',      page);
-    if (Number(minP) > 0)     p.set('minPrice',  minP);
-    if (Number(maxP) > 0)     p.set('maxPrice',  maxP);
-    if (feat)                 p.set('features',  feat);
-    if (br)                   p.set('brands',    br);
+      if (sort !== 'random') p.set('sort', sort);
+      if (page !== '1') p.set('page', page);
+      if (Number(minP) > 0) p.set('minPrice', minP);
+      if (Number(maxP) > 0) p.set('maxPrice', maxP);
+      if (feat) p.set('features', feat);
+      if (br) p.set('brands', br);
 
-    const qs = p.toString();
-    router.replace(qs ? `?${qs}` : '?', { scroll: false });
-  }, [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability, router]);
+      const qs = p.toString();
+
+      if (q) {
+        p.set('search', q);
+        const searchQs = p.toString();
+        return searchQs ? `${COLLECTION_PATH}?${searchQs}` : COLLECTION_PATH;
+      }
+
+      if (cat && cat !== ALL) {
+        const slug = categoryMeta.find((c) => c.title === cat)?.slug;
+        if (slug) {
+          return qs ? `${collectionCategoryPath(slug)}?${qs}` : collectionCategoryPath(slug);
+        }
+        p.set('category', cat);
+        const legacyQs = p.toString();
+        return legacyQs ? `${COLLECTION_PATH}?${legacyQs}` : COLLECTION_PATH;
+      }
+
+      return qs ? `${COLLECTION_PATH}?${qs}` : COLLECTION_PATH;
+    },
+    [
+      selectedCategory,
+      searchTerm,
+      sortBy,
+      currentPage,
+      priceRange,
+      features,
+      brands,
+      availability,
+      categoryMeta,
+    ]
+  );
+
+  // ── Write filters to the URL (path + query, replaceState — no history entry) ──
+  const syncURL = useCallback(
+    (overrides: Record<string, string> = {}) => {
+      if (loading) return;
+      setLoading(true);
+      setLoadError(null);
+      router.replace(buildListingPath(overrides), { scroll: false });
+    },
+    [buildListingPath, loading, router]
+  );
 
   // Sync URL whenever any filter changes (internal — uses router.replace so no history entry)
-  useEffect(() => { syncURL(); },
+  useEffect(() => {
+    const slugPath = categorySlugFromPath ?? slugFromCollectionPath(pathname);
+    if (slugPath && categoryMeta.length === 0) return;
+    syncURL();
+  },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability]);
 
-  // Respond to external navigation (e.g. header search bar using router.push)
-  // Only syncs `search` and `category` — the params the header controls.
-  // Page reset on search/category change is handled by the filter-change effect below.
+  // Respond to external navigation (header search, path-based category URLs)
   useEffect(() => {
     const newSearch = searchParams.get('search') ?? '';
-    const newCategory = searchParams.get('category') ?? ALL;
     if (newSearch.trim()) {
       setSearchTerm(newSearch);
       setSelectedCategory(ALL);
-    } else {
-      setSearchTerm('');
-      setSelectedCategory(newCategory);
+      return;
     }
+
+    setSearchTerm('');
+
+    const slugFromPath = categorySlugFromPath ?? slugFromCollectionPath(pathname);
+    if (slugFromPath && categoryMeta.length > 0) {
+      const match = categoryMeta.find((c) => c.slug === slugFromPath);
+      setSelectedCategory(match?.title ?? ALL);
+      return;
+    }
+
+    setSelectedCategory(searchParams.get('category') ?? ALL);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, pathname, categoryMeta, categorySlugFromPath]);
+
+  // Migrate legacy ?category=Title to /our-collection/slug
+  useEffect(() => {
+    const legacyTitle = searchParams.get('category')?.trim();
+    if (!legacyTitle || searchParams.get('search')?.trim() || categoryMeta.length === 0) return;
+    if (slugFromCollectionPath(pathname) || categorySlugFromPath) return;
+
+    const match = categoryMeta.find((c) => c.title.toLowerCase() === legacyTitle.toLowerCase());
+    if (!match?.slug) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('category');
+    const qs = params.toString();
+    router.replace(qs ? `${collectionCategoryPath(match.slug)}?${qs}` : collectionCategoryPath(match.slug), {
+      scroll: false,
+    });
+  }, [searchParams, categoryMeta, pathname, categorySlugFromPath, router]);
 
   // Fetch categories once
   useEffect(() => {
@@ -231,7 +318,12 @@ const ProductsPage = () => {
       .then((r) => r.json())
       .then((json) => {
         if (!cancelled && json?.success && Array.isArray(json.data)) {
-          setCategories([ALL, ...(json.data as { title: string }[]).map((c) => c.title).filter(Boolean)]);
+          const rows = json.data as { title: string; slug?: string }[];
+          const meta = rows
+            .filter((c) => c.title && c.slug)
+            .map((c) => ({ title: c.title, slug: c.slug! }));
+          setCategoryMeta(meta);
+          setCategories([ALL, ...rows.map((c) => c.title).filter(Boolean)]);
         }
       })
       .catch(() => { if (!cancelled) setCategories([ALL]); });
@@ -595,7 +687,7 @@ const ProductsPage = () => {
                     >
                       {/* ── Image ── */}
                       <div className="relative h-64 w-full shrink-0 sm:h-full sm:w-72 overflow-hidden bg-[#EEF5F9]">
-                        <Link href={`/products/${product._id}`} className="block absolute inset-0">
+                        <Link href={productDetailPath(product._id, product.categorySlug)} className="block absolute inset-0">
                           <Image
                             src={product.image}
                             alt={product.name}
@@ -616,7 +708,7 @@ const ProductsPage = () => {
                         {/* Top: name + category + description */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <Link href={`/products/${product._id}`} className="flex-1 min-w-0">
+                            <Link href={productDetailPath(product._id, product.categorySlug)} className="flex-1 min-w-0">
                               <h3 className="text-base font-bold leading-snug text-gray-900 line-clamp-1 group-hover:text-[#E36630] transition-colors duration-200">
                                 {product.name}
                               </h3>

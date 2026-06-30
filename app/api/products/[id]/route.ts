@@ -1,41 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
-import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
+import {
+  findActiveProductByIdentifier,
+  findInactiveProductByIdentifier,
+} from '@/backend/lib/findPublicProduct';
 import { resolveProductImages, resolveProductVideos } from '@/utils/productMedia.util';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-/** GET /api/products/[id] — single active product + approved reviews */
+const NO_STORE = { 'Cache-Control': 'no-store' } as const;
+
+/** GET /api/products/[id] — single active product by Mongo _id or slug */
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ success: false, message: 'Not found.' }, { status: 404 });
+    if (!id?.trim()) {
+      return NextResponse.json(
+        { success: false, message: 'Product not found.', code: 'not_found' },
+        { status: 404, headers: NO_STORE }
+      );
     }
 
     await connectDB();
 
-    const product = await Product.findOne({ _id: id, status: 'active' })
-      .populate('categories', 'title slug')
-      .lean();
-
+    const product = await findActiveProductByIdentifier(id);
     if (!product) {
-      return NextResponse.json({ success: false, message: 'Not found.' }, { status: 404 });
+      const inactive = await findInactiveProductByIdentifier(id);
+      if (inactive) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'This product is no longer available.',
+            code: 'unavailable',
+          },
+          { status: 404, headers: NO_STORE }
+        );
+      }
+      return NextResponse.json(
+        { success: false, message: 'Product not found.', code: 'not_found' },
+        { status: 404, headers: NO_STORE }
+      );
     }
 
-    const reviews = await Review.find({ productId: id, status: 'approved' })
+    const productId = String(product._id);
+
+    const reviews = await Review.find({ productId, status: 'approved' })
       .sort({ createdAt: -1 })
       .select('reviewerName rating comment createdAt')
       .lean();
 
     const agg = await Review.aggregate([
-      { $match: { productId: new mongoose.Types.ObjectId(id), status: 'approved' } },
+      { $match: { productId: new mongoose.Types.ObjectId(productId), status: 'approved' } },
       {
         $group: {
           _id: null,
@@ -62,7 +83,7 @@ export async function GET(
         data: {
           product: {
             ...product,
-            _id: String(product._id),
+            _id: productId,
             images,
             videos,
             imagePublicIds: product.imagePublicIds ?? [],
@@ -79,10 +100,13 @@ export async function GET(
           })),
         },
       },
-      { status: 200, headers: { 'Cache-Control': 'no-store' } }
+      { status: 200, headers: NO_STORE }
     );
   } catch (error) {
     console.error('[GET /api/products/[id]]', error);
-    return NextResponse.json({ success: false, message: 'Server error.' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: 'Server error.' },
+      { status: 500, headers: NO_STORE }
+    );
   }
 }

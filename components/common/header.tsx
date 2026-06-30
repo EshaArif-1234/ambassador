@@ -6,6 +6,15 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { useCart } from '@/contexts/CartContext';
+import {
+  catalogueHref,
+  COLLECTION_PATH,
+  collectionCategoryPath,
+  isCatalogueListingPath,
+  productDetailPath,
+  primaryCategorySlug,
+  slugFromCollectionPath,
+} from '@/lib/siteRoutes';
 
 type CategoryItem = { title: string; slug?: string; image?: string };
 
@@ -13,7 +22,7 @@ type SearchSuggestion = {
   _id: string;
   name: string;
   images: string[];
-  categories?: Array<{ title?: string } | string>;
+  categories?: Array<{ title?: string; slug?: string } | string>;
 };
 
 const SEARCH_SUGGESTION_LIMIT = 8;
@@ -146,24 +155,29 @@ const Header = () => {
     };
   }, [searchQuery]);
 
-  /** Keep header search UI in sync when viewing /products (search OR category, not both) */
+  /** Keep header search UI in sync when viewing the collection (search OR category, not both) */
   useEffect(() => {
-    if (pathname !== '/products') return;
+    if (!isCatalogueListingPath(pathname)) return;
     const urlQ = urlSearchParams.get('search') ?? '';
-    const urlCat = urlSearchParams.get('category');
     if (urlQ.trim()) {
       setSearchQuery(urlQ);
       setSelectedCategoryTitle(null);
-    } else {
-      setSearchQuery('');
-      setSelectedCategoryTitle(urlCat || null);
+      return;
     }
-  }, [pathname, urlSearchParams]);
 
-  const buildProductsHref = (params: URLSearchParams) => {
-    const qs = params.toString();
-    return qs ? `/products?${qs}` : '/products';
-  };
+    setSearchQuery('');
+
+    const slugFromPath = slugFromCollectionPath(pathname);
+    if (slugFromPath) {
+      const match = categories.find((c) => c.slug === slugFromPath);
+      setSelectedCategoryTitle(match?.title ?? null);
+      return;
+    }
+
+    setSelectedCategoryTitle(urlSearchParams.get('category') || null);
+  }, [pathname, urlSearchParams, categories]);
+
+  const buildProductsHref = (params: URLSearchParams) => catalogueHref(params);
 
   /** Drop ?search= from URL and show all products (keeps category if set). */
   const clearSearchFromUrl = () => {
@@ -189,9 +203,9 @@ const Header = () => {
     router.push(buildProductsHref(params));
   };
 
-  const openProduct = (productId: string) => {
+  const openProduct = (productId: string, categorySlug?: string) => {
     closeSuggestions();
-    router.push(`/products/${productId}`);
+    router.push(productDetailPath(productId, categorySlug));
   };
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,7 +214,7 @@ const Header = () => {
 
     // Clearing the field must clear ?search= from the URL (not only local state)
     if (
-      pathname === '/products' &&
+      isCatalogueListingPath(pathname) &&
       !value.trim() &&
       urlSearchParams.get('search')?.trim()
     ) {
@@ -211,7 +225,7 @@ const Header = () => {
   const handleClearSearch = () => {
     setSearchQuery('');
     closeSuggestions();
-    if (pathname === '/products' && urlSearchParams.get('search')?.trim()) {
+    if (isCatalogueListingPath(pathname) && urlSearchParams.get('search')?.trim()) {
       clearSearchFromUrl();
     }
   };
@@ -240,14 +254,17 @@ const Header = () => {
     if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
       e.preventDefault();
       const picked = searchSuggestions[activeSuggestionIndex];
-      if (picked) openProduct(picked._id);
+      if (picked) openProduct(picked._id, primaryCategorySlug(picked.categories));
     }
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeSuggestionIndex >= 0 && searchSuggestions[activeSuggestionIndex]) {
-      openProduct(searchSuggestions[activeSuggestionIndex]._id);
+      openProduct(
+        searchSuggestions[activeSuggestionIndex]._id,
+        primaryCategorySlug(searchSuggestions[activeSuggestionIndex].categories)
+      );
       return;
     }
     runProductSearch(searchQuery);
@@ -259,10 +276,16 @@ const Header = () => {
     setSearchQuery('');
     setIsCategoryOpen(false);
     closeSuggestions();
-    const params = new URLSearchParams();
-    if (title) params.set('category', title);
-    const qs = params.toString();
-    router.push(qs ? `/products?${qs}` : '/products');
+    if (!title) {
+      router.push(COLLECTION_PATH);
+      return;
+    }
+    const match = categories.find((c) => c.title === title);
+    if (match?.slug) {
+      router.push(collectionCategoryPath(match.slug));
+      return;
+    }
+    router.push(catalogueHref({ category: title }));
   };
 
   const handleCheckout = () => {
@@ -667,7 +690,9 @@ const Header = () => {
                                 role="option"
                                 aria-selected={active}
                                 onMouseEnter={() => setActiveSuggestionIndex(index)}
-                                onClick={() => openProduct(product._id)}
+                                onClick={() =>
+                                  openProduct(product._id, primaryCategorySlug(product.categories))
+                                }
                                 className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
                                   active ? 'bg-orange-50' : 'hover:bg-gray-50'
                                 }`}

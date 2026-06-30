@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CATALOGUE_PATH } from '@/lib/siteRoutes';
 
 const trustItems = [
   {
@@ -70,7 +71,7 @@ const CTASection = () => (
 
         <div className="mb-10 flex flex-col justify-center gap-3 sm:mb-12 sm:flex-row sm:gap-4 md:mb-14">
           <Link
-            href="/products"
+            href={CATALOGUE_PATH}
             className="w-full rounded-xl bg-[#E36630] px-6 py-3 text-center text-sm font-bold text-white shadow-lg transition-colors hover:bg-[#cc5a2a] sm:w-auto sm:px-8 sm:py-4 sm:text-base"
           >
             Browse All Products

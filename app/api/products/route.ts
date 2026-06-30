@@ -9,6 +9,7 @@ import { resolveProductImages } from '@/utils/productMedia.util';
 
 export const dynamic = 'force-dynamic';
 
+const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 const PAGE_LIMIT = 12; // products per page
 
 function escapeRegex(s: string) {
@@ -86,7 +87,7 @@ export async function GET(req: NextRequest) {
       if (!cats.length) {
         return NextResponse.json(
           { success: true, data: [], total: 0, page, totalPages: 0 },
-          { status: 200, headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } }
+          { status: 200, headers: NO_STORE }
         );
       }
       filter.categories = { $in: cats.map((c) => c._id) };
@@ -127,6 +128,8 @@ export async function GET(req: NextRequest) {
       name_desc:  { name: -1 },
     };
     const sortOrder = sortMap[sortBy] ?? sortMap.newest;
+    const usePriceSort = sortBy === 'price_asc' || sortBy === 'price_desc';
+    const useNameCollation = sortBy === 'name_asc' || sortBy === 'name_desc';
 
     const ratingsPromise = Review.aggregate([
       { $match: { status: 'approved' } },
@@ -178,18 +181,59 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json(
         { success: true, data: enriched, total, page, totalPages: Math.ceil(total / limit) },
-        { status: 200, headers: { 'Cache-Control': 'no-store' } }
+        { status: 200, headers: NO_STORE }
       );
     }
 
     // Fetch page of products, total count, and ratings — all in parallel
+    const productsPromise = usePriceSort
+      ? Product.aggregate([
+          { $match: filter },
+          {
+            $addFields: {
+              sortPrice: {
+                $cond: [{ $gt: [{ $ifNull: ['$price', 0] }, 0] }, '$price', '$originalPrice'],
+              },
+            },
+          },
+          { $sort: { sortPrice: sortBy === 'price_desc' ? -1 : 1, createdAt: -1 } },
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $lookup: {
+              from: 'categories',
+              localField: 'categories',
+              foreignField: '_id',
+              as: 'categoryDocs',
+            },
+          },
+          {
+            $project: {
+              ...LISTING_PROJECTION,
+              categories: {
+                $map: {
+                  input: '$categoryDocs',
+                  as: 'c',
+                  in: { title: '$$c.title', slug: '$$c.slug' },
+                },
+              },
+            },
+          },
+        ])
+      : (() => {
+          let query = Product.find(filter, LISTING_PROJECTION)
+            .populate('categories', 'title slug')
+            .sort(sortOrder)
+            .skip(skip)
+            .limit(limit);
+          if (useNameCollation) {
+            query = query.collation({ locale: 'en', strength: 2 });
+          }
+          return query.lean();
+        })();
+
     const [productsResult, totalResult, ratings] = await Promise.all([
-      Product.find(filter, LISTING_PROJECTION)
-        .populate('categories', 'title slug')
-        .sort(sortOrder)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+      productsPromise,
       Product.countDocuments(filter),
       ratingsPromise,
     ]);
@@ -212,7 +256,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { success: true, data: enriched, total, page, totalPages: Math.ceil(total / limit) },
-      { status: 200, headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } }
+      { status: 200, headers: NO_STORE }
     );
   } catch (error) {
     console.error('[GET /api/products]', error);

@@ -10,8 +10,8 @@ function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Legacy /products → /our-collection (query preserved; category → slug path). */
-export default async function ProductsListingRedirect({ searchParams }: Props) {
+/** Legacy /catalogue → /our-collection (category title → slug path when possible). */
+export default async function CatalogueRedirect({ searchParams }: Props) {
   const sp = await searchParams;
   const params = new URLSearchParams();
 

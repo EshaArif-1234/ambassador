@@ -7,6 +7,7 @@ import AccountPageLoader from '@/components/account/AccountPageLoader';
 import { authApi } from '@/utils/auth.api';
 import { fetchPakistanCities } from '@/utils/cities.api';
 import Link from 'next/link';
+import { CATALOGUE_PATH } from '@/lib/siteRoutes';
 import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
 import { getOrderStatusDisplayLabel } from '@/utils/orderWorkflow.util';
 
@@ -428,7 +429,7 @@ export default function ProfilePage() {
           ) : orders.length === 0 ? (
             <div className="py-14 text-center">
               <p className="text-sm text-gray-500">You have no orders yet.</p>
-              <Link href="/products" className="mt-3 inline-block px-5 py-2 bg-[#E36630] text-white text-sm rounded-xl hover:bg-[#cc5a2a] transition-colors">
+              <Link href={CATALOGUE_PATH} className="mt-3 inline-block px-5 py-2 bg-[#E36630] text-white text-sm rounded-xl hover:bg-[#cc5a2a] transition-colors">
                 Start Shopping
               </Link>
             </div>

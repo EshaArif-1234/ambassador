@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { CATALOGUE_PATH } from '@/lib/siteRoutes';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Image from 'next/image';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -546,7 +547,7 @@ const OrdersPage = () => {
             </p>
           </div>
           <Link
-            href="/products"
+            href={CATALOGUE_PATH}
             title="Browse products and checkout"
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#0F4C69] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0d3f59]"
           >

@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { COLLECTION_PATH, isProductsNavActive } from '@/lib/siteRoutes';
 
 const menuItems = [
   { name: 'Home',           href: '/' },
-  { name: 'Products',       href: '/products' },
+  { name: 'Products',       href: COLLECTION_PATH },
   { name: 'About',          href: '/about' },
   { name: 'Custom Kitchen', href: '/custom-kitchen' },
   { name: 'Gallery',        href: '/gallery' },
@@ -19,7 +20,9 @@ const NavigationHeader = () => {
   const pathname = usePathname();
 
   const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + '/');
+    href === COLLECTION_PATH
+      ? isProductsNavActive(pathname)
+      : pathname === href || pathname.startsWith(href + '/');
 
   return (
     <nav className="bg-[#0F4C69] text-white shadow-md sticky top-16 z-40">
