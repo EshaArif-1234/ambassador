@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { CATALOGUE_PATH } from '@/lib/siteRoutes';
+import { CUSTOM_KITCHEN_PROJECTS_ENABLED } from '@/lib/customKitchenProjectsEnabled';
 import { getPublishedCaseStudies } from '@/client/data/customKitchenCases';
 
 const projects = getPublishedCaseStudies().map((c) => ({
@@ -13,7 +14,6 @@ const projects = getPublishedCaseStudies().map((c) => ({
   description: c.cardDescription,
   href: `/custom-kitchen/${c.slug}`,
 }));
-
 const steps = [
   {
     step: '01',
@@ -115,40 +115,84 @@ const CustomKitchenPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
-              <div
-                key={project.href}
-                className="group bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-[#E36630] hover:shadow-lg transition-all duration-300"
-              >
-                <div className="relative h-52 overflow-hidden">
-                  <Image
-                    src={project.image}
-                    alt={project.alt}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+            {CUSTOM_KITCHEN_PROJECTS_ENABLED ? (
+              projects.map((project) => (
+                <div
+                  key={project.href}
+                  className="group bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-[#E36630] hover:shadow-lg transition-all duration-300"
+                >
+                  <div className="relative h-52 overflow-hidden">
+                    <Image
+                      src={project.image}
+                      alt={project.alt}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#E36630] transition-colors duration-300">
+                      {project.title}
+                    </h3>
+                    <p className="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-3">
+                      {project.description}
+                    </p>
+                    <Link
+                      href={project.href}
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#E36630] hover:text-[#cc5a2a] transition-colors"
+                    >
+                      View Project Detail
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#E36630] transition-colors duration-300">
-                    {project.title}
-                  </h3>
-                  <p className="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-3">
-                    {project.description}
-                  </p>
-                  <Link
-                    href={project.href}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#E36630] hover:text-[#cc5a2a] transition-colors"
-                  >
-                    View Project Detail
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              ))
+            ) : (
+              <div className="col-span-full mx-auto w-full max-w-xl">
+                <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#0F4C69]/10 to-[#E36630]/10">
+                    <svg
+                      className="h-8 w-8 text-[#E36630]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.8}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
-                  </Link>
+                  </div>
+                  <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#E36630]">
+                    Coming Soon
+                  </p>
+                  <h3 className="mb-3 text-xl font-bold text-gray-900">Project Portfolio</h3>
+                  <p className="mb-6 text-sm leading-relaxed text-gray-600">
+                    Our custom kitchen project showcase is being prepared. In the meantime, explore our
+                    equipment collection or contact us to discuss your kitchen requirements.
+                  </p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                    <Link
+                      href="/contact-us"
+                      className="rounded-lg bg-[#E36630] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#cc5a2a]"
+                    >
+                      Contact Us
+                    </Link>
+                    <Link
+                      href={CATALOGUE_PATH}
+                      className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-[#0F4C69]/30 hover:text-[#0F4C69]"
+                    >
+                      Browse Products
+                    </Link>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            )}
+          </div>        </div>
       </section>
 
       {/* ── Design Process ───────────────────────────── */}
@@ -201,7 +245,7 @@ const CustomKitchenPage = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/contact"
+              href="/contact-us"
               className="px-8 py-3 bg-[#E36630] text-white font-semibold rounded-lg hover:bg-[#cc5a2a] transition-colors"
             >
               Get Free Consultation

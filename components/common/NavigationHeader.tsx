@@ -11,8 +11,9 @@ const menuItems = [
   { name: 'About',          href: '/about' },
   { name: 'Custom Kitchen', href: '/custom-kitchen' },
   { name: 'Gallery',        href: '/gallery' },
-  { name: 'Contact Us',     href: '/contact-us' },
   { name: 'Our Branches',   href: '/branches' },
+  { name: 'Contact Us',     href: '/contact-us' },
+ 
 ];
 
 const NavigationHeader = () => {
