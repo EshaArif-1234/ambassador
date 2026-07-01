@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { COLLECTION_PATH } from '@/lib/siteRoutes';
+import { COMPLAINT_PORTAL_URL } from '@/lib/siteLinks';
 
 /** Public routes — keep in sync with main site navigation */
 const SERVICE_LINKS = [
@@ -13,6 +14,13 @@ const SERVICE_LINKS = [
   { label: 'Contact us', href: '/contact-us' },
   { label: 'Our branches', href: '/branches' },
   { label: 'Orders', href: '/orders' },
+  { label: 'Complaint', href: COMPLAINT_PORTAL_URL, external: true },
+] as const;
+
+const COMPLAINT_LINKS = [
+  { label: 'Support center', href: COMPLAINT_PORTAL_URL },
+  { label: 'Open a new ticket', href: COMPLAINT_PORTAL_URL },
+  { label: 'Check ticket status', href: COMPLAINT_PORTAL_URL },
 ] as const;
 
 const linkClass =
@@ -25,7 +33,7 @@ const Footer = () => {
   return (
     <footer className="bg-[#0F4C69] text-white">
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 md:gap-8 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 md:gap-8 lg:grid-cols-5">
           {/* Logo Column */}
           <div className="sm:col-span-2 lg:col-span-1">
             <Link href="/" className="mb-3 inline-flex items-center sm:mb-4">
@@ -46,14 +54,37 @@ const Footer = () => {
           <div>
             <h3 className="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Our Services</h3>
             <ul className="space-y-1.5 sm:space-y-2">
-              {SERVICE_LINKS.map(({ label, href }) => (
+              {SERVICE_LINKS.map(({ label, href, ...rest }) => (
                 <li key={href}>
-                  <Link href={href} className={linkClass}>
-                    {label}
-                  </Link>
+                  {'external' in rest && rest.external ? (
+                    <a href={href} className={linkClass}>
+                      {label}
+                    </a>
+                  ) : (
+                    <Link href={href} className={linkClass}>
+                      {label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
+          </div>
+
+          {/* Complaint */}
+          <div>
+            <h3 className="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Complaint</h3>
+            <ul className="space-y-1.5 sm:space-y-2">
+              {COMPLAINT_LINKS.map(({ label, href }) => (
+                <li key={href}>
+                  <a href={href} className={linkClass}>
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs leading-relaxed text-white/50 sm:text-sm">
+              Report an issue or share feedback through our official complaint portal.
+            </p>
           </div>
 
           {/* Contact Information */}
