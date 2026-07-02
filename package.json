@@ -2,10 +2,13 @@
   "name": "ambassador commercial kitchen Equipment",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0 <23.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/next-build.mjs",
-    "start": "next start",
+    "start": "node scripts/next-start.mjs",
     "lint": "eslint",
     "seed:admin": "npx ts-node --project tsconfig.seed.json backend/seeds/admin.seed.ts",
     "seed:admin:reset": "npx ts-node --project tsconfig.seed.json backend/seeds/admin.seed.ts -- --reset-password"
