@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/next-build.mjs",
-    "start": "node scripts/next-start.mjs",
+    "start": "node server.js",
     "lint": "eslint",
     "seed:admin": "npx ts-node --project tsconfig.seed.json backend/seeds/admin.seed.ts",
     "seed:admin:reset": "npx ts-node --project tsconfig.seed.json backend/seeds/admin.seed.ts -- --reset-password"
