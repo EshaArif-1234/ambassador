@@ -5,6 +5,7 @@ import Banner from '@/components/about/Banner';
 import MissionVisionSection from '@/components/about/MissionVisionSection';
 import MissionVisionValues from '@/components/about/MissionVisionValues';
 import CompanySection from '@/components/about/CompanySection';
+import CeoAwardSection from '@/components/about/CeoAwardSection';
 import TeamSection from '@/components/about/TeamSection';
 import CertificatesSection from '@/components/about/CertificatesSection';
 import TestimonialsSection from '@/components/about/TestimonialsSection';
@@ -21,7 +22,12 @@ const AboutPage = () => {
         <CompanySection />
       </div>
 
-      {/* 2 — gray */}
+      {/* 2 — CEO award */}
+      <div className="bg-[#E3E6E6]">
+        <CeoAwardSection />
+      </div>
+
+      {/* 3 — white */}
       <div className="bg-white">
         <MissionVisionValues />
       </div>
