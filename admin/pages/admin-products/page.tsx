@@ -62,7 +62,8 @@ const ProductsPage = () => {
   const [successMsg,   setSuccessMsg]  = useState('');
   const [error,        setError]       = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [pdfLoading,    setPdfLoading]    = useState<'in_stock' | 'out_of_stock' | null>(null);
+  const [pdfLoading,    setPdfLoading]    = useState<'in_stock' | 'out_of_stock' | 'all' | 'selected' | null>(null);
+  const [selectedIds,   setSelectedIds]   = useState<string[]>([]);
   const [currentPage,   setCurrentPage]   = useState(1);
 
   // Modal
@@ -156,7 +157,7 @@ const ProductsPage = () => {
     }
   };
 
-  const handleDownloadStockPdf = async (stockType: 'in_stock' | 'out_of_stock') => {
+  const handleDownloadStockPdf = async (stockType: 'in_stock' | 'out_of_stock' | 'all') => {
     setPdfLoading(stockType);
     try {
       const res = await fetch(`/api/admin/products/export?stock=${stockType}`, {
@@ -166,12 +167,61 @@ const ProductsPage = () => {
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Failed to export products.');
       }
-      downloadStockProductsPdf(data.data, stockType);
+      await downloadStockProductsPdf(data.data, stockType);
       showSuccess(
         stockType === 'in_stock'
           ? 'In stock products PDF downloaded.'
-          : 'Out of stock products PDF downloaded.'
+          : stockType === 'out_of_stock'
+            ? 'Out of stock products PDF downloaded.'
+            : 'All products PDF downloaded.'
       );
+    } catch (err) {
+      showError((err as Error).message || 'Failed to generate PDF.');
+    } finally {
+      setPdfLoading(null);
+    }
+  };
+
+  const toggleProductSelection = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const pageIds = products.map((p) => p._id);
+  const allPageSelected =
+    pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const somePageSelected =
+    pageIds.some((id) => selectedIds.includes(id)) && !allPageSelected;
+
+  const toggleAllOnPage = () => {
+    if (allPageSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+      return;
+    }
+    setSelectedIds((prev) => [...new Set([...prev, ...pageIds])]);
+  };
+
+  const clearSelection = () => setSelectedIds([]);
+
+  const handleDownloadSelectedPdf = async () => {
+    if (selectedIds.length === 0) {
+      showError('Select at least one product to download.');
+      return;
+    }
+
+    setPdfLoading('selected');
+    try {
+      const res = await fetch(
+        `/api/admin/products/export?ids=${encodeURIComponent(selectedIds.join(','))}`,
+        { credentials: 'include' },
+      );
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to export selected products.');
+      }
+      await downloadStockProductsPdf(data.data, 'selected');
+      showSuccess(`PDF downloaded for ${data.data.length} selected product(s).`);
     } catch (err) {
       showError((err as Error).message || 'Failed to generate PDF.');
     } finally {
@@ -188,6 +238,7 @@ const ProductsPage = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       showSuccess('Product deleted successfully.');
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteTarget._id));
       fetchProducts(currentPage);
     } catch (err) {
       showError((err as Error).message);
@@ -283,7 +334,41 @@ const ProductsPage = () => {
             </select>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 pt-1 border-t border-gray-100">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-1 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={handleDownloadSelectedPdf}
+              disabled={pdfLoading !== null || selectedIds.length === 0}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E36630]/30 bg-[#E36630]/10 px-4 py-2 text-sm font-medium text-[#E36630] transition-colors hover:bg-[#E36630]/15 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfLoading === 'selected'
+                ? 'Generating PDF…'
+                : `Download Selected PDF${selectedIds.length ? ` (${selectedIds.length})` : ''}`}
+            </button>
+            {selectedIds.length > 0 && (
+              <button
+                type="button"
+                onClick={clearSelection}
+                disabled={pdfLoading !== null}
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Clear selection
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleDownloadStockPdf('all')}
+              disabled={pdfLoading !== null}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#0F4C69]/25 bg-[#0F4C69]/10 px-4 py-2 text-sm font-medium text-[#0F4C69] transition-colors hover:bg-[#0F4C69]/15 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfLoading === 'all' ? 'Generating PDF…' : 'Download All Products PDF'}
+            </button>
             <button
               type="button"
               onClick={() => handleDownloadStockPdf('in_stock')}
@@ -311,8 +396,15 @@ const ProductsPage = () => {
 
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Products</h2>
+          <div className="px-6 py-4 border-b border-gray-100 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Products</h2>
+              {selectedIds.length > 0 && (
+                <p className="text-xs text-[#0F4C69] mt-0.5">
+                  {selectedIds.length} product{selectedIds.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
+            </div>
             <span className="text-xs text-gray-400 font-medium">
               {total > 0
                 ? `${(currentPage - 1) * ADMIN_PAGE_SIZE + 1}–${Math.min(currentPage * ADMIN_PAGE_SIZE, total)} of ${total}`
@@ -334,6 +426,18 @@ const ProductsPage = () => {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500 tracking-wider">
                   <tr>
+                    <th className="w-12 px-4 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        checked={allPageSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = somePageSelected;
+                        }}
+                        onChange={toggleAllOnPage}
+                        aria-label="Select all products on this page"
+                        className="h-4 w-4 rounded border-gray-300 accent-[#0F4C69] focus:ring-[#0F4C69]/35"
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left">Product ID</th>
                     <th className="px-6 py-3 text-left">Product</th>
                     <th className="px-6 py-3 text-left">Categories</th>
@@ -347,7 +451,18 @@ const ProductsPage = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {paginated.map(product => (
-                    <tr key={product._id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={product._id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(product._id) ? 'bg-[#0F4C69]/5' : ''}`}>
+
+                      {/* Select */}
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(product._id)}
+                          onChange={() => toggleProductSelection(product._id)}
+                          aria-label={`Select ${product.name}`}
+                          className="h-4 w-4 rounded border-gray-300 accent-[#0F4C69] focus:ring-[#0F4C69]/35"
+                        />
+                      </td>
 
                       {/* Product ID */}
                       <td className="px-6 py-4 whitespace-nowrap">

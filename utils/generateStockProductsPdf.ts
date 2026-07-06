@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { resolveProductImages } from '@/utils/productMedia.util';
 
 export type StockExportProduct = {
   name: string;
@@ -8,10 +9,29 @@ export type StockExportProduct = {
   originalPrice?: number;
   stock: number;
   status?: string;
+  images?: string[];
+  imagePublicIds?: string[];
   categories?: Array<{ title?: string } | string>;
 };
 
-type StockPdfType = 'in_stock' | 'out_of_stock';
+type StockPdfType = 'in_stock' | 'out_of_stock' | 'all' | 'selected';
+
+const PDF_TITLES: Record<StockPdfType, string> = {
+  in_stock: 'In Stock Products Report',
+  out_of_stock: 'Out of Stock Products Report',
+  all: 'All Products Report',
+  selected: 'Selected Products Report',
+};
+
+const PDF_FILENAMES: Record<StockPdfType, string> = {
+  in_stock: 'in-stock-products',
+  out_of_stock: 'out-of-stock-products',
+  all: 'all-products',
+  selected: 'selected-products',
+};
+
+const IMAGE_COL_WIDTH = 18;
+const IMAGE_CELL_HEIGHT = 18;
 
 const categoryLabel = (categories?: Array<{ title?: string } | string>) => {
   if (!Array.isArray(categories) || categories.length === 0) return '—';
@@ -20,13 +40,58 @@ const categoryLabel = (categories?: Array<{ title?: string } | string>) => {
     .join(', ');
 };
 
-export function downloadStockProductsPdf(
+function productImageUrl(product: StockExportProduct): string | undefined {
+  const urls = resolveProductImages({
+    images: product.images,
+    imagePublicIds: product.imagePublicIds,
+  });
+  return urls[0];
+}
+
+/** Load remote image as JPEG data URL for jsPDF (handles webp via canvas). */
+function loadImageAsDataUrl(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const maxSide = 120;
+        const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+        const width = Math.max(1, Math.round(img.naturalWidth * scale));
+        const height = Math.max(1, Math.round(img.naturalHeight * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+export async function downloadStockProductsPdf(
   products: StockExportProduct[],
-  stockType: StockPdfType
+  stockType: StockPdfType,
 ) {
+  const imageDataList = await Promise.all(
+    products.map(async (product) => {
+      const url = productImageUrl(product);
+      if (!url) return null;
+      return loadImageAsDataUrl(url);
+    }),
+  );
+
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const title =
-    stockType === 'in_stock' ? 'In Stock Products Report' : 'Out of Stock Products Report';
+  const title = PDF_TITLES[stockType];
   const generatedAt = new Date().toLocaleString('en-PK', {
     day: 'numeric',
     month: 'long',
@@ -51,6 +116,7 @@ export function downloadStockProductsPdf(
   const rows = products.map((product, index) => {
     const price = Number(product.price ?? product.originalPrice ?? 0);
     return [
+      '',
       String(index + 1),
       product.name,
       categoryLabel(product.categories),
@@ -62,30 +128,52 @@ export function downloadStockProductsPdf(
 
   autoTable(doc, {
     startY: 38,
-    head: [['#', 'Product', 'Category', 'Price', 'Stock', 'Status']],
-    body: rows.length ? rows : [['—', 'No products found', '—', '—', '—', '—']],
-    styles: { fontSize: 8, cellPadding: 2.5, textColor: [40, 40, 40] },
+    head: [['Image', '#', 'Product', 'Category', 'Price', 'Stock', 'Status']],
+    body: rows.length ? rows : [['—', '—', 'No products found', '—', '—', '—', '—']],
+    styles: { fontSize: 8, cellPadding: 2.5, textColor: [40, 40, 40], valign: 'middle' },
     headStyles: {
       fillColor: [15, 76, 105],
       textColor: [255, 255, 255],
       fontStyle: 'bold',
     },
     alternateRowStyles: { fillColor: [245, 247, 250] },
+    bodyStyles: { minCellHeight: IMAGE_CELL_HEIGHT },
     columnStyles: {
-      0: { cellWidth: 10 },
-      1: { cellWidth: 72 },
-      2: { cellWidth: 52 },
-      3: { cellWidth: 28 },
-      4: { cellWidth: 18 },
-      5: { cellWidth: 22 },
+      0: { cellWidth: IMAGE_COL_WIDTH },
+      1: { cellWidth: 10 },
+      2: { cellWidth: 62 },
+      3: { cellWidth: 48 },
+      4: { cellWidth: 28 },
+      5: { cellWidth: 18 },
+      6: { cellWidth: 22 },
     },
     margin: { left: 14, right: 14 },
+    didDrawCell: (data) => {
+      if (data.section !== 'body' || data.column.index !== 0) return;
+
+      const imgData = imageDataList[data.row.index];
+      const pad = 1.5;
+      const boxW = data.cell.width - pad * 2;
+      const boxH = data.cell.height - pad * 2;
+
+      if (imgData) {
+        doc.addImage(imgData, 'JPEG', data.cell.x + pad, data.cell.y + pad, boxW, boxH);
+        return;
+      }
+
+      doc.setDrawColor(210, 210, 210);
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(data.cell.x + pad, data.cell.y + pad, boxW, boxH, 1, 1, 'FD');
+      doc.setFontSize(6);
+      doc.setTextColor(140, 140, 140);
+      doc.text('No image', data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2, {
+        align: 'center',
+        baseline: 'middle',
+      });
+    },
   });
 
-  const fileName =
-    stockType === 'in_stock'
-      ? `in-stock-products-${Date.now()}.pdf`
-      : `out-of-stock-products-${Date.now()}.pdf`;
+  const fileName = `${PDF_FILENAMES[stockType]}-${Date.now()}.pdf`;
 
   doc.save(fileName);
 }
