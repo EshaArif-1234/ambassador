@@ -10,13 +10,7 @@ import SignupSection from '../../../components/home page/SignupSection';
 import CTASection from '../../../components/home page/CTASection';
 import ClientLogosSlider from '../../../components/about/ClientLogosSlider';
 import CustomKitchenHighlight from '../../../components/home page/CustomKitchenHighlight';
-
-interface StorefrontCategory {
-  _id: string;
-  title: string;
-  slug: string;
-  image: string;
-}
+import { useStorefrontCategories } from '@/hooks/useStorefrontCategories';
 
 const INITIAL_ROWS = 4;
 const ROWS_PER_STEP = 4;
@@ -41,8 +35,7 @@ function useCategoryGridColumns() {
 }
 
 const HomePage = () => {
-  const [categories, setCategories] = useState<StorefrontCategory[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const { categories, loading: categoriesLoading } = useStorefrontCategories();
   const [visibleRows, setVisibleRows] = useState(INITIAL_ROWS);
   const columns = useCategoryGridColumns();
 
@@ -50,24 +43,6 @@ const HomePage = () => {
   const visibleCategories = categories.slice(0, visibleCount);
   const hasMoreCategories = visibleCount < categories.length;
   const canShowLess = visibleRows > INITIAL_ROWS;
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch('/api/categories', { cache: 'no-store' });
-        const data = await res.json();
-        if (!cancelled && data.success && Array.isArray(data.data)) {
-          setCategories(data.data);
-        }
-      } catch {
-        if (!cancelled) setCategories([]);
-      } finally {
-        if (!cancelled) setCategoriesLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   const handleShowMore = () => {
     const totalRows = Math.ceil(categories.length / columns);

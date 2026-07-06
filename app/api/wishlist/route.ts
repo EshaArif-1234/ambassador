@@ -5,6 +5,7 @@ import User from '@/backend/models/User.model';
 import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
 import { requireAuthUser } from '@/utils/authSession.util';
+import { sortPopulatedCategories } from '@/lib/storefrontCategories';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
       status: 'active',
     })
       .select('name price originalPrice stock images specifications categories brands features about')
-      .populate('categories', 'title slug')
+      .populate('categories', 'title slug sortOrder')
       .lean();
 
     const orderMap = new Map(ids.map((id, i) => [id, i]));
@@ -65,9 +66,14 @@ export async function GET(req: NextRequest) {
     );
 
     const items = products.map((p) => {
-      const cats = Array.isArray(p.categories)
-        ? p.categories.map((c) => (typeof c === 'object' && c && 'title' in c ? String((c as { title?: string }).title ?? '') : '')).filter(Boolean)
-        : [];
+      const sortedCats = sortPopulatedCategories(
+        Array.isArray(p.categories)
+          ? (p.categories as { title?: string; sortOrder?: number }[])
+          : [],
+      );
+      const cats = sortedCats
+        .map((c) => (typeof c === 'object' && c && 'title' in c ? String(c.title ?? '') : ''))
+        .filter(Boolean);
       const r = ratingMap[String(p._id)];
       return {
         _id: String(p._id),

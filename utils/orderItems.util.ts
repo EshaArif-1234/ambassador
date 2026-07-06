@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Product from '@/backend/models/Product.model';
+import { sortPopulatedCategories } from '@/lib/storefrontCategories';
 import type { IOrderItem } from '@/backend/models/Order.model';
 
 export interface OrderItemLike {
@@ -50,8 +51,11 @@ type ProductHit = { name: string; images: string[]; productCode?: string; catego
 
 function categoryLabel(categories: unknown): string | undefined {
   if (!Array.isArray(categories) || !categories.length) return undefined;
-  const titles = categories
-    .map((c) => (typeof c === 'object' && c && 'title' in c ? String((c as { title?: string }).title ?? '') : ''))
+  const sorted = sortPopulatedCategories(
+    categories as { title?: string; sortOrder?: number }[],
+  );
+  const titles = sorted
+    .map((c) => (typeof c === 'object' && c && 'title' in c ? String(c.title ?? '') : ''))
     .filter(Boolean);
   return titles.length ? titles.join(', ') : undefined;
 }
@@ -102,7 +106,7 @@ export async function enrichOrderItems<T extends OrderItemLike>(items: T[]): Pro
   if (idSet.size > 0) {
     const rows = await Product.find({ _id: { $in: [...idSet] } })
       .select('name images specifications categories')
-      .populate('categories', 'title')
+      .populate('categories', 'title sortOrder')
       .lean();
     for (const p of rows) registerProduct(catalog, p);
   }
@@ -116,7 +120,7 @@ export async function enrichOrderItems<T extends OrderItemLike>(items: T[]): Pro
       ],
     })
       .select('name images specifications categories')
-      .populate('categories', 'title')
+      .populate('categories', 'title sortOrder')
       .lean();
     for (const p of rows) registerProduct(catalog, p);
   }
@@ -131,7 +135,7 @@ export async function enrichOrderItems<T extends OrderItemLike>(items: T[]): Pro
     const url = String(it.productImage);
     const exact = await Product.findOne({ images: url })
       .select('name images specifications categories')
-      .populate('categories', 'title')
+      .populate('categories', 'title sortOrder')
       .lean();
     if (exact) {
       const hit: ProductHit = {
@@ -151,7 +155,7 @@ export async function enrichOrderItems<T extends OrderItemLike>(items: T[]): Pro
         images: { $elemMatch: { $regex: tail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') } },
       })
         .select('name images specifications categories')
-        .populate('categories', 'title')
+        .populate('categories', 'title sortOrder')
         .lean();
       if (partial) {
         byImage.set(key, {

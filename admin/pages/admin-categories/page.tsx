@@ -15,6 +15,7 @@ interface Category {
   imagePublicId: string;
   status: 'active' | 'inactive';
   metaTitle?: string;
+  sortOrder?: number;
   createdAt: string;
 }
 
@@ -59,6 +60,8 @@ const AdminCategoriesPage = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [reorderLoading, setReorderLoading] = useState(false);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -166,7 +169,7 @@ const AdminCategoriesPage = () => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-        setCategories((prev) => [{ ...data.data }, ...prev]);
+        setCategories((prev) => [...prev, { ...data.data }]);
         showSuccess('Category created successfully.');
       } else if (selectedCategory) {
         const res = await fetch(`/api/admin/categories/${selectedCategory._id}`, {
@@ -242,6 +245,53 @@ const AdminCategoriesPage = () => {
     const matchStatus = filterStatus === 'all' || c.status === filterStatus;
     return matchSearch && matchStatus;
   });
+
+  const canReorder = !searchTerm.trim() && filterStatus === 'all';
+  const displayCategories = canReorder ? categories : filteredCategories;
+
+  const handleDragStart = (id: string) => {
+    if (!canReorder || reorderLoading) return;
+    setDragId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!canReorder || reorderLoading) return;
+    e.preventDefault();
+  };
+
+  const handleDrop = async (targetId: string) => {
+    if (!canReorder || !dragId || dragId === targetId || reorderLoading) return;
+
+    const fromIdx = categories.findIndex((c) => c._id === dragId);
+    const toIdx = categories.findIndex((c) => c._id === targetId);
+    if (fromIdx < 0 || toIdx < 0) return;
+
+    const next = [...categories];
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+
+    const previous = categories;
+    setCategories(next);
+    setDragId(null);
+    setReorderLoading(true);
+
+    try {
+      const res = await fetch('/api/admin/categories/reorder', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds: next.map((c) => c._id) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      showSuccess('Category order saved.');
+    } catch (err) {
+      setCategories(previous);
+      showError((err as Error).message || 'Failed to save order.');
+    } finally {
+      setReorderLoading(false);
+    }
+  };
 
   const StatusBadge = ({ status }: { status: 'active' | 'inactive' }) => (
     <span
@@ -376,21 +426,34 @@ const AdminCategoriesPage = () => {
         </div>
 
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 className="text-base font-semibold text-gray-900">Categories</h2>
-            <span className="text-xs font-medium text-gray-400">{filteredCategories.length} total</span>
+          <div className="flex flex-col gap-2 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Categories</h2>
+              {canReorder && (
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Drag rows to set the order shown on the website.
+                </p>
+              )}
+              {!canReorder && (
+                <p className="mt-0.5 text-xs text-gray-400">
+                  Clear search and set status to &quot;All&quot; to reorder categories.
+                </p>
+              )}
+            </div>
+            <span className="text-xs font-medium text-gray-400">{displayCategories.length} total</span>
           </div>
           {loading ? (
             <div className="flex justify-center p-12">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0F4C69] border-t-transparent" />
             </div>
-          ) : filteredCategories.length === 0 ? (
+          ) : displayCategories.length === 0 ? (
             <div className="p-12 text-center text-sm text-gray-400">No categories found.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                   <tr>
+                    {canReorder && <th className="w-10 px-3 py-3 text-left" aria-label="Reorder" />}
                     <th className="px-6 py-3 text-left">Image</th>
                     <th className="px-6 py-3 text-left">Title</th>
                     <th className="px-6 py-3 text-left">Status</th>
@@ -399,8 +462,27 @@ const AdminCategoriesPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredCategories.map((cat) => (
-                    <tr key={cat._id} className="transition-colors hover:bg-gray-50">
+                  {displayCategories.map((cat) => (
+                    <tr
+                      key={cat._id}
+                      draggable={canReorder && !reorderLoading}
+                      onDragStart={() => handleDragStart(cat._id)}
+                      onDragOver={handleDragOver}
+                      onDrop={() => handleDrop(cat._id)}
+                      onDragEnd={() => setDragId(null)}
+                      className={`transition-colors hover:bg-gray-50 ${
+                        dragId === cat._id ? 'opacity-50' : ''
+                      } ${canReorder ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                    >
+                      {canReorder && (
+                        <td className="px-3 py-4 text-gray-400">
+                          <span className="inline-flex" title="Drag to reorder" aria-hidden>
+                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M7 2a2 2 0 11-.001 4.001A2 2 0 017 2zm0 6a2 2 0 11-.001 4.001A2 2 0 017 8zm0 6a2 2 0 11-.001 4.001A2 2 0 017 14zm6-8a2 2 0 11-.001 4.001A2 2 0 0113 6zm0 2a2 2 0 11-.001 4.001A2 2 0 0113 8zm0 6a2 2 0 11-.001 4.001A2 2 0 0113 14z" />
+                            </svg>
+                          </span>
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <Thumb src={cat.image} alt={cat.title} />
                       </td>

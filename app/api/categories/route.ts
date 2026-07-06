@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import Category from '@/backend/models/Category.model';
+import { categoryListSort, ensureCategorySortOrders } from '@/backend/lib/categoryOrder';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,12 +9,13 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     await connectDB();
+    await ensureCategorySortOrders();
 
     const categories = await Category.find({
       $nor: [{ status: { $regex: /^inactive$/i } }],
     })
-      .select('title slug image')
-      .sort({ createdAt: -1 })
+      .select('title slug image sortOrder')
+      .sort(categoryListSort)
       .lean();
 
     return NextResponse.json(
@@ -21,8 +23,8 @@ export async function GET() {
       {
         status: 200,
         headers: {
-          // Categories change rarely — cache for 60 s, serve stale for up to 120 s
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+          // Order can change from admin drag-and-drop — do not cache stale lists
+          'Cache-Control': 'no-store',
         },
       }
     );

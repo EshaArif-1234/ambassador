@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,6 +15,7 @@ import {
   productDetailPath,
   slugFromCollectionPath,
 } from '@/lib/siteRoutes';
+import { useStorefrontCategories } from '@/hooks/useStorefrontCategories';
 
 interface ApiCategoryRef {
   _id?: string;
@@ -146,8 +147,18 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
 
   // ── Initialise all filter state from URL on first render ──
   const [products,  setProducts]  = useState<Product[]>([]);
-  const [categories,setCategories]= useState<string[]>([ALL]);
-  const [categoryMeta, setCategoryMeta] = useState<CategoryMeta[]>([]);
+  const { categories: storefrontCategories } = useStorefrontCategories();
+  const categoryMeta = useMemo(
+    () =>
+      storefrontCategories
+        .filter((c) => c.title && c.slug)
+        .map((c) => ({ title: c.title, slug: c.slug })),
+    [storefrontCategories],
+  );
+  const categories = useMemo(
+    () => [ALL, ...storefrontCategories.map((c) => c.title).filter(Boolean)],
+    [storefrontCategories],
+  );
   const [loading,   setLoading]   = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [total,     setTotal]     = useState(0);
@@ -310,25 +321,6 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
       scroll: false,
     });
   }, [searchParams, categoryMeta, pathname, categorySlugFromPath, router]);
-
-  // Fetch categories once
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/categories', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((json) => {
-        if (!cancelled && json?.success && Array.isArray(json.data)) {
-          const rows = json.data as { title: string; slug?: string }[];
-          const meta = rows
-            .filter((c) => c.title && c.slug)
-            .map((c) => ({ title: c.title, slug: c.slug! }));
-          setCategoryMeta(meta);
-          setCategories([ALL, ...rows.map((c) => c.title).filter(Boolean)]);
-        }
-      })
-      .catch(() => { if (!cancelled) setCategories([ALL]); });
-    return () => { cancelled = true; };
-  }, []);
 
   // Fetch products from server whenever any filter or page changes
   useEffect(() => {

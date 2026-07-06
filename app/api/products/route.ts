@@ -6,6 +6,7 @@ import Category from '@/backend/models/Category.model';
 import Review from '@/backend/models/Review.model';
 import { shuffleWithSeed } from '@/utils/seededShuffle.util';
 import { resolveProductImages } from '@/utils/productMedia.util';
+import { sortPopulatedCategories } from '@/lib/storefrontCategories';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ const LISTING_PROJECTION = {
   about: 1,
 };
 
-function enrichListingProduct<T extends { images?: unknown; imagePublicIds?: unknown }>(p: T) {
+function enrichListingProduct<T extends { images?: unknown; imagePublicIds?: unknown; categories?: unknown }>(p: T) {
   const resolved = resolveProductImages({
     images: p.images,
     imagePublicIds: p.imagePublicIds,
@@ -32,6 +33,9 @@ function enrichListingProduct<T extends { images?: unknown; imagePublicIds?: unk
   return {
     ...p,
     images: resolved.length ? [resolved[0]] : [],
+    categories: sortPopulatedCategories(
+      Array.isArray(p.categories) ? (p.categories as { sortOrder?: number; title?: string }[]) : [],
+    ),
   };
 }
 
@@ -157,7 +161,7 @@ export async function GET(req: NextRequest) {
           ? []
           : await (async () => {
               const rows = await Product.find({ _id: { $in: orderedIds } }, LISTING_PROJECTION)
-                .populate('categories', 'title slug')
+                .populate('categories', 'title slug sortOrder')
                 .lean();
               const order = new Map(orderedIds.map((id, index) => [id, index]));
               return [...rows].sort(
@@ -214,7 +218,7 @@ export async function GET(req: NextRequest) {
                 $map: {
                   input: '$categoryDocs',
                   as: 'c',
-                  in: { title: '$$c.title', slug: '$$c.slug' },
+                  in: { title: '$$c.title', slug: '$$c.slug', sortOrder: { $ifNull: ['$$c.sortOrder', 0] } },
                 },
               },
             },
@@ -222,7 +226,7 @@ export async function GET(req: NextRequest) {
         ])
       : (() => {
           let query = Product.find(filter, LISTING_PROJECTION)
-            .populate('categories', 'title slug')
+            .populate('categories', 'title slug sortOrder')
             .sort(sortOrder)
             .skip(skip)
             .limit(limit);

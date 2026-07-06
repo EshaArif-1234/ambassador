@@ -7,6 +7,7 @@ export interface ICategory extends Document {
   imagePublicId: string;
   status: 'active' | 'inactive';
   metaTitle?: string;
+  sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +47,11 @@ const categorySchema = new Schema<ICategory>(
       maxlength: [160, 'Meta title cannot exceed 160 characters'],
       default: '',
     },
+    sortOrder: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );
@@ -62,7 +68,7 @@ categorySchema.pre('save', function () {
 });
 
 // Index for fast status-filtered listing
-categorySchema.index({ status: 1, createdAt: -1 });
+categorySchema.index({ status: 1, sortOrder: 1, createdAt: -1 });
 
 if (process.env.NODE_ENV !== 'production' && mongoose.models.Category) {
   delete (mongoose.models as Record<string, unknown>).Category;

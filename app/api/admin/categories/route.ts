@@ -4,6 +4,7 @@ import Category from '@/backend/models/Category.model';
 import SubCategory from '@/backend/models/SubCategory.model';
 import { migrateLegacySubcategoryParents } from '@/backend/lib/migrateSubCategoryParents';
 import { requireAdmin } from '@/backend/lib/adminAuth';
+import { categoryListSort, ensureCategorySortOrders, getNextCategorySortOrder } from '@/backend/lib/categoryOrder';
 
 /** GET /api/admin/categories — list all categories with subcategory count */
 export async function GET(req: NextRequest) {
@@ -21,7 +22,9 @@ export async function GET(req: NextRequest) {
     if (search) filter.title = { $regex: search, $options: 'i' };
     if (status !== 'all') filter.status = status;
 
-    const categories = await Category.find(filter).sort({ createdAt: -1 }).lean();
+    await ensureCategorySortOrders();
+
+    const categories = await Category.find(filter).sort(categoryListSort).lean();
 
     // Attach subcategory count for each category
     const categoryIds = categories.map((c) => c._id);
@@ -73,12 +76,15 @@ export async function POST(req: NextRequest) {
     const normalizedStatus =
       String(rawStatus).toLowerCase() === 'inactive' ? 'inactive' : 'active';
 
+    const sortOrder = await getNextCategorySortOrder();
+
     const category = await Category.create({
       title: title.trim(),
       image: image ?? '',
       imagePublicId: imagePublicId ?? '',
       status: normalizedStatus,
       metaTitle: metaTitle?.trim() ?? '',
+      sortOrder,
     });
 
     return NextResponse.json(

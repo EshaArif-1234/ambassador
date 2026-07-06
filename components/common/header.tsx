@@ -15,8 +15,7 @@ import {
   primaryCategorySlug,
   slugFromCollectionPath,
 } from '@/lib/siteRoutes';
-
-type CategoryItem = { title: string; slug?: string; image?: string };
+import { useStorefrontCategories } from '@/hooks/useStorefrontCategories';
 
 type SearchSuggestion = {
   _id: string;
@@ -44,8 +43,7 @@ const Header = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const { categories, loading: categoriesLoading } = useStorefrontCategories();
   const [selectedCategoryTitle, setSelectedCategoryTitle] = useState<string | null>(null);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
@@ -59,28 +57,6 @@ const Header = () => {
   const searchRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useUser();
   const { cartItems, removeFromCart, cartCount } = useCart();
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setCategoriesLoading(true);
-      try {
-        const res = await fetch('/api/categories');
-        const json = await res.json();
-        if (!cancelled && json?.success && Array.isArray(json.data)) {
-          setCategories(json.data as CategoryItem[]);
-        }
-      } catch {
-        if (!cancelled) setCategories([]);
-      } finally {
-        if (!cancelled) setCategoriesLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
