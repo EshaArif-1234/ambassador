@@ -127,6 +127,7 @@ export async function POST(req: NextRequest) {
       videos,
       videoPublicIds,
       specifications,
+      specificationOrder,
       metaTitle,
       metaDescription,
       features,
@@ -169,6 +170,9 @@ export async function POST(req: NextRequest) {
       videos: videos ?? [],
       videoPublicIds: videoPublicIds ?? [],
       specifications: specifications ?? {},
+      specificationOrder: Array.isArray(specificationOrder)
+        ? specificationOrder.map((k: unknown) => String(k).trim()).filter(Boolean)
+        : [],
       metaTitle: metaTitle?.trim() ?? '',
       metaDescription: metaDescription?.trim() ?? '',
       features: sanitizeProductFeatures(features),

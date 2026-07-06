@@ -14,6 +14,8 @@ export interface IProduct extends Document {
   videos: string[];
   videoPublicIds: string[];
   specifications: Record<string, string>;
+  /** Per-product display order for specification keys (from drag-and-drop in product editor). */
+  specificationOrder?: string[];
   metaTitle?: string;
   metaDescription?: string;
   /** Marketing flags — subset of free_shipping | on_sale | new_arrival | best_seller */
@@ -92,6 +94,10 @@ const productSchema = new Schema<IProduct>(
     specifications: {
       type: Schema.Types.Mixed,
       default: {},
+    },
+    specificationOrder: {
+      type: [String],
+      default: [],
     },
     metaTitle: {
       type: String,

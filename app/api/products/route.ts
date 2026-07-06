@@ -7,6 +7,7 @@ import Review from '@/backend/models/Review.model';
 import { shuffleWithSeed } from '@/utils/seededShuffle.util';
 import { resolveProductImages } from '@/utils/productMedia.util';
 import { sortPopulatedCategories } from '@/lib/storefrontCategories';
+import { orderProductSpecifications } from '@/lib/productSpecifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,9 +24,13 @@ const LISTING_PROJECTION = {
   stock: 1, status: 1, brands: 1, features: 1,
   categories: 1, images: 1, imagePublicIds: 1, createdAt: 1,
   about: 1,
+  specifications: 1,
+  specificationOrder: 1,
 };
 
-function enrichListingProduct<T extends { images?: unknown; imagePublicIds?: unknown; categories?: unknown }>(p: T) {
+function enrichListingProduct<T extends { images?: unknown; imagePublicIds?: unknown; categories?: unknown; specifications?: unknown; specificationOrder?: unknown }>(
+  p: T,
+) {
   const resolved = resolveProductImages({
     images: p.images,
     imagePublicIds: p.imagePublicIds,
@@ -35,6 +40,10 @@ function enrichListingProduct<T extends { images?: unknown; imagePublicIds?: unk
     images: resolved.length ? [resolved[0]] : [],
     categories: sortPopulatedCategories(
       Array.isArray(p.categories) ? (p.categories as { sortOrder?: number; title?: string }[]) : [],
+    ),
+    specifications: orderProductSpecifications(
+      (p.specifications as Record<string, string>) ?? {},
+      Array.isArray(p.specificationOrder) ? (p.specificationOrder as string[]) : undefined,
     ),
   };
 }

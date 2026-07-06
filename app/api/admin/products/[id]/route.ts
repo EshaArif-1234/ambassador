@@ -79,6 +79,7 @@ export async function PATCH(
       videos,
       videoPublicIds,
       specifications,
+      specificationOrder,
       metaTitle,
       metaDescription,
       features,
@@ -110,6 +111,11 @@ export async function PATCH(
     if (status !== undefined) product.status = status;
     if (about !== undefined) product.about = about.trim();
     if (specifications !== undefined) product.specifications = specifications;
+    if (specificationOrder !== undefined) {
+      product.specificationOrder = Array.isArray(specificationOrder)
+        ? specificationOrder.map((k: unknown) => String(k).trim()).filter(Boolean)
+        : [];
+    }
     if (metaTitle !== undefined) product.metaTitle = metaTitle?.trim() ?? '';
     if (metaDescription !== undefined) product.metaDescription = metaDescription?.trim() ?? '';
     if (features !== undefined) product.features = sanitizeProductFeatures(features);

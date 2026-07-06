@@ -24,6 +24,7 @@ import {
   primaryCategorySlug,
   productDetailPath,
 } from '@/lib/siteRoutes';
+import { orderedSpecificationEntries } from '@/lib/productSpecifications';
 
 interface CategoryRef {
   title?: string;
@@ -43,6 +44,7 @@ interface ProductDetail {
   videoPublicIds?: string[];
   brands?: unknown;
   specifications: Record<string, string>;
+  specificationOrder?: string[];
   categories: CategoryRef[];
   avgRating: number;
   reviewCount: number;
@@ -255,6 +257,11 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       cancelled = true;
     };
   }, [product]);
+
+  const specificationEntries = useMemo(
+    () => orderedSpecificationEntries(product?.specifications, product?.specificationOrder),
+    [product?.specifications, product?.specificationOrder],
+  );
 
   const displayPrice =
     product && product.price != null && product.price > 0
@@ -503,9 +510,9 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
 
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Specifications</h3>
-                {Object.keys(product.specifications ?? {}).length > 0 ? (
+                {specificationEntries.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
-                    {Object.entries(product.specifications).map(([key, value]) => (
+                    {specificationEntries.map(([key, value]) => (
                       <div key={key} className="flex items-baseline gap-3 py-2 border-b border-gray-100">
                         <span className="text-sm text-[#0F4C69] font-bold shrink-0 min-w-[120px]">{key}:</span>
                         <span className="text-sm text-gray-700 font-medium">{value}</span>

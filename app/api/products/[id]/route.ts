@@ -7,6 +7,7 @@ import {
   findInactiveProductByIdentifier,
 } from '@/backend/lib/findPublicProduct';
 import { resolveProductImages, resolveProductVideos } from '@/utils/productMedia.util';
+import { orderProductSpecifications } from '@/lib/productSpecifications';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -77,6 +78,11 @@ export async function GET(
       videoPublicIds: product.videoPublicIds,
     });
 
+    const specifications = orderProductSpecifications(
+      (product.specifications as Record<string, string>) ?? {},
+      Array.isArray(product.specificationOrder) ? product.specificationOrder : undefined,
+    );
+
     return NextResponse.json(
       {
         success: true,
@@ -86,6 +92,7 @@ export async function GET(
             _id: productId,
             images,
             videos,
+            specifications,
             imagePublicIds: product.imagePublicIds ?? [],
             videoPublicIds: product.videoPublicIds ?? [],
             avgRating,

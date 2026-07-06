@@ -9,6 +9,7 @@ import {
   resolveProductImages,
   resolveProductVideos,
 } from '@/utils/productMedia.util';
+import { orderProductSpecifications } from '@/lib/productSpecifications';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ export interface ProductFormData {
   status: 'active' | 'inactive';
   about: string;
   specifications: Record<string, string>;
+  specificationOrder?: string[];
   images: string[];
   imagePublicIds: string[];
   videos: string[];
@@ -102,6 +104,21 @@ const initMediaSlots = (
 
 const isActiveMediaSlot = (slot: MediaSlot) => Boolean(slot.file || slot.url || slot.publicId);
 
+function buildSpecRows(
+  specs: Record<string, unknown> | null | undefined,
+  productOrder?: string[] | null,
+) {
+  const ordered = orderProductSpecifications(
+    (specs ?? {}) as Record<string, string>,
+    productOrder,
+  );
+  return Object.entries(ordered).map(([k, v]) => ({
+    id: Math.random().toString(36).slice(2),
+    key: k,
+    value: String(v ?? ''),
+  }));
+}
+
 // ─── View Modal ───────────────────────────────────────────────────────────────
 
 const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ product: p = {}, onClose }) => {
@@ -113,7 +130,10 @@ const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ pro
       ? [p.category]
       : [];
   const categoryLabels    = catItems.map((c: any) => getTitle(c) || getId(c) || '—');
-  const specs  = (p.specifications || {}) as Record<string, unknown>;
+  const specs  = orderProductSpecifications(
+    (p.specifications || {}) as Record<string, string>,
+    Array.isArray(p.specificationOrder) ? p.specificationOrder : undefined,
+  ) as Record<string, unknown>;
   const imgs = resolveProductImages({
     images: p.images,
     imagePublicIds: p.imagePublicIds,
@@ -506,9 +526,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
 
   // ── Specs ──
   const [specRows, setSpecRows] = useState<{ id: string; key: string; value: string }[]>(() =>
-    Object.entries((product?.specifications || {}) as Record<string, unknown>).map(([k, v]) => ({
-      id: Math.random().toString(36).slice(2), key: k, value: String(v ?? ''),
-    }))
+    buildSpecRows(product?.specifications as Record<string, unknown>, product?.specificationOrder),
   );
 
   // ── UI state ──
@@ -518,6 +536,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadStatus, setUploadStatus] = useState('');
   const [productCategoryFilter,    setProductCategoryFilter]    = useState('');
+  const [specDragId, setSpecDragId] = useState<string | null>(null);
 
   // ── Fetch categories (add/edit only) ──
   useEffect(() => {
@@ -546,13 +565,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
       features: normalizeFeaturesFromProduct(p),
       brands: normalizeBrandsFromProduct(p),
     });
-    setSpecRows(
-      Object.entries((p?.specifications || {}) as Record<string, unknown>).map(([k, v]) => ({
-        id: Math.random().toString(36).slice(2),
-        key: k,
-        value: String(v ?? ''),
-      }))
-    );
+    setSpecRows(buildSpecRows(p?.specifications as Record<string, unknown>, p?.specificationOrder));
     setImageSlots(initMediaSlots(p?.images || [], p?.imagePublicIds || [], 3, 'image'));
     setVideoSlots(initMediaSlots(p?.videos || [], p?.videoPublicIds || [], 2, 'video'));
     setErrors({});
@@ -591,6 +604,23 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
   const removeSpec = (id: string) => setSpecRows(p => { const u = p.filter(r => r.id !== id); syncSpecs(u); return u; });
   const updateSpec = (id: string, field: 'key' | 'value', val: string) =>
     setSpecRows(p => { const u = p.map(r => r.id === id ? { ...r, [field]: val } : r); syncSpecs(u); return u; });
+
+  const handleSpecDragStart = (id: string) => setSpecDragId(id);
+  const handleSpecDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleSpecDrop = (targetId: string) => {
+    if (!specDragId || specDragId === targetId) return;
+    setSpecRows((prev) => {
+      const fromIdx = prev.findIndex((r) => r.id === specDragId);
+      const toIdx = prev.findIndex((r) => r.id === targetId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      syncSpecs(next);
+      return next;
+    });
+    setSpecDragId(null);
+  };
 
   // ── Media helpers ──
   const setImageFile = (index: number, file: File) =>
@@ -698,6 +728,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
         status:          form.status,
         about:           form.about.trim(),
         specifications:  form.specifications,
+        specificationOrder: specRows.map((r) => r.key.trim()).filter(Boolean),
         images:          imageResults.map(r => r.url),
         imagePublicIds:  imageResults.map(r => r.publicId),
         videos:          videoResults.map(r => r.url),
@@ -1090,7 +1121,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-sm font-semibold text-gray-700">Technical Specifications</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Add any spec relevant to this product (e.g. Material, BTU, Size)</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Add specs for this product. Drag rows to set the order shown on the product page.
+                </p>
               </div>
               <button type="button" onClick={addSpec}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#0F4C69] text-white rounded-lg hover:bg-[#0d3f59] transition-colors">
@@ -1110,22 +1143,45 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="grid grid-cols-[1fr_1fr_32px] gap-2 px-1">
+                <div className="grid grid-cols-[28px_1fr_1fr_32px] gap-2 px-1">
+                  <span aria-hidden />
                   <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Name</span>
                   <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Value</span>
                   <span />
                 </div>
                 {specRows.map(row => (
-                  <div key={row.id} className="grid grid-cols-[1fr_1fr_32px] gap-2 items-center bg-white p-2 rounded-lg border border-gray-200">
+                  <div
+                    key={row.id}
+                    onDragOver={handleSpecDragOver}
+                    onDrop={() => handleSpecDrop(row.id)}
+                    className={`grid grid-cols-[28px_1fr_1fr_32px] gap-2 items-center bg-white p-2 rounded-lg border border-gray-200 transition-opacity ${
+                      specDragId === row.id ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <span
+                      draggable
+                      onDragStart={() => handleSpecDragStart(row.id)}
+                      onDragEnd={() => setSpecDragId(null)}
+                      className="flex h-8 w-7 cursor-grab items-center justify-center text-gray-400 active:cursor-grabbing"
+                      title="Drag to reorder"
+                      aria-label="Drag to reorder"
+                    >
+                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M7 2a2 2 0 11-.001 4.001A2 2 0 017 2zm0 6a2 2 0 11-.001 4.001A2 2 0 017 8zm0 6a2 2 0 11-.001 4.001A2 2 0 017 14zm6-8a2 2 0 11-.001 4.001A2 2 0 0113 6zm0 2a2 2 0 11-.001 4.001A2 2 0 0113 8zm0 6a2 2 0 11-.001 4.001A2 2 0 0113 14z" />
+                      </svg>
+                    </span>
                     <input type="text" value={row.key}
                       onChange={e => updateSpec(row.id, 'key', e.target.value)}
                       placeholder="e.g. Material"
-                      className={inputCls(false) + ' text-xs'} />
+                      draggable={false}
+                      className={inputCls(false) + ' text-xs cursor-text'} />
                     <input type="text" value={row.value}
                       onChange={e => updateSpec(row.id, 'value', e.target.value)}
                       placeholder="e.g. Stainless Steel"
-                      className={inputCls(false) + ' text-xs'} />
+                      draggable={false}
+                      className={inputCls(false) + ' text-xs cursor-text'} />
                     <button type="button" onClick={() => removeSpec(row.id)}
+                      draggable={false}
                       className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

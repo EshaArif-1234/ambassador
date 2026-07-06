@@ -6,6 +6,7 @@ import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
 import { requireAuthUser } from '@/utils/authSession.util';
 import { sortPopulatedCategories } from '@/lib/storefrontCategories';
+import { orderProductSpecifications } from '@/lib/productSpecifications';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
       _id: { $in: ids },
       status: 'active',
     })
-      .select('name price originalPrice stock images specifications categories brands features about')
+      .select('name price originalPrice stock images specifications specificationOrder categories brands features about')
       .populate('categories', 'title slug sortOrder')
       .lean();
 
@@ -85,7 +86,10 @@ export async function GET(req: NextRequest) {
         originalPrice: p.originalPrice,
         stock: p.stock ?? 0,
         image: p.images?.[0] ?? '',
-        specifications: p.specifications ?? {},
+        specifications: orderProductSpecifications(
+          (p.specifications as Record<string, string>) ?? {},
+          Array.isArray(p.specificationOrder) ? (p.specificationOrder as string[]) : undefined,
+        ),
         brands: Array.isArray(p.brands) ? p.brands : [],
         avgRating: r?.avgRating ?? 0,
         reviewCount: r?.reviewCount ?? 0,
