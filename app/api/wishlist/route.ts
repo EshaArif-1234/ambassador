@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       _id: { $in: ids },
       status: 'active',
     })
-      .select('name price originalPrice stock images specifications specificationOrder categories brands features about')
+      .select('name slug price originalPrice stock images specifications specificationOrder categories brands features about')
       .populate('categories', 'title slug sortOrder')
       .lean();
 
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
     const items = products.map((p) => {
       const sortedCats = sortPopulatedCategories(
         Array.isArray(p.categories)
-          ? (p.categories as { title?: string; sortOrder?: number }[])
+          ? (p.categories as { title?: string; slug?: string; sortOrder?: number }[])
           : [],
       );
       const cats = sortedCats
@@ -78,10 +78,11 @@ export async function GET(req: NextRequest) {
       const r = ratingMap[String(p._id)];
       return {
         _id: String(p._id),
+        slug: typeof p.slug === 'string' ? p.slug.trim().toLowerCase() : undefined,
         name: p.name,
         about: p.about ?? '',
         category: cats[0] ?? '',
-        categories: cats,
+        categories: sortedCats,
         price: displayPrice(p),
         originalPrice: p.originalPrice,
         stock: p.stock ?? 0,

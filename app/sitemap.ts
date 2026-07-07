@@ -4,12 +4,7 @@ import Category from '@/backend/models/Category.model';
 import Product from '@/backend/models/Product.model';
 import { categoryListSort } from '@/backend/lib/categoryOrder';
 import { getCaseStudySlugs } from '@/client/data/customKitchenCases';
-import {
-  collectionCategoryPath,
-  productDetailPath,
-  primaryCategorySlug,
-} from '@/lib/siteRoutes';
-import { sortPopulatedCategories } from '@/lib/storefrontCategories';
+import { collectionCategoryPath, productDetailPath } from '@/lib/siteRoutes';
 import { absoluteUrl } from '@/lib/siteUrl';
 
 export const dynamic = 'force-dynamic';
@@ -86,20 +81,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
 
     const products = await Product.find({ status: 'active' })
-      .select('slug updatedAt categories')
-      .populate('categories', 'slug sortOrder title')
+      .select('slug updatedAt')
       .lean();
 
     for (const product of products) {
-      const sortedCats = sortPopulatedCategories(
-        product.categories as { slug?: string; sortOrder?: number; title?: string }[],
-      );
-      const categorySlug = primaryCategorySlug(sortedCats);
-      const segment = (product.slug || String(product._id)).trim();
+      const segment = (product.slug || String(product._id)).trim().toLowerCase();
       if (!segment) continue;
 
       pushEntry(entries, seen, {
-        url: absoluteUrl(productDetailPath(segment, categorySlug)),
+        url: absoluteUrl(productDetailPath(segment)),
         lastModified: product.updatedAt ?? now,
         changeFrequency: 'weekly',
         priority: 0.6,

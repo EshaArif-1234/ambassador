@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { catalogueHref, productDetailPath, primaryCategorySlug } from '@/lib/siteRoutes';
+import { catalogueHref, productDetailPath, primaryCategorySlug, productUrlSegment } from '@/lib/siteRoutes';
 
 interface SaleProduct {
   _id: string;
+  slug?: string;
   name: string;
   price?: number;
   originalPrice: number;
@@ -41,7 +42,7 @@ function SaleProductCard({ product }: { product: SaleProduct }) {
   const image = product.images?.[0] || DEFAULT_IMAGE;
   const category = categoryTitle(product.categories);
   const categorySlug = primaryCategorySlug(product.categories);
-  const detailHref = productDetailPath(product._id, categorySlug);
+  const detailHref = productDetailPath(productUrlSegment(product), categorySlug);
 
   return (
     <article

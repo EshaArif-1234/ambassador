@@ -23,6 +23,7 @@ import {
   collectionCategoryPath,
   primaryCategorySlug,
   productDetailPath,
+  productUrlSegment,
 } from '@/lib/siteRoutes';
 import { orderedSpecificationEntries } from '@/lib/productSpecifications';
 
@@ -33,6 +34,7 @@ interface CategoryRef {
 
 interface ProductDetail {
   _id: string;
+  slug?: string;
   name: string;
   about: string;
   price?: number;
@@ -52,6 +54,7 @@ interface ProductDetail {
 
 interface CatalogProductRow {
   _id: string;
+  slug?: string;
   name: string;
   price?: number;
   originalPrice: number;
@@ -191,9 +194,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
 
   useEffect(() => {
     if (!product) return;
-    const catSlug = primaryCategorySlug(product.categories);
-    if (!catSlug) return;
-    const canonical = productDetailPath(String(product._id), catSlug);
+    const canonical = productDetailPath(productUrlSegment(product));
     const normalized =
       pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
     if (normalized !== canonical) {
@@ -638,7 +639,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                 return (
                   <Link
                     key={r._id}
-                    href={productDetailPath(r._id, primaryCategorySlug(r.categories))}
+                    href={productDetailPath(productUrlSegment(r), primaryCategorySlug(r.categories))}
                     className="w-40 shrink-0 snap-start overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-48"
                   >
                     <div className="relative h-40 w-full bg-[#E5E5E5] sm:h-44">

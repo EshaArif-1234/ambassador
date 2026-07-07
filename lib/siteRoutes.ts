@@ -1,6 +1,9 @@
 /** Public storefront collection listing (nav label stays "Products"). */
 export const COLLECTION_PATH = '/our-collection';
 
+/** Product detail pages — /product/[slug] */
+export const PRODUCT_PATH = '/product';
+
 /** @deprecated Use COLLECTION_PATH — kept so existing imports keep working. */
 export const CATALOGUE_PATH = COLLECTION_PATH;
 
@@ -32,7 +35,7 @@ export function parseCollectionPath(pathname: string): {
     return { categorySlug: null, productId: null };
   }
 
-  if (parts.length >= 2 && isMongoObjectId(parts[1])) {
+  if (parts.length >= 2) {
     return {
       categorySlug: decodeURIComponent(parts[0]),
       productId: decodeURIComponent(parts[1]),
@@ -43,7 +46,7 @@ export function parseCollectionPath(pathname: string): {
     return { categorySlug: decodeURIComponent(parts[0]), productId: null };
   }
 
-  return { categorySlug: decodeURIComponent(parts[0]), productId: null };
+  return { categorySlug: null, productId: null };
 }
 
 export function isCollectionProductDetailPath(pathname: string): boolean {
@@ -72,16 +75,34 @@ export function primaryCategorySlug(
   return undefined;
 }
 
+export type ProductLinkLike = {
+  slug?: string | null;
+  _id?: string | { toString(): string } | null;
+};
+
+/** URL segment for a product detail page — prefers slug over MongoDB id. */
+export function productUrlSegment(product: ProductLinkLike): string {
+  const slug = typeof product.slug === 'string' ? product.slug.trim().toLowerCase() : '';
+  if (slug) return slug;
+  return String(product._id ?? '').trim();
+}
+
 export function productDetailPath(
   idOrSlug: string,
-  categorySlug?: string | null
+  _categorySlug?: string | null
 ): string {
-  const id = encodeURIComponent(idOrSlug);
-  const slug = categorySlug?.trim().toLowerCase();
-  if (slug) {
-    return `${collectionCategoryPath(slug)}/${id}`;
-  }
-  return `/products/${id}`;
+  const segment = encodeURIComponent(String(idOrSlug).trim().toLowerCase());
+  return `${PRODUCT_PATH}/${segment}`;
+}
+
+export function isProductDetailPath(pathname: string): boolean {
+  return pathname === PRODUCT_PATH || pathname.startsWith(`${PRODUCT_PATH}/`);
+}
+
+export function parseProductPath(pathname: string): string | null {
+  if (!pathname.startsWith(`${PRODUCT_PATH}/`)) return null;
+  const segment = pathname.slice(PRODUCT_PATH.length + 1).split('/').filter(Boolean)[0];
+  return segment ? decodeURIComponent(segment) : null;
 }
 
 export function catalogueHref(
@@ -121,8 +142,9 @@ export function catalogueHref(
   return qs ? `${COLLECTION_PATH}?${qs}` : COLLECTION_PATH;
 }
 
-/** True on the product listing page (not product detail under /our-collection/.../id). */
+/** True on the product listing page (not product detail). */
 export function isCatalogueListingPath(pathname: string): boolean {
+  if (isProductDetailPath(pathname)) return false;
   if (pathname === COLLECTION_PATH) return true;
   if (isCollectionProductDetailPath(pathname)) return false;
   return (
@@ -136,6 +158,7 @@ export function isCatalogueListingPath(pathname: string): boolean {
 /** Highlight "Products" in nav for collection + product detail pages. */
 export function isProductsNavActive(pathname: string): boolean {
   return (
+    isProductDetailPath(pathname) ||
     pathname === COLLECTION_PATH ||
     pathname.startsWith(`${COLLECTION_PATH}/`) ||
     pathname.startsWith('/products/') ||

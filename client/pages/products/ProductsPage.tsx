@@ -13,6 +13,7 @@ import {
   COLLECTION_PATH,
   collectionCategoryPath,
   productDetailPath,
+  productUrlSegment,
   slugFromCollectionPath,
 } from '@/lib/siteRoutes';
 import { useStorefrontCategories } from '@/hooks/useStorefrontCategories';
@@ -25,6 +26,7 @@ interface ApiCategoryRef {
 
 interface ApiProductRow {
   _id: string;
+  slug?: string;
   name: string;
   about?: string;
   price?: number;
@@ -41,6 +43,7 @@ interface ApiProductRow {
 
 interface Product {
   _id: string;
+  slug?: string;
   name: string;
   description: string;
   category: string;
@@ -76,6 +79,7 @@ function mapApiToProduct(p: ApiProductRow): Product {
     feat.includes('best_seller') || feat.includes('new_arrival');
   return {
     _id: String(p._id),
+    slug: p.slug?.trim().toLowerCase() || undefined,
     name: p.name,
     description: (p.about ?? '').trim(),
     category,
@@ -679,7 +683,7 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                     >
                       {/* ── Image ── */}
                       <div className="relative h-64 w-full shrink-0 sm:h-full sm:w-72 overflow-hidden bg-[#EEF5F9]">
-                        <Link href={productDetailPath(product._id, product.categorySlug)} className="block absolute inset-0">
+                        <Link href={productDetailPath(productUrlSegment(product), product.categorySlug)} className="block absolute inset-0">
                           <Image
                             src={product.image}
                             alt={product.name}
@@ -700,7 +704,7 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                         {/* Top: name + category + description */}
                         <div className="flex flex-col gap-1.5 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <Link href={productDetailPath(product._id, product.categorySlug)} className="flex-1 min-w-0">
+                            <Link href={productDetailPath(productUrlSegment(product), product.categorySlug)} className="flex-1 min-w-0">
                               <h3 className="text-base font-bold leading-snug text-gray-900 line-clamp-1 group-hover:text-[#E36630] transition-colors duration-200">
                                 {product.name}
                               </h3>

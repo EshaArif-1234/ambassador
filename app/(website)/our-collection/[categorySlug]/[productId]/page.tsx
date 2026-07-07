@@ -1,23 +1,32 @@
-'use client';
-
-import { Suspense, use } from 'react';
+import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
+import connectDB from '@/backend/config/db';
+import { findActiveProductByIdentifier } from '@/backend/lib/findPublicProduct';
 import ProductDetailPage from '@/client/pages/products/ProductDetailPage';
 import PageLoader from '@/components/ui/PageLoader';
+import { productDetailPath, productUrlSegment } from '@/lib/siteRoutes';
 
-type Props = {
+/** Legacy /our-collection/[category]/[id|slug] → /product/[slug] */
+export default async function LegacyCollectionProductPage({
+  params,
+}: {
   params: Promise<{ categorySlug: string; productId: string }>;
-};
+}) {
+  const { productId } = await params;
 
-function CollectionProductDetail({ productId }: { productId: string }) {
-  return <ProductDetailPage productId={productId} />;
-}
-
-export default function OurCollectionProductPage({ params }: Props) {
-  const { productId } = use(params);
+  await connectDB();
+  const product = await findActiveProductByIdentifier(productId);
+  if (product) {
+    redirect(productDetailPath(productUrlSegment(product)));
+  }
 
   return (
-    <Suspense fallback={<PageLoader message="Loading product…" fullScreen={false} className="min-h-[60vh]" />}>
-      <CollectionProductDetail productId={productId} />
+    <Suspense
+      fallback={
+        <PageLoader message="Loading product…" fullScreen={false} className="min-h-[60vh]" />
+      }
+    >
+      <ProductDetailPage key={productId} productId={productId} />
     </Suspense>
   );
 }

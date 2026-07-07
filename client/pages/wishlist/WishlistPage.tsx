@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { CATALOGUE_PATH } from '@/lib/siteRoutes';
+import { CATALOGUE_PATH, productDetailPath, primaryCategorySlug, productUrlSegment } from '@/lib/siteRoutes';
 import Image from 'next/image';
 import { useUser } from '@/contexts/UserContext';
 import { useCart } from '@/contexts/CartContext';
@@ -14,9 +14,11 @@ import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
 
 interface WishlistProduct {
   _id: string;
+  slug?: string;
   name: string;
   about: string;
   category: string;
+  categories?: Array<{ title?: string; slug?: string }>;
   price: number;
   originalPrice: number;
   stock: number;
@@ -185,20 +187,24 @@ export default function WishlistPage() {
             {items.map((product) => {
               const showStrike = product.originalPrice > product.price && product.price > 0;
               const img = product.image || '/Images/home/stainless-steal.webp';
+              const detailHref = productDetailPath(
+                productUrlSegment(product),
+                primaryCategorySlug(product.categories)
+              );
               return (
                 <article
                   key={product._id}
                   className="rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden flex flex-col sm:flex-row"
                 >
                   <div className="relative h-48 sm:h-auto sm:w-56 shrink-0 bg-[#EEF5F9]">
-                    <Link href={`/products/${product._id}`} className="block relative h-full min-h-[12rem]">
+                    <Link href={detailHref} className="block relative h-full min-h-[12rem]">
                       <Image src={img} alt={product.name} fill className="object-cover" sizes="224px" />
                     </Link>
                   </div>
 
                   <div className="flex flex-1 flex-col justify-between p-5 min-w-0 gap-4">
                     <div>
-                      <Link href={`/products/${product._id}`}>
+                      <Link href={detailHref}>
                         <h2 className="text-base font-bold text-gray-900 hover:text-[#E36630] line-clamp-2">
                           {product.name}
                         </h2>
@@ -240,7 +246,7 @@ export default function WishlistPage() {
                           {removingId === product._id ? 'Removing…' : 'Remove'}
                         </button>
                         <Link
-                          href={`/products/${product._id}`}
+                          href={detailHref}
                           className="px-3 py-2 text-xs font-semibold text-[#0F4C69] border border-[#0F4C69] rounded-lg hover:bg-[#0F4C69] hover:text-white transition-colors"
                         >
                           View

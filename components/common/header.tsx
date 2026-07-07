@@ -12,6 +12,7 @@ import {
   collectionCategoryPath,
   isCatalogueListingPath,
   productDetailPath,
+  productUrlSegment,
   primaryCategorySlug,
   slugFromCollectionPath,
 } from '@/lib/siteRoutes';
@@ -19,6 +20,7 @@ import { useStorefrontCategories } from '@/hooks/useStorefrontCategories';
 
 type SearchSuggestion = {
   _id: string;
+  slug?: string;
   name: string;
   images: string[];
   categories?: Array<{ title?: string; slug?: string } | string>;
@@ -179,9 +181,11 @@ const Header = () => {
     router.push(buildProductsHref(params));
   };
 
-  const openProduct = (productId: string, categorySlug?: string) => {
+  const openProduct = (product: SearchSuggestion) => {
     closeSuggestions();
-    router.push(productDetailPath(productId, categorySlug));
+    router.push(
+      productDetailPath(productUrlSegment(product), primaryCategorySlug(product.categories))
+    );
   };
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -230,17 +234,14 @@ const Header = () => {
     if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
       e.preventDefault();
       const picked = searchSuggestions[activeSuggestionIndex];
-      if (picked) openProduct(picked._id, primaryCategorySlug(picked.categories));
+      if (picked) openProduct(picked);
     }
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeSuggestionIndex >= 0 && searchSuggestions[activeSuggestionIndex]) {
-      openProduct(
-        searchSuggestions[activeSuggestionIndex]._id,
-        primaryCategorySlug(searchSuggestions[activeSuggestionIndex].categories)
-      );
+      openProduct(searchSuggestions[activeSuggestionIndex]);
       return;
     }
     runProductSearch(searchQuery);
@@ -666,9 +667,7 @@ const Header = () => {
                                 role="option"
                                 aria-selected={active}
                                 onMouseEnter={() => setActiveSuggestionIndex(index)}
-                                onClick={() =>
-                                  openProduct(product._id, primaryCategorySlug(product.categories))
-                                }
+                                onClick={() => openProduct(product)}
                                 className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
                                   active ? 'bg-orange-50' : 'hover:bg-gray-50'
                                 }`}
