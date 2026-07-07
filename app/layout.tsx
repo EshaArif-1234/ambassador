@@ -5,6 +5,7 @@ import LayoutWrapper from "@/components/common/LayoutWrapper";
 import { UserProvider } from "@/contexts/UserContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: "Ambassador Kitchen Equipment",
   description:
     "Commercial kitchen equipment and professional food service solutions in Pakistan.",
