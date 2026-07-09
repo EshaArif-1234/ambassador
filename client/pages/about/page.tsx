@@ -26,6 +26,9 @@ const AboutPage = () => {
       <div className="bg-[#E3E6E6]">
         <CeoAwardSection />
       </div>
+      <div className="bg-white">
+        <CertificatesSection />
+      </div>
 
       {/* 3 — white */}
       <div className="bg-white">
@@ -33,9 +36,7 @@ const AboutPage = () => {
       </div>
 
       {/* 3 — white */}
-      <div className="bg-white">
-        <CertificatesSection />
-      </div>
+      
 
       {/* 4 — gray */}
       <div className="bg-[#E3E6E6]">

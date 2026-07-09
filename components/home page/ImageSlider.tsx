@@ -84,9 +84,7 @@ export default function ImageSlider() {
             key={`img-${s.id}-${idx === current ? animKey : 0}`}
             src={s.image}
             alt={s.alt}
-            className={`absolute inset-0 h-full w-full object-cover object-center ${
-              idx === current ? 'slider-ken-burns' : ''
-            }`}
+            className="absolute inset-0 h-full w-full object-cover object-center"
           />
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20 md:from-black/75 md:via-black/30 md:to-black/10" />
