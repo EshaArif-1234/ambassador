@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
+import { useAdminSessionTimeout } from '@/hooks/useAdminSessionTimeout';
 import PageLoader from '@/components/ui/PageLoader';
 
 interface AdminProtectionProps {
@@ -13,17 +14,17 @@ const AdminProtection: React.FC<AdminProtectionProps> = ({ children }) => {
   const { user, isLoading } = useUser();
   const router = useRouter();
 
+  const isAdmin = Boolean(user && user.role === 'admin');
+  useAdminSessionTimeout(isAdmin);
+
   useEffect(() => {
-    // Only check permissions after loading is complete
     if (!isLoading) {
-      // Check if user is not logged in or not an admin
       if (!user || user.role !== 'admin') {
         router.push('/login');
       }
     }
   }, [user, isLoading, router]);
 
-  // Show loading state while user context is loading or checking permissions
   if (isLoading || !user || user.role !== 'admin') {
     return (
       <PageLoader

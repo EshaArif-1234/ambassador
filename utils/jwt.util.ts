@@ -47,6 +47,14 @@ export const verifyToken = (token: string): jwt.JwtPayload => {
   return jwt.verify(token, secret()) as jwt.JwtPayload;
 };
 
+/** Unix ms when the JWT session ends (falls back to now + default session length). */
+export function sessionExpiresAtMs(decoded: jwt.JwtPayload): number {
+  if (typeof decoded.exp === 'number' && decoded.exp > 0) {
+    return decoded.exp * 1000;
+  }
+  return Date.now() + sessionMaxAgeSeconds() * 1000;
+}
+
 /** Production-safe Secure flag (set COOKIE_SECURE=false only for local HTTP testing). */
 export function authCookieSecure(): boolean {
   if (process.env.COOKIE_SECURE === 'false') return false;

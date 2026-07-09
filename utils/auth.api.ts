@@ -116,7 +116,7 @@ export const authApi = {
     request<null>('/logout', { method: 'POST' }),
 
   getMe: () =>
-    request<{ user: ApiUser }>('/me'),
+    request<{ user: ApiUser; sessionExpiresAt?: number }>('/me'),
 
   updateProfile: (body: UpdateProfilePayload) =>
     request<{ user: ApiUser }>('/me', {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
 import { requireAuthUser, userIdFromJwtPayload } from '@/utils/authSession.util';
-import { extractToken, verifyToken } from '@/utils/jwt.util';
+import { extractToken, verifyToken, sessionExpiresAtMs } from '@/utils/jwt.util';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -49,7 +49,10 @@ export async function GET(req: NextRequest) {
       {
         success: true,
         message: 'Authenticated user retrieved.',
-        data: { user: user.toSafeObject() },
+        data: {
+          user: user.toSafeObject(),
+          sessionExpiresAt: sessionExpiresAtMs(decoded),
+        },
       },
       { status: 200, headers: { 'Cache-Control': 'no-store, private' } }
     );
