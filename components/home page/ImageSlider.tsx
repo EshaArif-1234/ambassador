@@ -43,19 +43,36 @@ const slides = [
 
 ];
 
+type SlideDirection = 'next' | 'prev';
+
+function resolveDirection(from: number, to: number): SlideDirection {
+  if (from === to) return 'next';
+  const forward = (to - from + slides.length) % slides.length;
+  const backward = (from - to + slides.length) % slides.length;
+  return forward <= backward ? 'next' : 'prev';
+}
+
 export default function ImageSlider() {
   const [current, setCurrent]   = useState(0);
   const [animKey, setAnimKey]   = useState(0); // forces re-mount → re-animate
+  const [direction, setDirection] = useState<SlideDirection>('next');
   const [paused,  setPaused]    = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentRef = useRef(0);
 
-  const goTo = useCallback((idx: number) => {
+  useEffect(() => {
+    currentRef.current = current;
+  }, [current]);
+
+  const goTo = useCallback((idx: number, dir?: SlideDirection) => {
+    if (currentRef.current === idx) return;
+    setDirection(dir ?? resolveDirection(currentRef.current, idx));
+    setAnimKey((k) => k + 1);
     setCurrent(idx);
-    setAnimKey(k => k + 1);
   }, []);
 
-  const next = useCallback(() => goTo((current + 1) % slides.length), [current, goTo]);
-  const prev = useCallback(() => goTo((current - 1 + slides.length) % slides.length), [current, goTo]);
+  const next = useCallback(() => goTo((current + 1) % slides.length, 'next'), [current, goTo]);
+  const prev = useCallback(() => goTo((current - 1 + slides.length) % slides.length, 'prev'), [current, goTo]);
 
   // Auto-advance
   useEffect(() => {
@@ -66,6 +83,13 @@ export default function ImageSlider() {
 
   const slide = slides[current];
   const isCenter = slide.align === 'center';
+  const fromRight = direction === 'next';
+  const textAnim = {
+    badge: fromRight ? 'slider-badge' : 'slider-badge-from-left',
+    title: fromRight ? 'slider-title' : 'slider-title-from-left',
+    subtitle: fromRight ? 'slider-subtitle' : 'slider-subtitle-from-left',
+    cta: fromRight ? 'slider-cta' : 'slider-cta-from-left',
+  };
 
   return (
     <section
@@ -84,7 +108,13 @@ export default function ImageSlider() {
             key={`img-${s.id}-${idx === current ? animKey : 0}`}
             src={s.image}
             alt={s.alt}
-            className="absolute inset-0 h-full w-full object-cover object-center"
+            className={`absolute inset-0 h-full w-full object-cover object-center ${
+              idx === current
+                ? direction === 'next'
+                  ? 'slider-image-enter-next'
+                  : 'slider-image-enter-prev'
+                : ''
+            }`}
           />
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20 md:from-black/75 md:via-black/30 md:to-black/10" />
@@ -108,27 +138,27 @@ export default function ImageSlider() {
       >
         <div key={animKey} className="w-full max-w-2xl">
           {slide.badge && (
-            <span className="slider-badge mb-3 inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm sm:mb-4 sm:gap-2 sm:px-4 sm:py-1.5 sm:text-xs sm:tracking-widest">
+            <span className={`${textAnim.badge} mb-3 inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm sm:mb-4 sm:gap-2 sm:px-4 sm:py-1.5 sm:text-xs sm:tracking-widest`}>
               <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#E36630] animate-pulse" />
               <span className="truncate">{slide.badge}</span>
             </span>
           )}
 
           {slide.title && (
-            <h2 className="slider-title mb-3 text-[1.625rem] font-extrabold leading-[1.15] tracking-tight text-white whitespace-pre-line drop-shadow-lg sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl">
+            <h2 className={`${textAnim.title} mb-3 text-[1.625rem] font-extrabold leading-[1.15] tracking-tight text-white whitespace-pre-line drop-shadow-lg sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl`}>
               {slide.title}
             </h2>
           )}
 
           {slide.subtitle && (
-            <p className="slider-subtitle mb-5 max-w-xl text-xs leading-relaxed text-white/85 drop-shadow sm:mb-6 sm:text-sm md:mb-7 md:text-base lg:text-lg">
+            <p className={`${textAnim.subtitle} mb-5 max-w-xl text-xs leading-relaxed text-white/85 drop-shadow sm:mb-6 sm:text-sm md:mb-7 md:text-base lg:text-lg`}>
               {slide.subtitle}
             </p>
           )}
 
           {slide.cta && (
             <div
-              className={`slider-cta flex w-full flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3 ${
+              className={`${textAnim.cta} flex w-full flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3 ${
                 isCenter ? 'sm:justify-center' : ''
               }`}
             >
