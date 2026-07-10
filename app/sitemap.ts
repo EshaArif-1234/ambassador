@@ -9,6 +9,9 @@ import { absoluteUrl } from '@/lib/siteUrl';
 
 export const dynamic = 'force-dynamic';
 
+/** Canonical production homepage for sitemap (www). */
+const SITEMAP_HOME_URL = 'https://www.ambassador.pk/';
+
 type StaticPage = {
   path: string;
   priority: number;
@@ -43,7 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const { path, priority, changeFrequency } of STATIC_PAGES) {
     pushEntry(entries, seen, {
-      url: absoluteUrl(path),
+      url: path === '/' ? SITEMAP_HOME_URL : absoluteUrl(path),
       lastModified: now,
       changeFrequency,
       priority,
