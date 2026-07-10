@@ -1,167 +1,204 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { adminIconActionBtn } from '@/admin/lib/adminTableActionStyles';
+import { CHECKOUT_ENABLED } from '@/lib/checkoutEnabled';
+import { isOrderInDateRange, type OrderDateRange } from '@/utils/orderDateRange.util';
+import {
+  displayText,
+  formatOrderDateTime,
+  formatPaymentMethodLabel,
+  quantityLabel,
+} from '@/utils/orderDisplay.util';
 
-interface Payment {
+type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+
+type GatewayChannel = 'all' | 'card' | 'jazzcash' | 'easypaisa' | 'bank' | 'cod' | 'online';
+
+interface PaymentTransaction {
   id: string;
-  userId: number;
-  userName: string;
-  userEmail: string;
-  productId: number;
-  productName: string;
-  productImage?: string;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
   amount: number;
   currency: string;
-  status: 'pending' | 'completed' | 'failed' | 'refunded' | 'cod_pending' | 'cod_completed' | 'cod_failed';
-  paymentMethod: 'credit_card' | 'debit_card' | 'paypal' | 'bank_transfer' | 'cash' | 'cash_on_delivery';
+  paymentStatus: PaymentStatus;
+  paymentMethod: string;
+  gatewayMethod: string;
+  gatewayChannel: GatewayChannel;
+  paymentId: string;
   transactionId: string;
+  orderSummary: string;
+  itemCount: number;
   createdAt: string;
-  completedAt?: string;
-  refundedAt?: string;
-  deliveryAddress?: string;
-  deliveryDate?: string;
-  codCollectedBy?: string;
-  codCollectionTime?: string;
+  paidAt?: string;
   failedReason?: string;
+}
+
+const CURRENCY_LABEL = 'PKR';
+
+const GATEWAY_CHANNELS: { id: GatewayChannel; label: string; hint: string }[] = [
+  { id: 'card', label: 'Card', hint: 'Credit / Debit' },
+  { id: 'jazzcash', label: 'JazzCash', hint: 'Mobile wallet' },
+  { id: 'easypaisa', label: 'EasyPaisa', hint: 'Mobile wallet' },
+  { id: 'bank', label: 'Bank Transfer', hint: 'Manual verification' },
+  { id: 'cod', label: 'Cash on Delivery', hint: 'Collect on delivery' },
+  { id: 'online', label: 'Online', hint: 'Other online' },
+];
+
+function formatMoney(amount: number): string {
+  return `${CURRENCY_LABEL} ${amount.toLocaleString('en-PK')}`;
+}
+
+function resolveGatewayChannel(gatewayMethod: string, paymentMethod: string): GatewayChannel {
+  const raw = `${gatewayMethod} ${paymentMethod}`.toLowerCase();
+  if (raw.includes('jazzcash') || raw.includes('jazz cash')) return 'jazzcash';
+  if (raw.includes('easypaisa') || raw.includes('easy paisa')) return 'easypaisa';
+  if (raw.includes('bank')) return 'bank';
+  if (raw.includes('cod') || raw.includes('cash on delivery') || raw === 'cash') return 'cod';
+  if (raw.includes('card') || raw.includes('credit') || raw.includes('debit')) return 'card';
+  if (paymentMethod === 'online' || raw.includes('online')) return 'online';
+  return 'online';
+}
+
+function gatewayDisplayLabel(tx: PaymentTransaction): string {
+  const label = formatPaymentMethodLabel(tx.gatewayMethod || tx.paymentMethod);
+  if (label !== '—') return label;
+  return tx.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online';
+}
+
+function mapOrderToTransaction(o: Record<string, unknown>): PaymentTransaction {
+  const items = (o.items as Record<string, unknown>[] | undefined) ?? [];
+  const itemCount = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  const firstName = typeof items[0]?.productName === 'string' ? items[0].productName : 'Order items';
+  const orderSummary =
+    items.length > 1 ? `${firstName} +${items.length - 1} more` : firstName;
+
+  const gatewayMethod = typeof o.gatewayMethod === 'string' ? o.gatewayMethod : '';
+  const paymentMethod = typeof o.paymentMethod === 'string' ? o.paymentMethod : '';
+  const paymentId = typeof o.paymentId === 'string' ? o.paymentId : '';
+  const transactionId =
+    typeof o.transactionId === 'string' && o.transactionId.trim()
+      ? o.transactionId
+      : paymentId || String(o._id ?? '');
+
+  return {
+    id: paymentId || String(o._id ?? ''),
+    orderId: String(o._id ?? ''),
+    orderNumber: typeof o.orderNumber === 'string' ? o.orderNumber : '—',
+    customerName: typeof o.customerName === 'string' ? o.customerName : '—',
+    customerEmail: typeof o.customerEmail === 'string' ? o.customerEmail : '—',
+    customerPhone: typeof o.customerPhone === 'string' ? o.customerPhone : '—',
+    amount:
+      typeof o.totalAmount === 'number' && !Number.isNaN(o.totalAmount)
+        ? o.totalAmount
+        : 0,
+    currency: typeof o.currency === 'string' ? o.currency : CURRENCY_LABEL,
+    paymentStatus: (o.paymentStatus as PaymentStatus) ?? 'pending',
+    paymentMethod,
+    gatewayMethod,
+    gatewayChannel: resolveGatewayChannel(gatewayMethod, paymentMethod),
+    paymentId,
+    transactionId,
+    orderSummary,
+    itemCount,
+    createdAt:
+      typeof o.createdAt === 'string'
+        ? o.createdAt
+        : typeof o.orderDate === 'string'
+          ? o.orderDate
+          : new Date().toISOString(),
+    paidAt: typeof o.paidAt === 'string' ? o.paidAt : undefined,
+    failedReason: typeof o.failedReason === 'string' ? o.failedReason : undefined,
+  };
+}
+
+function getStatusStyles(status: PaymentStatus): string {
+  switch (status) {
+    case 'paid':
+      return 'bg-emerald-100 text-emerald-800';
+    case 'pending':
+      return 'bg-amber-100 text-amber-800';
+    case 'failed':
+      return 'bg-red-100 text-red-800';
+    case 'refunded':
+      return 'bg-slate-100 text-slate-700';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+}
+
+function getStatusLabel(status: PaymentStatus): string {
+  switch (status) {
+    case 'paid':
+      return 'Paid';
+    case 'pending':
+      return 'Pending';
+    case 'failed':
+      return 'Failed';
+    case 'refunded':
+      return 'Refunded';
+    default:
+      return status;
+  }
+}
+
+function getChannelStyles(channel: GatewayChannel): string {
+  switch (channel) {
+    case 'card':
+      return 'bg-blue-50 text-blue-800 ring-1 ring-blue-100';
+    case 'jazzcash':
+      return 'bg-red-50 text-red-800 ring-1 ring-red-100';
+    case 'easypaisa':
+      return 'bg-green-50 text-green-800 ring-1 ring-green-100';
+    case 'bank':
+      return 'bg-indigo-50 text-indigo-800 ring-1 ring-indigo-100';
+    case 'cod':
+      return 'bg-teal-50 text-teal-800 ring-1 ring-teal-100';
+    default:
+      return 'bg-gray-50 text-gray-700 ring-1 ring-gray-100';
+  }
 }
 
 const PaymentsPage = () => {
   const searchParams = useSearchParams();
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [highlightPaymentId, setHighlightPaymentId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed' | 'failed' | 'refunded'>('all');
-  const [filterMethod, setFilterMethod] = useState<'all' | 'credit_card' | 'debit_card' | 'paypal' | 'bank_transfer'>('all');
-  const [timePeriod, setTimePeriod] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | PaymentStatus>('all');
+  const [filterChannel, setFilterChannel] = useState<GatewayChannel>('all');
+  const [dateRange, setDateRange] = useState<OrderDateRange>('all');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<PaymentTransaction | null>(null);
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockPayments: Payment[] = [
-        {
-          id: 'pay_001',
-          userId: 1,
-          userName: 'John Smith',
-          userEmail: 'john.smith@email.com',
-          productId: 101,
-          productName: 'Kitchen cabinet + countertop (order ORD-2024-001)',
-          productImage: '/Images/products/kitchen-cabinet.jpg',
-          amount: 4100,
-          currency: 'USD',
-          status: 'completed',
-          paymentMethod: 'credit_card',
-          transactionId: 'txn_123456789',
-          createdAt: '2024-04-01T10:30:00Z',
-          completedAt: '2024-04-01T10:32:00Z'
-        },
-        {
-          id: 'pay_002',
-          userId: 2,
-          userName: 'Sarah Johnson',
-          userEmail: 'sarah.j@email.com',
-          productId: 102,
-          productName: 'LED Lighting Kit ×3 (order ORD-2024-002)',
-          productImage: '/Images/products/led-lights.jpg',
-          amount: 450,
-          currency: 'USD',
-          status: 'completed',
-          paymentMethod: 'paypal',
-          transactionId: 'txn_ord_002',
-          createdAt: '2024-04-02T09:14:00Z',
-          completedAt: '2024-04-02T09:15:00Z'
-        },
-        {
-          id: 'pay_004',
-          userId: 4,
-          userName: 'Emily Wilson',
-          userEmail: 'emily.w@email.com',
-          productId: 104,
-          productName: 'Bakery Equipment Set (order ORD-2024-004)',
-          productImage: '/Images/products/bakery-equipment.jpg',
-          amount: 3500,
-          currency: 'USD',
-          status: 'refunded',
-          paymentMethod: 'debit_card',
-          transactionId: 'txn_ord_004',
-          createdAt: '2024-04-01T10:58:00Z',
-          completedAt: '2024-04-01T11:00:00Z',
-          refundedAt: '2024-04-02T08:00:00Z'
-        }
-      ];
-      
-      setPayments(mockPayments);
+  const fetchTransactions = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const res = await fetch('/api/admin/orders', { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load payment transactions.');
+      const mapped = ((data.data as Record<string, unknown>[]) ?? []).map(mapOrderToTransaction);
+      setTransactions(mapped);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load payment transactions.';
+      setFetchError(message);
+      setTransactions([]);
+    } finally {
       setLoading(false);
-    };
-
-    fetchPayments();
+    }
   }, []);
 
-  const filterByTimePeriod = (payments: Payment[], period: string): Payment[] => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    switch (period) {
-      case 'daily':
-        return payments.filter(payment => 
-          new Date(payment.createdAt) >= today
-        );
-      case 'weekly':
-        const weekAgo = new Date(today);
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return payments.filter(payment => 
-          new Date(payment.createdAt) >= weekAgo
-        );
-      case 'monthly':
-        const monthAgo = new Date(today);
-        monthAgo.setMonth(monthAgo.getMonth() - 1);
-        return payments.filter(payment => 
-          new Date(payment.createdAt) >= monthAgo
-        );
-      case 'yearly':
-        const yearAgo = new Date(today);
-        yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-        return payments.filter(payment => 
-          new Date(payment.createdAt) >= yearAgo
-        );
-      default:
-        return payments;
-    }
-  };
-
-  const getFilteredPayments = () => {
-    const phrase = searchTerm.trim().toLowerCase();
-    return filterByTimePeriod(
-      payments.filter(payment => {
-        const matchesSearch =
-          !phrase ||
-          payment.id.toLowerCase().includes(phrase) ||
-          payment.userName.toLowerCase().includes(phrase) ||
-          payment.userEmail.toLowerCase().includes(phrase) ||
-          payment.productName.toLowerCase().includes(phrase) ||
-          payment.transactionId.toLowerCase().includes(phrase);
-        const matchesStatus = filterStatus === 'all' || payment.status === filterStatus;
-        const matchesMethod = filterMethod === 'all' || payment.paymentMethod === filterMethod;
-        return matchesSearch && matchesStatus && matchesMethod;
-      }),
-      timePeriod
-    );
-  };
-
-  const filteredPayments = getFilteredPayments();
-
-  const totalRevenue = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
-  const pendingPayments = payments.filter(p => p.status === 'pending').length;
-  const completedPayments = payments.filter(p => p.status === 'completed').length;
-  const failedPayments = payments.filter(p => p.status === 'failed').length;
-  const refundedPayments = payments.filter(p => p.status === 'refunded').length;
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   useEffect(() => {
     const pid = searchParams.get('paymentId');
@@ -171,41 +208,59 @@ const PaymentsPage = () => {
     }
   }, [searchParams]);
 
+  const filteredTransactions = useMemo(() => {
+    const phrase = searchTerm.trim().toLowerCase();
+    return transactions.filter((tx) => {
+      const matchesSearch =
+        !phrase ||
+        tx.id.toLowerCase().includes(phrase) ||
+        tx.paymentId.toLowerCase().includes(phrase) ||
+        tx.transactionId.toLowerCase().includes(phrase) ||
+        tx.orderNumber.toLowerCase().includes(phrase) ||
+        tx.customerName.toLowerCase().includes(phrase) ||
+        tx.customerEmail.toLowerCase().includes(phrase) ||
+        tx.orderSummary.toLowerCase().includes(phrase) ||
+        gatewayDisplayLabel(tx).toLowerCase().includes(phrase);
+
+      const matchesStatus = filterStatus === 'all' || tx.paymentStatus === filterStatus;
+      const matchesChannel = filterChannel === 'all' || tx.gatewayChannel === filterChannel;
+      const matchesDate = isOrderInDateRange(tx.paidAt ?? tx.createdAt, dateRange);
+
+      return matchesSearch && matchesStatus && matchesChannel && matchesDate;
+    });
+  }, [transactions, searchTerm, filterStatus, filterChannel, dateRange]);
+
+  const paidTransactions = filteredTransactions.filter((tx) => tx.paymentStatus === 'paid');
+  const totalCollected = paidTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+
+  const channelCounts = useMemo(() => {
+    const counts: Record<GatewayChannel, number> = {
+      all: 0,
+      card: 0,
+      jazzcash: 0,
+      easypaisa: 0,
+      bank: 0,
+      cod: 0,
+      online: 0,
+    };
+    for (const tx of filteredTransactions) {
+      counts[tx.gatewayChannel] += 1;
+    }
+    return counts;
+  }, [filteredTransactions]);
+
   useEffect(() => {
     if (!highlightPaymentId || loading) return;
     const t = window.setTimeout(() => {
-      document.getElementById(`payment-row-${highlightPaymentId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document
+        .getElementById(`payment-row-${highlightPaymentId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 200);
     return () => clearTimeout(t);
-  }, [highlightPaymentId, loading, payments]);
+  }, [highlightPaymentId, loading, transactions]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cod_completed': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'cod_pending': return 'bg-yellow-100 text-yellow-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      case 'cod_failed': return 'bg-red-100 text-red-800';
-      case 'refunded': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getMethodColor = (method: string) => {
-    switch (method) {
-      case 'credit_card': return 'bg-blue-100 text-blue-800';
-      case 'debit_card': return 'bg-indigo-100 text-indigo-800';
-      case 'paypal': return 'bg-purple-100 text-purple-800';
-      case 'bank_transfer': return 'bg-green-100 text-green-800';
-      case 'cash': return 'bg-orange-100 text-orange-800';
-      case 'cash_on_delivery': return 'bg-teal-100 text-teal-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const handleViewDetails = (payment: Payment) => {
-    setSelectedPayment(payment);
+  const handleViewDetails = (tx: PaymentTransaction) => {
+    setSelectedTransaction(tx);
     setShowDetailsModal(true);
   };
 
@@ -213,8 +268,8 @@ const PaymentsPage = () => {
     return (
       <DashboardLayout>
         <div className="p-6">
-          <div className="flex items-center justify-center min-h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+          <div className="flex min-h-64 items-center justify-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[#0F4C69]" />
           </div>
         </div>
       </DashboardLayout>
@@ -222,222 +277,326 @@ const PaymentsPage = () => {
   }
 
   return (
-    <DashboardLayout>  
+    <DashboardLayout>
       <div className="p-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Payments Dashboard</h1>
-          <p className="text-gray-600">Online payments linked to checkout orders</p>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="mb-2 text-2xl font-bold text-gray-900">Payment Gateway</h1>
+            <p className="text-gray-600">
+              Monitor checkout transactions from JazzCash, EasyPaisa, cards, bank transfer, and COD.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchTransactions()}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-[#0F4C69]/35 hover:bg-[#0F4C69]/5 hover:text-[#0F4C69]"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Refresh
+          </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-full">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
+        {/* Gateway status */}
+        <div
+          className={`mb-6 rounded-xl border p-5 ${
+            CHECKOUT_ENABLED
+              ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-white'
+              : 'border-amber-200 bg-gradient-to-r from-amber-50 to-white'
+          }`}
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <div
+                className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  CHECKOUT_ENABLED ? 'bg-emerald-100' : 'bg-amber-100'
+                }`}
+              >
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${
+                    CHECKOUT_ENABLED ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`}
+                />
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">${totalRevenue.toFixed(2)}</p>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">
+                  Ambassador Checkout Gateway
+                  <span
+                    className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                      CHECKOUT_ENABLED
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {CHECKOUT_ENABLED ? 'Live' : 'Coming soon'}
+                  </span>
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  {CHECKOUT_ENABLED
+                    ? 'Customers can complete payments online. Transactions sync from placed orders.'
+                    : 'Checkout is in preview mode. Transactions appear here once customers place orders.'}
+                </p>
               </div>
             </div>
+            <div className="flex flex-wrap gap-2">
+              {GATEWAY_CHANNELS.map((channel) => (
+                <span
+                  key={channel.id}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-200"
+                >
+                  <span className="font-semibold">{channel.label}</span>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-500">{channel.hint}</span>
+                </span>
+              ))}
+            </div>
           </div>
+        </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{pendingPayments}</p>
-              </div>
-            </div>
+        {fetchError && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {fetchError}
           </div>
+        )}
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-full">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{completedPayments}</p>
-              </div>
-            </div>
+        {/* Stats */}
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-lg border-l-4 border-[#0F4C69] bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-600">Total collected</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">
+              {paidTransactions.length > 0 ? formatMoney(totalCollected) : '—'}
+            </p>
           </div>
+          <div className="rounded-lg border-l-4 border-emerald-500 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-600">Paid</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{paidTransactions.length}</p>
+          </div>
+          <div className="rounded-lg border-l-4 border-amber-500 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-600">Pending</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">
+              {filteredTransactions.filter((tx) => tx.paymentStatus === 'pending').length}
+            </p>
+          </div>
+          <div className="rounded-lg border-l-4 border-red-500 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-600">Failed</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">
+              {filteredTransactions.filter((tx) => tx.paymentStatus === 'failed').length}
+            </p>
+          </div>
+          <div className="rounded-lg border-l-4 border-slate-400 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-600">Refunded</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">
+              {filteredTransactions.filter((tx) => tx.paymentStatus === 'refunded').length}
+            </p>
+          </div>
+        </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-red-100 rounded-full">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Failed</p>
-                <p className="text-2xl font-bold text-gray-900">{failedPayments}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-gray-100 rounded-full">
-                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Refunded</p>
-                <p className="text-2xl font-bold text-gray-900">{refundedPayments}</p>
-              </div>
-            </div>
-          </div>
+        {/* Gateway channel breakdown */}
+        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {GATEWAY_CHANNELS.map((channel) => (
+            <button
+              key={channel.id}
+              type="button"
+              onClick={() => setFilterChannel((prev) => (prev === channel.id ? 'all' : channel.id))}
+              className={`rounded-lg border p-4 text-left transition-colors ${
+                filterChannel === channel.id
+                  ? 'border-[#0F4C69] bg-[#0F4C69]/5 ring-2 ring-[#0F4C69]/20'
+                  : 'border-gray-200 bg-white hover:border-[#0F4C69]/25'
+              }`}
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{channel.label}</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">{channelCounts[channel.id]}</p>
+              <p className="mt-0.5 text-xs text-gray-500">{channel.hint}</p>
+            </button>
+          ))}
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Search</label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search payments..."
-                className="w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="Transaction ID, order, customer, gateway..."
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 outline-none placeholder:text-gray-400 focus:border-transparent focus:ring-2 focus:ring-[#0F4C69]"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Time Period</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Date range</label>
               <select
-                value={timePeriod}
-                onChange={(e) => setTimePeriod(e.target.value as any)}
-                className="w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value as OrderDateRange)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-transparent focus:ring-2 focus:ring-[#0F4C69]"
               >
-                <option value="all">All Time</option>
-                <option value="daily">Today</option>
-                <option value="weekly">This Week</option>
-                <option value="monthly">This Month</option>
-                <option value="yearly">This Year</option>
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="recent">Last 3 days</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Payment status</label>
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                onChange={(e) => setFilterStatus(e.target.value as 'all' | PaymentStatus)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-transparent focus:ring-2 focus:ring-[#0F4C69]"
               >
-                <option value="all">All Status</option>
+                <option value="all">All statuses</option>
+                <option value="paid">Paid</option>
                 <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
                 <option value="failed">Failed</option>
                 <option value="refunded">Refunded</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Gateway</label>
               <select
-                value={filterMethod}
-                onChange={(e) => setFilterMethod(e.target.value as any)}
-                className="w-full px-3 py-2 text-gray-900 border border-gray-300 outline-none rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                value={filterChannel}
+                onChange={(e) => setFilterChannel(e.target.value as GatewayChannel)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-transparent focus:ring-2 focus:ring-[#0F4C69]"
               >
-                <option value="all">All Methods</option>
-                <option value="credit_card">Credit Card</option>
-                <option value="debit_card">Debit Card</option>
-                <option value="paypal">PayPal</option>
-                <option value="bank_transfer">Bank Transfer</option>
+                <option value="all">All gateways</option>
+                {GATEWAY_CHANNELS.map((channel) => (
+                  <option key={channel.id} value={channel.id}>
+                    {channel.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
         </div>
 
-        {/* Payments Table */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {/* Transactions table */}
+        <div className="overflow-hidden rounded-lg bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Transaction
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Order
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Gateway
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Paid at
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Actions
+                  </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPayments.map((payment) => (
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {filteredTransactions.map((tx) => (
                   <tr
-                    key={payment.id}
-                    id={`payment-row-${payment.id}`}
-                    className={`hover:bg-gray-50 ${highlightPaymentId === payment.id ? 'bg-amber-50 ring-2 ring-inset ring-amber-300' : ''}`}
+                    key={tx.orderId}
+                    id={`payment-row-${tx.id}`}
+                    className={`hover:bg-gray-50 ${
+                      highlightPaymentId === tx.id || highlightPaymentId === tx.paymentId
+                        ? 'bg-amber-50 ring-2 ring-inset ring-amber-300'
+                        : ''
+                    }`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{payment.transactionId}</div>
-                      <div className="text-xs text-gray-500">{payment.id}</div>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="font-mono text-sm font-medium text-gray-900">
+                        {displayText(tx.transactionId)}
+                      </div>
+                      {tx.paymentId && tx.paymentId !== tx.transactionId && (
+                        <div className="text-xs text-gray-500">{tx.paymentId}</div>
+                      )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{payment.userName}</div>
-                      <div className="text-xs text-gray-500">{payment.userEmail}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-gray-100 rounded flex-shrink-0 mr-3">
-                          {payment.productImage ? (
-                            <img src={payment.productImage} alt={payment.productName} className="w-full h-full object-cover rounded" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-900 max-w-[14rem] truncate" title={payment.productName}>{payment.productName}</div>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">{tx.orderNumber}</div>
+                      <div className="max-w-[12rem] truncate text-xs text-gray-500" title={tx.orderSummary}>
+                        {tx.orderSummary}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{payment.currency} {payment.amount.toFixed(2)}</div>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">{tx.customerName}</div>
+                      <div className="text-xs text-gray-500">{tx.customerEmail}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getMethodColor(payment.paymentMethod)}`}>
-                        {payment.paymentMethod.replace(/_/g, ' ')}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getChannelStyles(tx.gatewayChannel)}`}
+                      >
+                        {gatewayDisplayLabel(tx)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(payment.status)}`}>
-                        {payment.status.replace(/_/g, ' ')}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="text-sm font-semibold text-gray-900">{formatMoney(tx.amount)}</div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusStyles(tx.paymentStatus)}`}
+                      >
+                        {getStatusLabel(tx.paymentStatus)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {new Date(payment.createdAt).toLocaleDateString()}
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                      {formatOrderDateTime(tx.paidAt ?? tx.createdAt)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-wrap items-center gap-1">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
-                          onClick={() => handleViewDetails(payment)}
+                          onClick={() => handleViewDetails(tx)}
                           className={adminIconActionBtn}
-                          title="View details"
-                          aria-label="View payment details"
+                          title="View transaction"
+                          aria-label="View transaction details"
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
                           </svg>
                         </button>
+                        <Link
+                          href="/admin-orders"
+                          className={adminIconActionBtn}
+                          title="Open orders"
+                          aria-label="Open order management"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -447,106 +606,85 @@ const PaymentsPage = () => {
           </div>
         </div>
 
-        {/* Empty State */}
-        {filteredPayments.length === 0 && (
-          <div className="text-center py-12">
-            <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h10a3 3 0 003-3H6a3 3 0 00-3 3v-1m0 0v1m0 0h1m-6 0H6a3 3 0 00-3-3v-1m0 0v1m0 0h1m-6 0h10a3 3 0 003 3v1m0 0v-1m0 0h-1" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
-            <p className="text-gray-600">
-              {searchTerm ? `No payments found matching "${searchTerm}"` : 'No payments available'}
+        {filteredTransactions.length === 0 && (
+          <div className="py-16 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+              <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
+              </svg>
+            </div>
+            <h3 className="mb-2 text-lg font-medium text-gray-900">No transactions yet</h3>
+            <p className="mx-auto max-w-md text-gray-600">
+              {searchTerm || filterStatus !== 'all' || filterChannel !== 'all' || dateRange !== 'all'
+                ? 'No transactions match your current filters. Try adjusting search or filters.'
+                : 'Payment records will appear here when customers complete checkout through the gateway.'}
             </p>
           </div>
         )}
 
-        {/* Payment Details Modal */}
-        {showDetailsModal && selectedPayment && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Payment Details</h3>
-                
-                <div className="space-y-3">
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Payment ID:</span>
-                    <span className="text-sm font-mono text-gray-900">{selectedPayment.id}</span>
-                  </div>
+        {/* Transaction details modal */}
+        {showDetailsModal && selectedTransaction && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-xl border bg-white shadow-xl">
+              <div className="border-b px-6 py-4">
+                <h3 className="text-lg font-bold text-gray-900">Transaction details</h3>
+                <p className="mt-1 text-sm text-gray-500">Gateway settlement record for this order</p>
+              </div>
 
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Transaction ID:</span>
-                    <span className="text-sm text-gray-900">{selectedPayment.transactionId}</span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">User:</span>
-                    <span className="text-sm text-gray-900">{selectedPayment.userName}</span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Email:</span>
-                    <span className="text-sm text-gray-900">{selectedPayment.userEmail}</span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Product:</span>
-                    <span className="text-sm text-gray-900">{selectedPayment.productName}</span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Amount:</span>
-                    <span className="text-sm font-medium text-gray-900">{selectedPayment.currency} {selectedPayment.amount.toFixed(2)}</span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Payment Method:</span>
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getMethodColor(selectedPayment.paymentMethod)}`}>
-                      {selectedPayment.paymentMethod.replace(/_/g, ' ')}
+              <div className="max-h-[70vh] space-y-0 overflow-y-auto px-6 py-4">
+                <DetailRow label="Transaction ID" value={displayText(selectedTransaction.transactionId)} mono />
+                <DetailRow label="Payment ID" value={displayText(selectedTransaction.paymentId)} mono />
+                <DetailRow label="Order number" value={selectedTransaction.orderNumber} />
+                <DetailRow label="Customer" value={selectedTransaction.customerName} />
+                <DetailRow label="Email" value={selectedTransaction.customerEmail} />
+                <DetailRow label="Phone" value={displayText(selectedTransaction.customerPhone)} />
+                <DetailRow label="Order summary" value={selectedTransaction.orderSummary} />
+                <DetailRow label="Items" value={quantityLabel([{ quantity: selectedTransaction.itemCount }])} />
+                <DetailRow label="Amount" value={formatMoney(selectedTransaction.amount)} bold />
+                <DetailRow label="Gateway" value={gatewayDisplayLabel(selectedTransaction)} />
+                <DetailRow
+                  label="Status"
+                  value={
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusStyles(selectedTransaction.paymentStatus)}`}
+                    >
+                      {getStatusLabel(selectedTransaction.paymentStatus)}
                     </span>
+                  }
+                />
+                <DetailRow label="Created" value={formatOrderDateTime(selectedTransaction.createdAt)} />
+                {selectedTransaction.paidAt && (
+                  <DetailRow label="Paid at" value={formatOrderDateTime(selectedTransaction.paidAt)} />
+                )}
+                {selectedTransaction.failedReason && (
+                  <div className="border-b py-3">
+                    <p className="mb-1 text-sm font-medium text-gray-600">Failure reason</p>
+                    <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {selectedTransaction.failedReason}
+                    </p>
                   </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Status:</span>
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedPayment.status)}`}>
-                      {selectedPayment.status.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm font-medium text-gray-600">Created:</span>
-                    <span className="text-sm text-gray-900">{new Date(selectedPayment.createdAt).toLocaleString()}</span>
-                  </div>
-                  
-                  {selectedPayment.completedAt && (
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="text-sm font-medium text-gray-600">Completed:</span>
-                      <span className="text-sm text-gray-900">{new Date(selectedPayment.completedAt).toLocaleString()}</span>
-                    </div>
-                  )}
+                )}
+              </div>
 
-                  {selectedPayment.refundedAt && (
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="text-sm font-medium text-gray-600">Refunded:</span>
-                      <span className="text-sm text-gray-900">{new Date(selectedPayment.refundedAt).toLocaleString()}</span>
-                    </div>
-                  )}
-
-                  {selectedPayment.failedReason && (
-                    <div className="py-2 border-b">
-                      <span className="text-sm font-medium text-gray-600 block mb-1">Failed Reason:</span>
-                      <span className="text-sm text-red-600 bg-red-50 px-2 py-1 rounded">{selectedPayment.failedReason}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end mt-6">
-                  <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                  >
-                    Close
-                  </button>
-                </div>
+              <div className="flex justify-end gap-3 border-t px-6 py-4">
+                <Link
+                  href="/admin-orders"
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  View orders
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowDetailsModal(false)}
+                  className="rounded-lg bg-[#0F4C69] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#0d3f59]"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
@@ -555,5 +693,28 @@ const PaymentsPage = () => {
     </DashboardLayout>
   );
 };
+
+function DetailRow({
+  label,
+  value,
+  mono,
+  bold,
+}: {
+  label: string;
+  value: React.ReactNode;
+  mono?: boolean;
+  bold?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b py-3">
+      <span className="shrink-0 text-sm font-medium text-gray-600">{label}</span>
+      <span
+        className={`text-right text-sm text-gray-900 ${mono ? 'font-mono text-xs' : ''} ${bold ? 'font-semibold' : ''}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
 
 export default PaymentsPage;
