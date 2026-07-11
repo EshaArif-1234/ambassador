@@ -24,27 +24,38 @@ const CeoAwardSection = () => {
             </span>
 
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-5 leading-tight">
-              Honoured with the{' '}
-              <span className="text-[#E36630]">Brand of the Year Award</span>
+              A Message from{' '}
+              <span className="text-[#E36630]">Our CEO</span>
             </h2>
 
             <div className="w-16 h-1 bg-[#E36630] rounded-full mb-6" />
 
             <div className="space-y-4 text-gray-500 text-base leading-relaxed">
               <p>
-                Our CEO was recognised at the Brand of the Year Awards — a milestone that reflects
-                Ambassador&apos;s growing reputation as a trusted name in commercial kitchen
-                equipment across Pakistan.
+                At Ambassador Commercial Kitchen Equipment, our journey began in 2005 with a simple
+                vision — to build Pakistan&apos;s most trusted name in commercial kitchen equipment
+                manufacturing. Today, as the leading manufacturer of premium, Made-in-Pakistan cooking
+                ranges, chillers, bakery display units, and complete kitchen solutions, we take pride
+                in serving restaurants, cafés, bakeries, and hotels across Pakistan and beyond.
               </p>
               <p>
-                This honour celebrates more than a trophy. It stands for the relationships we have
-                built with restaurants, hotels, bakeries, and institutional kitchens — and the
-                consistent quality, service, and reliability our leadership team delivers every day.
+                Our commitment to quality, innovation, and craftsmanship has earned the trust of chefs
+                and hospitality professionals worldwide — from Pakistan to Switzerland, Sri Lanka, Iran,
+                the UAE, and beyond. Every product we design reflects our dedication to durability,
+                performance, and world-class engineering.
               </p>
               <p>
-                Under visionary leadership, Ambassador continues to raise the bar for professional
-                food-service solutions — helping businesses equip their kitchens with confidence and
-                operate at the highest standard.
+                As we continue to grow, our mission remains the same: to equip every commercial kitchen
+                with reliable, high-performance solutions that help our clients&apos; businesses thrive.
+                Thank you for trusting Ambassador — your partner in building better kitchens, one
+                solution at a time.
+              </p>
+              <p className="text-gray-900 font-semibold pt-2">
+                — Ali Mehmood
+                <br />
+                <span className="text-sm font-medium text-[#0F4C69]">
+                  Founder &amp; CEO, Ambassador Commercial Kitchen Equipment
+                </span>
               </p>
             </div>
 
