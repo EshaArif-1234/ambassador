@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 
 const certificates = [
-  { name: 'ISO 9001:2015 Quality Management', image: '/Images/about/Testing.png' },
+  { name: 'Zafar-Mahmood-Abbasi-Certificate', image: '/Images/about/Testing.png' },
   { name: 'Brand of the Year Award', image: '/Images/about/Brand-Of-the-Year-Award.png' },
   { name: 'Brand of the Year Award', image: '/Images/about/Awards/Brand-of-the-Year-Award-2.png' },
   { name: 'Certificate of Appreciation', image: '/Images/about/Awards/Certificate-Of-Appreciation.png' },
@@ -15,6 +15,16 @@ const certificates = [
   { name: 'Naval Staff Award', image: '/Images/about/Awards/Naval-Staff-award.png' },
   { name: 'PAF Excellence Certificate', image: '/Images/about/Awards/PAF-EXCELLENCE-CERTIFACTE.png' },
   { name: 'Web Excels Award', image: '/Images/about/Awards/Web-Excels-award-s.png' },
+  { name: 'Build Asia Award', image: '/Images/about/Awards/Build-Aisa-Award.png'},
+  { name: 'Cothm Convocation Award', image: '/Images/about/Awards/Coth-Convocation-Award.png'},
+  { name: 'Cothm Cook Off Award', image: '/Images/about/Awards/Cothm-Cook-Off-Award.png'},
+  { name: 'Cothm Skill Show Casing Award', image: '/Images/about/Awards/Cothm-Skill-Show-casing-Award.png'},
+  { name: 'Healthy Food Award', image: '/Images/about/Awards/Healthy-Food-Award.png'},
+  { name: 'International Chef Day', image: '/Images/about/Awards/Internationa-Chef-Day-1.png'},
+  { name: 'International Chefs Day Awards', image: '/Images/about/Awards/International-Chefs-Day-Awards.png'},
+  { name: 'Pakistan Culinary Award', image: '/Images/about/Awards/Pakistan-Culinary-Award.png'},
+
+
 ];
 
 const SLIDE_COUNT = certificates.length;
