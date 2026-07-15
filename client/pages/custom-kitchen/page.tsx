@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { CATALOGUE_PATH } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import { CUSTOM_KITCHEN_PROJECTS_ENABLED } from '@/lib/customKitchenProjectsEnabled';
 import { getPublishedCaseStudies } from '@/client/data/customKitchenCases';
 
@@ -183,7 +183,7 @@ const CustomKitchenPage = () => {
                       Contact Us
                     </Link>
                     <Link
-                      href={CATALOGUE_PATH}
+                      href={PRODUCTS_PATH}
                       className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-[#0F4C69]/30 hover:text-[#0F4C69]"
                     >
                       Browse Products
@@ -251,7 +251,7 @@ const CustomKitchenPage = () => {
               Get Free Consultation
             </Link>
             <Link
-              href={CATALOGUE_PATH}
+              href={PRODUCTS_PATH}
               className="px-8 py-3 border-2 border-white/30 text-white font-semibold rounded-lg hover:bg-white hover:text-[#0F4C69] transition-colors"
             >
               View Ambassador Products

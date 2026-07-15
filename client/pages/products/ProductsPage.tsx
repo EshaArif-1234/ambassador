@@ -10,8 +10,8 @@ import WishlistButton from '@/components/products/WishlistButton';
 import { useCart } from '@/contexts/CartContext';
 import PageLoader from '@/components/ui/PageLoader';
 import {
-  COLLECTION_PATH,
-  collectionCategoryPath,
+  PRODUCTS_PATH,
+  productsCategoryPath,
   productDetailPath,
   productUrlSegment,
   slugFromCollectionPath,
@@ -139,7 +139,7 @@ const PAGE_SIZE = 12;
 type CategoryMeta = { title: string; slug: string };
 
 interface ProductsPageProps {
-  /** When routed via /our-collection/[categorySlug] */
+  /** When routed via /products/[categorySlug] */
   categorySlugFromPath?: string;
 }
 
@@ -239,20 +239,20 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
       if (q) {
         p.set('search', q);
         const searchQs = p.toString();
-        return searchQs ? `${COLLECTION_PATH}?${searchQs}` : COLLECTION_PATH;
+        return searchQs ? `${PRODUCTS_PATH}?${searchQs}` : PRODUCTS_PATH;
       }
 
       if (cat && cat !== ALL) {
         const slug = categoryMeta.find((c) => c.title === cat)?.slug;
         if (slug) {
-          return qs ? `${collectionCategoryPath(slug)}?${qs}` : collectionCategoryPath(slug);
+          return qs ? `${productsCategoryPath(slug)}?${qs}` : productsCategoryPath(slug);
         }
         p.set('category', cat);
         const legacyQs = p.toString();
-        return legacyQs ? `${COLLECTION_PATH}?${legacyQs}` : COLLECTION_PATH;
+        return legacyQs ? `${PRODUCTS_PATH}?${legacyQs}` : PRODUCTS_PATH;
       }
 
-      return qs ? `${COLLECTION_PATH}?${qs}` : COLLECTION_PATH;
+      return qs ? `${PRODUCTS_PATH}?${qs}` : PRODUCTS_PATH;
     },
     [
       selectedCategory,
@@ -309,7 +309,7 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, pathname, categoryMeta, categorySlugFromPath]);
 
-  // Migrate legacy ?category=Title to /our-collection/slug
+  // Migrate legacy ?category=Title to /products/slug
   useEffect(() => {
     const legacyTitle = searchParams.get('category')?.trim();
     if (!legacyTitle || searchParams.get('search')?.trim() || categoryMeta.length === 0) return;
@@ -321,7 +321,7 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('category');
     const qs = params.toString();
-    router.replace(qs ? `${collectionCategoryPath(match.slug)}?${qs}` : collectionCategoryPath(match.slug), {
+    router.replace(qs ? `${productsCategoryPath(match.slug)}?${qs}` : productsCategoryPath(match.slug), {
       scroll: false,
     });
   }, [searchParams, categoryMeta, pathname, categorySlugFromPath, router]);

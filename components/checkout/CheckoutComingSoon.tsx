@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CATALOGUE_PATH } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 
 const CheckoutComingSoon = () => {
   return (
@@ -31,7 +31,7 @@ const CheckoutComingSoon = () => {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
-            href={CATALOGUE_PATH}
+            href={PRODUCTS_PATH}
             className="rounded-lg bg-[#E36630] px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-[#cc5a2a] sm:text-base"
           >
             Browse Products

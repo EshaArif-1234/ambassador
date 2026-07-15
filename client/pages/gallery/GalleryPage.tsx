@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CATALOGUE_PATH } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import SignupBanner from '@/components/common/signup-banner';
 
 interface Review {
@@ -97,7 +97,7 @@ function GalleryReviewCard({ review, embedUrl, directVideoUrl }: GalleryReviewCa
             <p className="text-sm text-gray-500">{review.role}</p>
           </div>
           <Link
-            href={CATALOGUE_PATH}
+            href={PRODUCTS_PATH}
             className={`inline-flex items-center rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 ${revealed ? 'pointer-events-none opacity-50' : ''}`}
           >
             View Product

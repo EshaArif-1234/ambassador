@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { absoluteUrl } from '@/lib/siteUrl';
 
-/** Paths that should not be indexed (admin, auth, checkout, account). */
+/** Paths that should not be indexed (admin, auth, checkout, account, legacy duplicate URLs). */
 const DISALLOW_PREFIXES = [
   '/admin',
   '/product-management',
@@ -28,6 +28,10 @@ const DISALLOW_PREFIXES = [
   '/network-error',
   '/not-found',
   '/api',
+  /** Legacy duplicate product URLs — canonical is /products (/product/ avoids blocking /product-management) */
+  '/our-collection',
+  '/catalogue',
+  '/product/',
 ];
 
 export default function robots(): MetadataRoute.Robots {

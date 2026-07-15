@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CATALOGUE_PATH } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import { useUser } from '@/contexts/UserContext';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
@@ -74,7 +74,7 @@ export default function MyReviewsPage() {
             <p className="text-sm text-gray-500 max-w-xs mx-auto mb-6">
               After purchasing a product, share your experience to help other customers.
             </p>
-            <Link href={CATALOGUE_PATH}
+            <Link href={PRODUCTS_PATH}
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#E36630] text-white text-sm font-medium rounded-xl hover:bg-[#cc5a2a] transition-colors">
               Shop & Review
             </Link>

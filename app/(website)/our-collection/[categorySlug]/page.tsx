@@ -1,23 +1,12 @@
-'use client';
-
-import { Suspense, use } from 'react';
-import ProductsPage from '@/client/pages/products/ProductsPage';
-import PageLoader from '@/components/ui/PageLoader';
+import { permanentRedirect } from 'next/navigation';
+import { productsCategoryPath } from '@/lib/siteRoutes';
 
 type Props = {
   params: Promise<{ categorySlug: string }>;
 };
 
-function CategoryCollection({ categorySlug }: { categorySlug: string }) {
-  return <ProductsPage categorySlugFromPath={categorySlug} />;
-}
-
-export default function OurCollectionCategoryPage({ params }: Props) {
-  const { categorySlug } = use(params);
-
-  return (
-    <Suspense fallback={<PageLoader message="Loading products…" fullScreen={false} className="min-h-[60vh]" />}>
-      <CategoryCollection categorySlug={categorySlug} />
-    </Suspense>
-  );
+/** Legacy /our-collection/[categorySlug] → /products/[categorySlug] */
+export default async function LegacyOurCollectionCategoryRedirect({ params }: Props) {
+  const { categorySlug } = await params;
+  permanentRedirect(productsCategoryPath(categorySlug));
 }

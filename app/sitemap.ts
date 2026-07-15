@@ -4,13 +4,10 @@ import Category from '@/backend/models/Category.model';
 import Product from '@/backend/models/Product.model';
 import { categoryListSort } from '@/backend/lib/categoryOrder';
 import { getCaseStudySlugs } from '@/client/data/customKitchenCases';
-import { collectionCategoryPath, productDetailPath } from '@/lib/siteRoutes';
+import { productsCategoryPath, productDetailPath } from '@/lib/siteRoutes';
 import { absoluteUrl } from '@/lib/siteUrl';
 
 export const dynamic = 'force-dynamic';
-
-/** Canonical production homepage for sitemap (www). */
-const SITEMAP_HOME_URL = 'https://www.ambassador.pk/';
 
 type StaticPage = {
   path: string;
@@ -25,7 +22,7 @@ const STATIC_PAGES: StaticPage[] = [
   { path: '/branches', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/gallery', priority: 0.7, changeFrequency: 'weekly' },
   { path: '/custom-kitchen', priority: 0.8, changeFrequency: 'weekly' },
-  { path: '/our-collection', priority: 0.9, changeFrequency: 'daily' },
+  { path: '/products', priority: 0.9, changeFrequency: 'daily' },
   { path: '/returns', priority: 0.4, changeFrequency: 'yearly' },
 ];
 
@@ -46,7 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const { path, priority, changeFrequency } of STATIC_PAGES) {
     pushEntry(entries, seen, {
-      url: path === '/' ? SITEMAP_HOME_URL : absoluteUrl(path),
+      url: absoluteUrl(path),
       lastModified: now,
       changeFrequency,
       priority,
@@ -76,7 +73,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const slug = category.slug?.trim().toLowerCase();
       if (!slug) continue;
       pushEntry(entries, seen, {
-        url: absoluteUrl(collectionCategoryPath(slug)),
+        url: absoluteUrl(productsCategoryPath(slug)),
         lastModified: category.updatedAt ?? now,
         changeFrequency: 'weekly',
         priority: 0.8,

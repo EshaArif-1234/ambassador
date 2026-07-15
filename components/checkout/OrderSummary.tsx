@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CATALOGUE_PATH } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import { useCart, type CartItem } from '@/contexts/CartContext';
 import Image from 'next/image';
 import { getCheckoutTotals } from '@/utils/checkoutTotals';
@@ -143,7 +143,7 @@ const OrderSummary = ({
 
       {!readOnly && items.length > 0 && (
         <Link
-          href={CATALOGUE_PATH}
+          href={PRODUCTS_PATH}
           className="mb-4 flex items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 py-2.5 text-sm font-medium text-[#0F4C69] transition-colors hover:border-[#E36630] hover:text-[#E36630]"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

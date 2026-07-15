@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { catalogueHref, productDetailPath, primaryCategorySlug, productUrlSegment } from '@/lib/siteRoutes';
+import { productsHref, productDetailPath, primaryCategorySlug, productUrlSegment } from '@/lib/siteRoutes';
 
 interface SaleProduct {
   _id: string;
@@ -268,7 +268,7 @@ export default function SaleSection() {
           </div>
 
           <Link
-            href={catalogueHref({ features: 'on_sale' })}
+            href={productsHref({ features: 'on_sale' })}
             className="inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-full bg-[#E36630] px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#E36630]/30 transition-all hover:bg-[#cc5a2a] hover:shadow-[#E36630]/40 sm:w-auto sm:max-w-none sm:px-5 sm:text-sm"
           >
             View All Sales

@@ -2,12 +2,12 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { COLLECTION_PATH } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import { COMPLAINT_PORTAL_URL } from '@/lib/siteLinks';
 
 /** Public routes — keep in sync with main site navigation */
 const SERVICE_LINKS = [
-  { label: 'Products', href: COLLECTION_PATH },
+  { label: 'Products', href: PRODUCTS_PATH },
   { label: 'Custom kitchen', href: '/custom-kitchen' },
   { label: 'Gallery', href: '/gallery' },
   { label: 'About', href: '/about' },

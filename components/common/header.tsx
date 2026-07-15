@@ -7,9 +7,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { useCart } from '@/contexts/CartContext';
 import {
-  catalogueHref,
-  COLLECTION_PATH,
-  collectionCategoryPath,
+  productsHref,
+  PRODUCTS_PATH,
+  productsCategoryPath,
   isCatalogueListingPath,
   productDetailPath,
   productUrlSegment,
@@ -155,7 +155,7 @@ const Header = () => {
     setSelectedCategoryTitle(urlSearchParams.get('category') || null);
   }, [pathname, urlSearchParams, categories]);
 
-  const buildProductsHref = (params: URLSearchParams) => catalogueHref(params);
+  const buildProductsHref = (params: URLSearchParams) => productsHref(params);
 
   /** Drop ?search= from URL and show all products (keeps category if set). */
   const clearSearchFromUrl = () => {
@@ -254,15 +254,15 @@ const Header = () => {
     setIsCategoryOpen(false);
     closeSuggestions();
     if (!title) {
-      router.push(COLLECTION_PATH);
+      router.push(PRODUCTS_PATH);
       return;
     }
     const match = categories.find((c) => c.title === title);
     if (match?.slug) {
-      router.push(collectionCategoryPath(match.slug));
+      router.push(productsCategoryPath(match.slug));
       return;
     }
-    router.push(catalogueHref({ category: title }));
+    router.push(productsHref({ category: title }));
   };
 
   const handleCheckout = () => {

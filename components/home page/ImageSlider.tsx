@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { COLLECTION_PATH } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 
 const SLIDE_DURATION = 8000; // ms per slide
 
@@ -15,7 +15,7 @@ const slides = [
     title: 'Premium Commercial\nKitchen Equipment',
     subtitle: 'Engineered for performance, built for the professional kitchen — where quality meets reliability.',
     cta: 'Explore Products',
-    ctaHref: COLLECTION_PATH,
+    ctaHref: PRODUCTS_PATH,
     align: 'left' as const,
   },
   {
@@ -26,7 +26,7 @@ const slides = [
     title: 'Professional\nRestaurant Solutions',
     subtitle: 'Everything your kitchen needs — from concept to completion, backed by 60+ years of expertise.',
     cta: 'View Catalogue',
-    ctaHref: COLLECTION_PATH,
+    ctaHref: PRODUCTS_PATH,
     align: 'center' as const,
   },
   {
@@ -37,7 +37,7 @@ const slides = [
     // title: 'Everything Your\nKitchen Demands',
     subtitle: 'From griddles to rotary rack ovens — explore our complete lineup of commercial-grade kitchen machinery.',
     cta: 'Shop Now',
-    ctaHref: COLLECTION_PATH,
+    ctaHref: PRODUCTS_PATH,
     align: 'left' as const,
   },
 

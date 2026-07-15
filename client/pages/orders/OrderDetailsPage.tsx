@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
+import { productDetailPath } from '@/lib/siteRoutes';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
 import { formatDeliveryAddress, totalItemQuantity } from '@/utils/orderDisplay.util';
@@ -225,7 +226,7 @@ export default function OrderDetailsPage() {
                     <div className="min-w-0 flex flex-col justify-center gap-1.5 col-span-1">
                       {item.productId ? (
                         <Link
-                          href={`/products/${item.productId}`}
+                          href={productDetailPath(item.productId)}
                           className="text-base font-semibold text-gray-900 hover:text-[#E36630] transition-colors line-clamp-2 leading-snug"
                         >
                           {item.productName}

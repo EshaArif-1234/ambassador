@@ -1,6 +1,7 @@
-import { redirect } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import connectDB from '@/backend/config/db';
 import Category from '@/backend/models/Category.model';
+import { PRODUCTS_PATH, productsCategoryPath } from '@/lib/siteRoutes';
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -10,7 +11,7 @@ function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Legacy /catalogue → /our-collection (category title → slug path when possible). */
+/** Legacy /catalogue → /products (category title → slug path when possible). */
 export default async function CatalogueRedirect({ searchParams }: Props) {
   const sp = await searchParams;
   const params = new URLSearchParams();
@@ -32,12 +33,12 @@ export default async function CatalogueRedirect({ searchParams }: Props) {
 
     if (cat?.slug) {
       const qs = params.toString();
-      redirect(qs ? `/our-collection/${cat.slug}?${qs}` : `/our-collection/${cat.slug}`);
+      permanentRedirect(qs ? `${productsCategoryPath(cat.slug)}?${qs}` : productsCategoryPath(cat.slug));
     }
 
     params.set('category', categoryTitle);
   }
 
   const qs = params.toString();
-  redirect(qs ? `/our-collection?${qs}` : '/our-collection');
+  permanentRedirect(qs ? `${PRODUCTS_PATH}?${qs}` : PRODUCTS_PATH);
 }

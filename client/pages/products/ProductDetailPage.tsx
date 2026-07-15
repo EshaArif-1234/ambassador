@@ -18,9 +18,9 @@ import WishlistButton from '@/components/products/WishlistButton';
 import { useCart } from '@/contexts/CartContext';
 import PageLoader from '@/components/ui/PageLoader';
 import {
-  COLLECTION_PATH,
-  catalogueHref,
-  collectionCategoryPath,
+  PRODUCTS_PATH,
+  productsHref,
+  productsCategoryPath,
   primaryCategorySlug,
   productDetailPath,
   productUrlSegment,
@@ -361,7 +361,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                   Try again
                 </button>
               ) : null}
-              <Link href={COLLECTION_PATH} className="rounded-lg bg-[#E36630] px-6 py-3 font-medium text-white transition-colors hover:bg-[#cc5a2a]">
+              <Link href={PRODUCTS_PATH} className="rounded-lg bg-[#E36630] px-6 py-3 font-medium text-white transition-colors hover:bg-[#cc5a2a]">
                 Browse products
               </Link>
             </div>
@@ -381,14 +381,14 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
               Home
             </Link>
             <span>/</span>
-            <Link href={COLLECTION_PATH} className="transition-colors hover:text-[#E36630]">
+            <Link href={PRODUCTS_PATH} className="transition-colors hover:text-[#E36630]">
               Products
             </Link>
             {primaryCat?.slug && primaryCat.title ? (
               <>
                 <span>/</span>
                 <Link
-                  href={collectionCategoryPath(primaryCat.slug)}
+                  href={productsCategoryPath(primaryCat.slug)}
                   className="transition-colors hover:text-[#E36630]"
                 >
                   {primaryCat.title}
@@ -595,7 +595,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                     {relatedProducts.length >= 16 ? ' (showing first 16)' : ''}
                     {' · '}
                     <Link
-                      href={catalogueHref({
+                      href={productsHref({
                         categorySlug: product.categories?.[0]?.slug,
                         category: product.categories?.[0]?.title ?? '',
                       })}

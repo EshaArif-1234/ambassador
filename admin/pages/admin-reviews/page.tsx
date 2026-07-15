@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
+import { productDetailPath, productUrlSegment } from '@/lib/siteRoutes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -468,7 +469,7 @@ const ReviewsPage = () => {
                             </button>
                             {review.productId?._id ? (
                               <a
-                                href={`/products/${review.productId._id}`}
+                                href={productDetailPath(productUrlSegment(review.productId))}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title="Open product on website"
@@ -585,7 +586,7 @@ const ReviewsPage = () => {
                     </p>
                     {viewReview.productId?._id ? (
                       <a
-                        href={`/products/${viewReview.productId._id}`}
+                        href={productDetailPath(productUrlSegment(viewReview.productId))}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-1 inline-block text-xs font-medium text-[#0F4C69] hover:underline"

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
-import { CATALOGUE_PATH } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import CheckoutComingSoon from '@/components/checkout/CheckoutComingSoon';
@@ -27,7 +27,7 @@ const CheckoutPage = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
           <p className="text-gray-600 mb-6">Add some products to your cart before checkout</p>
           <Link
-            href={CATALOGUE_PATH}
+            href={PRODUCTS_PATH}
             className="rounded-lg bg-[#E36630] px-6 py-3 text-white transition-colors hover:bg-[#cc5a2a]"
           >
             Continue Shopping
@@ -44,7 +44,7 @@ const CheckoutPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             
-            <Link href={CATALOGUE_PATH} className="text-[#E36630] transition-colors hover:text-[#cc5a2a]">
+            <Link href={PRODUCTS_PATH} className="text-[#E36630] transition-colors hover:text-[#cc5a2a]">
               ← Back to Products
             </Link>
           </div>
@@ -57,7 +57,7 @@ const CheckoutPage = () => {
           <nav className="flex items-center space-x-2 text-sm">
             <Link href="/" className="text-gray-500 hover:text-gray-700">Home</Link>
             <span className="text-gray-400">/</span>
-            <Link href={CATALOGUE_PATH} className="text-gray-500 hover:text-gray-700">Products</Link>
+            <Link href={PRODUCTS_PATH} className="text-gray-500 hover:text-gray-700">Products</Link>
             <span className="text-gray-400">/</span>
             <span className="text-gray-900 font-medium">Checkout</span>
           </nav>

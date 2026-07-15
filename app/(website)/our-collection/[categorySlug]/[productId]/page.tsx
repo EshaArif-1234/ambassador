@@ -1,12 +1,12 @@
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import connectDB from '@/backend/config/db';
 import { findActiveProductByIdentifier } from '@/backend/lib/findPublicProduct';
 import ProductDetailPage from '@/client/pages/products/ProductDetailPage';
 import PageLoader from '@/components/ui/PageLoader';
 import { productDetailPath, productUrlSegment } from '@/lib/siteRoutes';
 
-/** Legacy /our-collection/[category]/[id|slug] → /product/[slug] */
+/** Legacy /our-collection/[category]/[id|slug] → /products/[slug] */
 export default async function LegacyCollectionProductPage({
   params,
 }: {
@@ -17,7 +17,7 @@ export default async function LegacyCollectionProductPage({
   await connectDB();
   const product = await findActiveProductByIdentifier(productId);
   if (product) {
-    redirect(productDetailPath(productUrlSegment(product)));
+    permanentRedirect(productDetailPath(productUrlSegment(product)));
   }
 
   return (

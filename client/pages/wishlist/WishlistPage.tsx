@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { CATALOGUE_PATH, productDetailPath, primaryCategorySlug, productUrlSegment } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH, productDetailPath, primaryCategorySlug, productUrlSegment } from '@/lib/siteRoutes';
 import Image from 'next/image';
 import { useUser } from '@/contexts/UserContext';
 import { useCart } from '@/contexts/CartContext';
@@ -176,7 +176,7 @@ export default function WishlistPage() {
               Tap the heart on any product to save it here for later.
             </p>
             <Link
-              href={CATALOGUE_PATH}
+              href={PRODUCTS_PATH}
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#E36630] text-white text-sm font-medium rounded-xl hover:bg-[#cc5a2a] transition-colors"
             >
               Browse Products

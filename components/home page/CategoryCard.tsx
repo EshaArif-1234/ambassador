@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { COLLECTION_PATH, catalogueHref, collectionCategoryPath } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH, productsHref, productsCategoryPath } from '@/lib/siteRoutes';
 
 interface CategoryCardProps {
   title: string;
@@ -14,10 +14,10 @@ interface CategoryCardProps {
 
 const CategoryCard = ({ title, image, category, categorySlug, children }: CategoryCardProps) => {
   const href = categorySlug
-    ? collectionCategoryPath(categorySlug)
+    ? productsCategoryPath(categorySlug)
     : category
-      ? catalogueHref({ category })
-      : COLLECTION_PATH;
+      ? productsHref({ category })
+      : PRODUCTS_PATH;
 
   return (
     <Link href={href} className="block h-full">
