@@ -15,19 +15,37 @@ declare global {
 const connectDB = async (): Promise<void> => {
   if (mongoose.connection.readyState >= 1) return; // already connected / connecting
 
-  if (!global._mongooseConn) {
-    const uri = process.env.MONGO_URI;
-    if (!uri) throw new Error('MONGO_URI is not defined in environment variables.');
+  const uri = process.env.MONGO_URI;
+  if (!uri) throw new Error('MONGO_URI is not defined in environment variables.');
 
-    global._mongooseConn = mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS:          45000,
-      maxPoolSize:              10,      // reuse up to 10 sockets across requests
-      minPoolSize:              2,
-    });
+  if (!global._mongooseConn) {
+    global._mongooseConn = mongoose
+      .connect(uri, {
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        maxPoolSize: 10,
+        minPoolSize: 2,
+      })
+      .catch((err) => {
+        // Drop cached promise so the next request can retry (dev hot-reload / transient Atlas errors).
+        global._mongooseConn = undefined;
+        throw err;
+      });
   }
 
-  await global._mongooseConn;
+  try {
+    await global._mongooseConn;
+  } catch (err) {
+    global._mongooseConn = undefined;
+    const message = err instanceof Error ? err.message : String(err);
+    if (/whitelist|ServerSelectionError/i.test(message)) {
+      throw new Error(
+        'MongoDB Atlas connection failed. Add your current IP in Atlas → Network Access → Add IP Address (or use 0.0.0.0/0 for development), then restart the dev server.',
+        { cause: err },
+      );
+    }
+    throw err;
+  }
 };
 
 export default connectDB;
