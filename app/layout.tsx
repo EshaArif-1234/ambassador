@@ -19,9 +19,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
-  title: "Ambassador Kitchen Equipment",
+  title: {
+    default: 'Ambassador Commercial Kitchen Equipment',
+    template: '%s | Ambassador Commercial Kitchen Equipment',
+  },
   description:
-    "Commercial kitchen equipment and professional food service solutions in Pakistan.",
+    'Commercial kitchen equipment and professional food service solutions in Pakistan.',
 };
 
 export default function RootLayout({

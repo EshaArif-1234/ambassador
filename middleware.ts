@@ -6,6 +6,7 @@ import {
   LEGACY_PRODUCT_PATH,
   PRODUCTS_PATH,
 } from '@/lib/siteRoutes';
+import { getCanonicalHost, shouldSkipHostCanonicalization } from '@/lib/siteUrl';
 
 /** Permanent redirect — tells Google the canonical URL has moved (fixes duplicate indexing). */
 const PERMANENT = 308;
@@ -28,7 +29,30 @@ function mapLegacyPrefix(request: NextRequest, from: string, to: string) {
   return null;
 }
 
+/** Force one canonical host + HTTPS (e.g. www → apex, http → https). */
+function canonicalHostRedirect(request: NextRequest): NextResponse | null {
+  const hostHeader = request.headers.get('host') ?? '';
+  const host = hostHeader.split(':')[0].toLowerCase();
+  if (!host || shouldSkipHostCanonicalization(host)) return null;
+
+  const canonicalHost = getCanonicalHost();
+  const proto = (
+    request.headers.get('x-forwarded-proto') ??
+    request.nextUrl.protocol.replace(':', '')
+  ).toLowerCase();
+
+  if (host === canonicalHost && proto === 'https') return null;
+
+  const url = request.nextUrl.clone();
+  url.protocol = 'https:';
+  url.host = canonicalHost;
+  return NextResponse.redirect(url, PERMANENT);
+}
+
 export function middleware(request: NextRequest) {
+  const hostRedirect = canonicalHostRedirect(request);
+  if (hostRedirect) return hostRedirect;
+
   const { pathname } = request.nextUrl;
 
   // Strip trailing slashes (except root) — /products/deep-fryer/ → /products/deep-fryer
