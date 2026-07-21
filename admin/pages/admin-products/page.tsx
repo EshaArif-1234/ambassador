@@ -6,6 +6,7 @@ import ProductModal, { ProductFormData } from '@/components/products/ProductModa
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
 import { downloadStockProductsPdf } from '@/utils/generateStockProductsPdf';
+import { downloadStockProductsExcel } from '@/utils/generateStockProductsExcel';
 import PageLoader from '@/components/ui/PageLoader';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -49,6 +50,41 @@ const taxonomyList = (p: Product) => {
 
 const ADMIN_PAGE_SIZE = 10;
 
+type ExportScope = 'in_stock' | 'out_of_stock' | 'all' | 'selected';
+type ExportFormat = 'pdf' | 'excel';
+
+const EXPORT_SCOPE_OPTIONS: {
+  id: ExportScope;
+  label: string;
+  activeClass: string;
+  idleClass: string;
+}[] = [
+  {
+    id: 'all',
+    label: 'All Products',
+    activeClass: 'border-[#0F4C69] bg-[#0F4C69]/10 text-[#0F4C69] ring-1 ring-[#0F4C69]/30',
+    idleClass: 'border-gray-200 bg-white text-gray-700 hover:border-[#0F4C69]/40 hover:bg-[#0F4C69]/5',
+  },
+  {
+    id: 'in_stock',
+    label: 'In Stock',
+    activeClass: 'border-green-300 bg-green-50 text-green-800 ring-1 ring-green-200',
+    idleClass: 'border-gray-200 bg-white text-gray-700 hover:border-green-200 hover:bg-green-50/60',
+  },
+  {
+    id: 'out_of_stock',
+    label: 'Out of Stock',
+    activeClass: 'border-red-300 bg-red-50 text-red-800 ring-1 ring-red-200',
+    idleClass: 'border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:bg-red-50/60',
+  },
+  {
+    id: 'selected',
+    label: 'Selected Products',
+    activeClass: 'border-[#E36630]/40 bg-[#E36630]/10 text-[#E36630] ring-1 ring-[#E36630]/25',
+    idleClass: 'border-gray-200 bg-white text-gray-700 hover:border-[#E36630]/30 hover:bg-[#E36630]/5',
+  },
+];
+
 const ProductsPage = () => {
   const [products,     setProducts]    = useState<Product[]>([]);
   const [categories,   setCategories]  = useState<Category[]>([]);
@@ -62,7 +98,9 @@ const ProductsPage = () => {
   const [successMsg,   setSuccessMsg]  = useState('');
   const [error,        setError]       = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [pdfLoading,    setPdfLoading]    = useState<'in_stock' | 'out_of_stock' | 'all' | 'selected' | null>(null);
+  const [exportLoading, setExportLoading] = useState<{ format: ExportFormat; scope: ExportScope } | null>(null);
+  const [exportFormatTab, setExportFormatTab] = useState<ExportFormat>('pdf');
+  const [exportScope, setExportScope] = useState<ExportScope>('all');
   const [selectedIds,   setSelectedIds]   = useState<string[]>([]);
   const [currentPage,   setCurrentPage]   = useState(1);
 
@@ -158,29 +196,67 @@ const ProductsPage = () => {
     }
   };
 
-  const handleDownloadStockPdf = async (stockType: 'in_stock' | 'out_of_stock' | 'all') => {
-    setPdfLoading(stockType);
-    try {
-      const res = await fetch(`/api/admin/products/export?stock=${stockType}`, {
-        credentials: 'include',
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to export products.');
-      }
-      await downloadStockProductsPdf(data.data, stockType);
-      showSuccess(
-        stockType === 'in_stock'
-          ? 'In stock products PDF downloaded.'
-          : stockType === 'out_of_stock'
-            ? 'Out of stock products PDF downloaded.'
-            : 'All products PDF downloaded.'
-      );
-    } catch (err) {
-      showError((err as Error).message || 'Failed to generate PDF.');
-    } finally {
-      setPdfLoading(null);
+  const fetchExportProducts = async (scope: ExportScope) => {
+    const url =
+      scope === 'selected'
+        ? `/api/admin/products/export?ids=${encodeURIComponent(selectedIds.join(','))}`
+        : `/api/admin/products/export?stock=${scope}`;
+
+    const res = await fetch(url, { credentials: 'include' });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Failed to export products.');
     }
+    return data.data;
+  };
+
+  const exportSuccessMessage = (format: ExportFormat, scope: ExportScope, count?: number) => {
+    const kind = format === 'pdf' ? 'PDF' : 'Excel file';
+    if (scope === 'selected') {
+      return `${kind} downloaded for ${count ?? 0} selected product(s).`;
+    }
+    if (scope === 'in_stock') return `In stock products ${kind} downloaded.`;
+    if (scope === 'out_of_stock') return `Out of stock products ${kind} downloaded.`;
+    return `All products ${kind} downloaded.`;
+  };
+
+  const handleExport = async (format: ExportFormat, scope: ExportScope) => {
+    if (scope === 'selected' && selectedIds.length === 0) {
+      showError('Select at least one product to download.');
+      return;
+    }
+
+    setExportLoading({ format, scope });
+    try {
+      const products = await fetchExportProducts(scope);
+      if (format === 'pdf') {
+        await downloadStockProductsPdf(products, scope);
+      } else {
+        downloadStockProductsExcel(products, scope);
+      }
+      showSuccess(exportSuccessMessage(format, scope, products.length));
+    } catch (err) {
+      showError(
+        (err as Error).message ||
+          `Failed to generate ${format === 'pdf' ? 'PDF' : 'Excel file'}.`,
+      );
+    } finally {
+      setExportLoading(null);
+    }
+  };
+
+  const isExporting = exportLoading !== null;
+  const canExportSelected = selectedIds.length > 0;
+  const exportDownloadDisabled =
+    isExporting || (exportScope === 'selected' && !canExportSelected);
+
+  const exportScopeLabel = (scope: ExportScope) => {
+    if (scope === 'selected') {
+      return canExportSelected
+        ? `Selected Products (${selectedIds.length})`
+        : 'Selected Products';
+    }
+    return EXPORT_SCOPE_OPTIONS.find((option) => option.id === scope)?.label ?? scope;
   };
 
   const toggleProductSelection = (id: string) => {
@@ -204,31 +280,6 @@ const ProductsPage = () => {
   };
 
   const clearSelection = () => setSelectedIds([]);
-
-  const handleDownloadSelectedPdf = async () => {
-    if (selectedIds.length === 0) {
-      showError('Select at least one product to download.');
-      return;
-    }
-
-    setPdfLoading('selected');
-    try {
-      const res = await fetch(
-        `/api/admin/products/export?ids=${encodeURIComponent(selectedIds.join(','))}`,
-        { credentials: 'include' },
-      );
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to export selected products.');
-      }
-      await downloadStockProductsPdf(data.data, 'selected');
-      showSuccess(`PDF downloaded for ${data.data.length} selected product(s).`);
-    } catch (err) {
-      showError((err as Error).message || 'Failed to generate PDF.');
-    } finally {
-      setPdfLoading(null);
-    }
-  };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -335,63 +386,99 @@ const ProductsPage = () => {
             </select>
           </div>
 
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-1 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={handleDownloadSelectedPdf}
-              disabled={pdfLoading !== null || selectedIds.length === 0}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E36630]/30 bg-[#E36630]/10 px-4 py-2 text-sm font-medium text-[#E36630] transition-colors hover:bg-[#E36630]/15 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {pdfLoading === 'selected'
-                ? 'Generating PDF…'
-                : `Download Selected PDF${selectedIds.length ? ` (${selectedIds.length})` : ''}`}
-            </button>
-            {selectedIds.length > 0 && (
+          <div className="space-y-4 border-t border-gray-100 pt-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Export products</p>
+              <div className="mt-3 inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setExportFormatTab('pdf')}
+                  disabled={isExporting}
+                  className={`rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    exportFormatTab === 'pdf'
+                      ? 'bg-white text-[#0F4C69] shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportFormatTab('excel')}
+                  disabled={isExporting}
+                  className={`rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    exportFormatTab === 'excel'
+                      ? 'bg-white text-[#0F4C69] shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Excel
+                </button>
+              </div>
+              {exportFormatTab === 'excel' && (
+                <p className="mt-2 text-xs text-gray-500">Excel export includes product data only — no images.</p>
+              )}
+              {exportFormatTab === 'pdf' && (
+                <p className="mt-2 text-xs text-gray-500">PDF export includes product images in the report.</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-gray-800">Choose export type</p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {EXPORT_SCOPE_OPTIONS.map((option) => {
+                  const isActive = exportScope === option.id;
+                  const isSelectedScope = option.id === 'selected';
+                  const disabled =
+                    isExporting || (isSelectedScope && !canExportSelected);
+
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setExportScope(option.id)}
+                      disabled={disabled}
+                      className={`inline-flex min-w-[140px] flex-1 items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none ${
+                        isActive ? option.activeClass : option.idleClass
+                      }`}
+                    >
+                      {isSelectedScope && canExportSelected
+                        ? `Selected Products (${selectedIds.length})`
+                        : option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <button
                 type="button"
-                onClick={clearSelection}
-                disabled={pdfLoading !== null}
-                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => handleExport(exportFormatTab, exportScope)}
+                disabled={exportDownloadDisabled}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0F4C69] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#0d3f59] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Clear selection
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {isExporting
+                  ? exportFormatTab === 'pdf'
+                    ? 'Generating PDF…'
+                    : 'Generating Excel…'
+                  : `Download ${exportFormatTab === 'pdf' ? 'PDF' : 'Excel'} — ${exportScopeLabel(exportScope)}`}
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => handleDownloadStockPdf('all')}
-              disabled={pdfLoading !== null}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#0F4C69]/25 bg-[#0F4C69]/10 px-4 py-2 text-sm font-medium text-[#0F4C69] transition-colors hover:bg-[#0F4C69]/15 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {pdfLoading === 'all' ? 'Generating PDF…' : 'Download All Products PDF'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDownloadStockPdf('in_stock')}
-              disabled={pdfLoading !== null}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-800 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {pdfLoading === 'in_stock' ? 'Generating PDF…' : 'Download In Stock PDF'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDownloadStockPdf('out_of_stock')}
-              disabled={pdfLoading !== null}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-800 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {pdfLoading === 'out_of_stock' ? 'Generating PDF…' : 'Download Out of Stock PDF'}
-            </button>
+
+              {canExportSelected && (
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  disabled={isExporting}
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Clear selection
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
