@@ -84,6 +84,7 @@ const ProductsPage = () => {
       const params = new URLSearchParams();
       params.set('page',  String(page));
       params.set('limit', String(ADMIN_PAGE_SIZE));
+      params.set('productType', 'main');
       if (searchTerm.trim())      params.set('search',   searchTerm.trim());
       if (filterStatus !== 'all') params.set('status',   filterStatus);
       if (filterStock  !== 'all') params.set('stock',    filterStock);

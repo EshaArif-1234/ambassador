@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Product from '@/backend/models/Product.model';
+import SparePart from '@/backend/models/SparePart.model';
 import { sortPopulatedCategories } from '@/lib/storefrontCategories';
 import type { IOrderItem } from '@/backend/models/Order.model';
 
@@ -109,6 +110,23 @@ export async function enrichOrderItems<T extends OrderItemLike>(items: T[]): Pro
       .populate('categories', 'title sortOrder')
       .lean();
     for (const p of rows) registerProduct(catalog, p);
+
+    const missingIds = [...idSet].filter((id) => !catalog.has(id));
+    if (missingIds.length > 0) {
+      const spareRows = await SparePart.find({ _id: { $in: missingIds } })
+        .select('name images specifications')
+        .lean();
+      for (const sp of spareRows) {
+        const id = String(sp._id);
+        catalog.set(id, {
+          id,
+          name: String(sp.name),
+          images: sp.images ?? [],
+          productCode: codeFromSpecs(sp.specifications as Record<string, string> | undefined),
+          category: 'Spare Part',
+        });
+      }
+    }
   }
 
   if (codeLookups.size > 0) {

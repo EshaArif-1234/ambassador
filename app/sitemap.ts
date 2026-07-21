@@ -6,6 +6,7 @@ import { categoryListSort } from '@/backend/lib/categoryOrder';
 import { getCaseStudySlugs } from '@/client/data/customKitchenCases';
 import { productsCategoryPath, productDetailPath } from '@/lib/siteRoutes';
 import { absoluteUrl } from '@/lib/siteUrl';
+import { MAIN_CATALOG_FILTER } from '@/backend/lib/productTypeFilters';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,7 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
     }
 
-    const products = await Product.find({ status: 'active' })
+    const products = await Product.find({ status: 'active', ...MAIN_CATALOG_FILTER })
       .select('slug updatedAt')
       .lean();
 

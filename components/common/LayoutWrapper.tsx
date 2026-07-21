@@ -14,18 +14,18 @@ interface LayoutWrapperProps {
 const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
   const pathname = usePathname();
   
-  // Check if we're in admin routes
-  const isAdminRoute = pathname?.startsWith('/admin') || 
-                        pathname?.startsWith('/product-management') || 
-                        pathname?.startsWith('/category-management') ||
-                        pathname?.startsWith('/users') ||
-                        pathname?.startsWith('/orders-management') ||
-                        pathname?.startsWith('/gallery-management') ||
-                        pathname?.startsWith('/reviews-management') ||
-                        pathname?.startsWith('/settings')||
-                        pathname?.startsWith('/payments');
-                        
-  
+  // Admin routes use their own layout (no public header/footer)
+  const isAdminRoute =
+    pathname?.startsWith('/admin') ||
+    pathname?.startsWith('/product-management') ||
+    pathname?.startsWith('/category-management') ||
+    pathname?.startsWith('/users') ||
+    pathname?.startsWith('/orders-management') ||
+    pathname?.startsWith('/gallery-management') ||
+    pathname?.startsWith('/reviews-management') ||
+    pathname?.startsWith('/admin-settings') ||
+    pathname?.startsWith('/payments') ||
+    pathname?.startsWith('/spare-parts-management');
   // Don't render main navigation for admin routes
   if (isAdminRoute) {
     return <>{children}</>;

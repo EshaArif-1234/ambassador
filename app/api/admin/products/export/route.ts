@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
 import { requireAdmin } from '@/backend/lib/adminAuth';
+import { MAIN_CATALOG_FILTER } from '@/backend/lib/productTypeFilters';
 
 const EXPORT_PROJECTION = {
   name: 1,
@@ -56,10 +57,10 @@ export async function GET(req: NextRequest) {
 
       filter =
         stock === 'in_stock'
-          ? { stock: { $gt: 0 } }
+          ? { ...MAIN_CATALOG_FILTER, stock: { $gt: 0 } }
           : stock === 'out_of_stock'
-            ? { stock: { $lte: 0 } }
-            : {};
+            ? { ...MAIN_CATALOG_FILTER, stock: { $lte: 0 } }
+            : { ...MAIN_CATALOG_FILTER };
     }
 
     const products = await Product.find(filter, EXPORT_PROJECTION)

@@ -145,8 +145,8 @@ if (process.env.NODE_ENV !== 'production' && mongoose.models.Product) {
 }
 
 // Indexes for fast storefront queries
-productSchema.index({ status: 1, createdAt: -1 });   // main listing filter + sort
-productSchema.index({ categories: 1, status: 1 });   // category filter
+productSchema.index({ status: 1, createdAt: -1 });
+productSchema.index({ categories: 1, status: 1 });
 productSchema.index({ name: 'text' });                // text search
 
 const Product: Model<IProduct> =

@@ -26,6 +26,8 @@ import {
   productUrlSegment,
 } from '@/lib/siteRoutes';
 import { orderedSpecificationEntries } from '@/lib/productSpecifications';
+import SparePartsSection from '@/components/products/SparePartsSection';
+import type { SparePartSummary } from '@/lib/spareParts.types';
 
 interface CategoryRef {
   title?: string;
@@ -93,17 +95,87 @@ function rowDisplayPrice(p: { price?: number; originalPrice: number }): number {
   return p.price != null && p.price > 0 ? p.price : p.originalPrice;
 }
 
+function ProductBuyRow({
+  stock,
+  quantity,
+  setQuantity,
+  onAddToCart,
+  onBuyNow,
+}: {
+  stock: number;
+  quantity: number;
+  setQuantity: (n: number) => void;
+  onAddToCart: () => void;
+  onBuyNow: () => void;
+}) {
+  const inStock = stock > 0;
+  const maxQty = Math.max(1, stock || 10);
+
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <div className="flex items-center rounded-lg border border-gray-300">
+        <button
+          type="button"
+          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+          disabled={!inStock || quantity <= 1}
+          className="px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-40"
+          aria-label="Decrease quantity"
+        >
+          -
+        </button>
+        <input
+          type="number"
+          value={quantity}
+          min={1}
+          max={maxQty}
+          disabled={!inStock}
+          onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+          className="w-16 border-none bg-transparent text-center text-sm font-semibold text-gray-800 focus:outline-none disabled:opacity-50"
+          aria-label="Quantity"
+        />
+        <button
+          type="button"
+          onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
+          disabled={!inStock || quantity >= maxQty}
+          className="px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-40"
+          aria-label="Increase quantity"
+        >
+          +
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={onAddToCart}
+        disabled={!inStock}
+        className="min-w-[140px] flex-1 rounded-lg border-2 border-[#0F4C69] px-5 py-3 text-sm font-medium text-[#0F4C69] transition-colors hover:bg-[#0F4C69] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Add to Cart
+      </button>
+      <button
+        type="button"
+        onClick={onBuyNow}
+        disabled={!inStock}
+        className="min-w-[140px] flex-1 rounded-lg bg-[#E36630] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#cc5a2a] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Buy it Now
+      </button>
+    </div>
+  );
+}
+
 const ProductDetailPage = ({ productId }: { productId: string }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<CatalogProductRow[]>([]);
+  const [spareParts, setSpareParts] = useState<SparePartSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [showAllSpecs, setShowAllSpecs] = useState(false);
   const [showCartPopup, setShowCartPopup] = useState(false);
   const relatedScrollRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
@@ -146,6 +218,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
 
   useEffect(() => {
     setQuantity(1);
+    setShowAllSpecs(false);
   }, [productId]);
 
   useEffect(() => {
@@ -158,6 +231,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       setProduct(null);
       setReviews([]);
       setRelatedProducts([]);
+      setSpareParts([]);
 
       try {
         const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, { cache: 'no-store' });
@@ -179,6 +253,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
         const rev = (json.data.reviews ?? []) as ReviewRow[];
         setProduct(p);
         setReviews(rev);
+        setSpareParts((json.data.spareParts ?? []) as SparePartSummary[]);
       } catch {
         if (!cancelled) {
           setLoadError('Could not load this product. Please check your connection and try again.');
@@ -264,6 +339,17 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
     [product?.specifications, product?.specificationOrder],
   );
 
+  const SPEC_PREVIEW_COUNT = 5;
+  const hasMoreSpecs = specificationEntries.length > SPEC_PREVIEW_COUNT;
+  const visibleSpecs = showAllSpecs
+    ? specificationEntries
+    : specificationEntries.slice(0, SPEC_PREVIEW_COUNT);
+
+  const specColumns = useMemo(() => {
+    const mid = Math.ceil(visibleSpecs.length / 2);
+    return [visibleSpecs.slice(0, mid), visibleSpecs.slice(mid)];
+  }, [visibleSpecs]);
+
   const displayPrice =
     product && product.price != null && product.price > 0
       ? product.price
@@ -324,7 +410,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <div className="container mx-auto px-4 pt-6">{backButton}</div>
         <PageLoader message="Loading product…" fullScreen={false} className="min-h-[70vh]" />
       </div>
@@ -333,7 +419,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
 
   if (notFound || unavailable || loadError || !product) {
     return (
-      <div className="min-h-screen bg-gray-50 py-16">
+      <div className="min-h-screen bg-white py-16">
         <div className="container mx-auto px-4">
           <div className="mb-8">{backButton}</div>
           <div className="text-center max-w-md mx-auto">
@@ -372,21 +458,21 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
-        <div className="mb-6 flex flex-col gap-4">
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-4 lg:py-6">
+        <div className="mb-4 flex flex-col gap-3">
           {backButton}
-          <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+          <nav className="flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
             <Link href="/" className="transition-colors hover:text-[#E36630]">
               Home
             </Link>
-            <span>/</span>
+            <span className="text-gray-300">›</span>
             <Link href={PRODUCTS_PATH} className="transition-colors hover:text-[#E36630]">
               Products
             </Link>
             {primaryCat?.slug && primaryCat.title ? (
               <>
-                <span>/</span>
+                <span className="text-gray-300">›</span>
                 <Link
                   href={productsCategoryPath(primaryCat.slug)}
                   className="transition-colors hover:text-[#E36630]"
@@ -395,32 +481,42 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                 </Link>
               </>
             ) : null}
-            <span>/</span>
-            <span className="text-gray-800 line-clamp-2">{product.name}</span>
+            <span className="text-gray-300">›</span>
+            <span className="line-clamp-1 text-gray-700">{product.name}</span>
           </nav>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-12 mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div>
-              <ProductDetailGallery
-                productName={product.name}
-                images={galleryImages}
-                videos={galleryVideos}
-              />
-            </div>
+        {/* ── Gallery (left) | info + specs + buy (right) ── */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+          <div className="w-full shrink-0 lg:w-[42%]">
+            <ProductDetailGallery
+              productName={product.name}
+              images={galleryImages}
+              videos={galleryVideos}
+            />
+          </div>
 
-            <div>
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-gray-800 flex-1 min-w-0">{product.name}</h1>
-                <WishlistButton productId={product._id} variant="inline" iconClassName="w-6 h-6" />
-              </div>
-              {categoryLine ? (
-                <p className="mb-4 text-sm text-gray-600">{categoryLine}</p>
-              ) : null}
+          <div className="min-w-0 flex-1">
+            <div
+              className={
+                spareParts.length > 0
+                  ? 'flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-6'
+                  : ''
+              }
+            >
+              <div className={spareParts.length > 0 ? 'min-w-0 flex-1 lg:flex-[4]' : ''}>
+                <div className="flex items-start justify-between gap-3">
+                  <h1 className="text-xl font-normal leading-snug text-gray-900 sm:text-2xl lg:text-[1.65rem]">
+                    {product.name}
+                  </h1>
+                  <WishlistButton productId={product._id} variant="inline" iconClassName="w-5 h-5" />
+                </div>
 
-              <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-                <div className="min-w-0 shrink">
+                {categoryLine ? (
+                  <p className="mt-1 text-sm text-[#0F4C69]">{categoryLine}</p>
+                ) : null}
+
+                <div className="mt-2 flex flex-wrap items-center gap-3">
                   <ProductRatingDropdown
                     productId={product._id}
                     ratingBreakdown={ratingBreakdown}
@@ -428,154 +524,238 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                     totalReviews={product.reviewCount}
                     productName={product.name}
                   />
-                </div>
-                {brandTags.length > 0 ? (
-                  <span className="shrink-0 rounded-full border-2 border-[#E36630] bg-gradient-to-r from-[#E36630]/15 to-[#E36630]/8 px-3 py-1 text-xs font-bold text-[#E36630] shadow-sm">
-                    {formatBrandLabels(brandTags)}
-                  </span>
-                ) : null}
-                {/* <p className="shrink-0 text-sm">
-                  <span className="text-gray-500">Stock: </span>
-                  {product.stock > 0 ? (
-                    <span className="font-semibold text-green-700">{product.stock} available</span>
-                  ) : (
-                    <span className="font-semibold text-red-600">Out of stock</span>
-                  )}
-                </p> */}
-              </div>
-
-              <div className="mb-6">
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="text-3xl font-bold text-[#E36630]">
-                    PKR {displayPrice.toLocaleString()}
-                  </span>
-                  {showDiscount && (
-                    <span className="text-xl text-gray-500 line-through">
-                      PKR {product.originalPrice.toLocaleString()}
+                  {brandTags.length > 0 ? (
+                    <span className="text-xs font-semibold text-[#E36630]">
+                      {formatBrandLabels(brandTags)}
                     </span>
+                  ) : null}
+                </div>
+
+                <hr className="my-4 border-gray-200" />
+
+                <div className="mb-4 lg:hidden">
+                  <p className="text-2xl font-normal text-[#E36630]">
+                    PKR {displayPrice.toLocaleString()}
+                  </p>
+                  {showDiscount && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      List Price:{' '}
+                      <span className="line-through">PKR {product.originalPrice.toLocaleString()}</span>
+                    </p>
                   )}
                 </div>
-                {showDiscount && (
-                  <p className="text-green-600 text-sm mt-1">
-                    Save PKR {(product.originalPrice - (product.price ?? 0)).toLocaleString()}
+
+                <div className="hidden lg:block mb-4">
+                  <p className="text-3xl font-normal text-[#E36630]">
+                    PKR {displayPrice.toLocaleString()}
                   </p>
-                )}
-              </div>
-
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">About the Product</h3>
-                <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
-                  {product.about?.trim() || 'No description yet.'}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-4 mb-6 flex-wrap">
-                <div className="flex items-center border border-gray-300 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                    className="w-16 text-center border-none focus:outline-none text-gray-800 font-semibold"
-                    min={1}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="px-3 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-                  >
-                    +
-                  </button>
+                  {showDiscount && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      List Price:{' '}
+                      <span className="line-through">PKR {product.originalPrice.toLocaleString()}</span>
+                    </p>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  className="min-w-[140px] flex-1 rounded-lg border-2 border-[#0F4C69] px-5 py-3 font-medium text-[#0F4C69] transition-colors hover:bg-[#0F4C69] hover:text-white"
-                >
-                  Add to Cart
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBuyItNow}
-                  className="min-w-[140px] flex-1 rounded-lg bg-[#E36630] px-5 py-3 font-medium text-white transition-colors hover:bg-[#cc5a2a]"
-                >
-                  Buy it Now
-                </button>
-              </div>
 
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Specifications</h3>
-                {specificationEntries.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
-                    {specificationEntries.map(([key, value]) => (
-                      <div key={key} className="flex items-baseline gap-3 py-2 border-b border-gray-100">
-                        <span className="text-sm text-[#0F4C69] font-bold shrink-0 min-w-[120px]">{key}:</span>
-                        <span className="text-sm text-gray-700 font-medium">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">No specifications listed.</p>
+                <div>
+                  <h2 className="text-base font-bold text-gray-900">About this item</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">
+                    {product.about?.trim() || 'No description yet.'}
+                  </p>
+                </div>
+
+                {spareParts.length > 0 && (
+                  <SparePartsSection
+                    spareParts={spareParts}
+                    mainProductName={product.name}
+                    variant="stacked"
+                  />
                 )}
               </div>
 
-              
+              {spareParts.length > 0 && (
+                <div className="hidden shrink-0 lg:block lg:flex-[3]">
+                  <SparePartsSection
+                    spareParts={spareParts}
+                    mainProductName={product.name}
+                    variant="sidebar"
+                  />
+                </div>
+              )}
+            </div>
+
+            {specificationEntries.length > 0 && (
+              <section className="mt-8">
+                <hr className="mb-6 border-gray-200 lg:hidden" />
+                <h2 className="text-base font-bold text-gray-900">Product details</h2>
+                <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:gap-x-12">
+                  {specColumns.map((column, columnIndex) => (
+                    <div key={columnIndex} className="min-w-0 flex-1">
+                      {column.map(([key, value]) => (
+                        <div
+                          key={key}
+                          className="flex gap-3 border-t border-gray-100 py-2.5 text-sm"
+                        >
+                          <span className="w-[42%] shrink-0 font-semibold text-gray-900">{key}</span>
+                          <span className="text-gray-700">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                {hasMoreSpecs && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllSpecs((v) => !v)}
+                    className="mt-3 text-sm font-medium text-[#0F4C69] hover:text-[#E36630]"
+                  >
+                    {showAllSpecs
+                      ? 'Show less'
+                      : `Show more (${specificationEntries.length - SPEC_PREVIEW_COUNT} more)`}
+                  </button>
+                )}
+              </section>
+            )}
+
+            <div className="mt-6">
+              <ProductBuyRow
+                stock={product.stock}
+                quantity={quantity}
+                setQuantity={setQuantity}
+                onAddToCart={handleAddToCart}
+                onBuyNow={handleBuyItNow}
+              />
             </div>
           </div>
         </div>
 
-        <div id="customer-reviews" className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">Customer Reviews</h2>
-          {reviews.length === 0 ? (
-            <p className="text-gray-500 text-sm">No reviews yet.</p>
-          ) : (
-            <div className="space-y-6">
-              {reviews.map((review) => (
-                <div key={review._id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                  <div className="flex items-start gap-4">
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 bg-gray-100">
-                      <div className="absolute inset-0 flex items-center justify-center bg-[#101827]">
-                        <span className="text-white font-bold text-lg">
-                          {review.name
-                            .split(' ')
-                            .map((word) => word[0])
-                            .join('')
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </span>
+        {relatedProducts.length > 0 ? (
+          <>
+            <hr className="border-gray-200" />
+            <section className="py-8" aria-label="Related products">
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Related products</h2>
+                  {categoryLine ? (
+                    <p className="mt-1 text-sm text-gray-500">
+                      Similar items in {categoryLine}
+                      {' · '}
+                      <Link
+                        href={productsHref({
+                          categorySlug: product.categories?.[0]?.slug,
+                          category: product.categories?.[0]?.title ?? '',
+                        })}
+                        className="text-[#0F4C69] hover:text-[#E36630]"
+                      >
+                        View all
+                      </Link>
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    aria-label="Scroll left"
+                    onClick={() => relatedScrollRef.current?.scrollBy({ left: -280, behavior: 'smooth' })}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-gray-400"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Scroll right"
+                    onClick={() => relatedScrollRef.current?.scrollBy({ left: 280, behavior: 'smooth' })}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-gray-400"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+              <div
+                ref={relatedScrollRef}
+                className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-1"
+              >
+                {relatedProducts.map((r) => {
+                  const img = r.images?.[0] || PRODUCT_PLACEHOLDER;
+                  const price = rowDisplayPrice(r);
+                  return (
+                    <Link
+                      key={r._id}
+                      href={productDetailPath(productUrlSegment(r), primaryCategorySlug(r.categories))}
+                      className="w-[160px] shrink-0 snap-start sm:w-[180px]"
+                    >
+                      <div className="relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                        <Image src={img} alt="" fill className="object-cover" sizes="180px" />
                       </div>
+                      <p className="mt-2 line-clamp-2 text-sm leading-snug text-[#0F4C69] hover:text-[#E36630]">
+                        {r.name}
+                      </p>
+                      <p className="mt-1 text-base font-bold text-gray-900">
+                        PKR {price.toLocaleString()}
+                      </p>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          </>
+        ) : null}
+
+        <hr className="border-gray-200" />
+
+        <div id="customer-reviews" className="py-8">
+          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="text-lg font-bold text-gray-900">Customer reviews</h2>
+            {product.reviewCount > 0 && (
+              <span className="text-sm text-gray-600">
+                {product.avgRating.toFixed(1)} out of 5 · {product.reviewCount} ratings
+              </span>
+            )}
+          </div>
+
+          {reviews.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No customer reviews yet. Be the first to review this product after purchase.
+            </p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {reviews.map((review) => (
+                <div key={review._id} className="py-5 first:pt-0">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700">
+                      {review.name
+                        .split(' ')
+                        .map((w) => w[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2)}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                        <div>
-                          <h4 className="font-semibold text-gray-800">{review.name}</h4>
-                          <p className="text-sm text-gray-500">
-                            {new Date(review.date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900">{review.name}</p>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <div className="flex">
                           {[...Array(5)].map((_, i) => (
                             <svg
                               key={i}
-                              className={`w-5 h-5 ${
-                                i < Math.floor(review.rating)
-                                  ? 'fill-current text-[#E36630]'
-                                  : 'fill-current text-gray-300'
+                              className={`h-3.5 w-3.5 ${
+                                i < Math.floor(review.rating) ? 'text-[#E36630]' : 'text-gray-300'
                               }`}
+                              fill="currentColor"
                               viewBox="0 0 20 20"
                             >
                               <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                             </svg>
                           ))}
                         </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(review.date).toLocaleDateString('en-PK', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </span>
                       </div>
-                      <p className="text-gray-600 leading-relaxed">{review.comment}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-700">{review.comment}</p>
                     </div>
                   </div>
                 </div>
@@ -583,88 +763,6 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
             </div>
           )}
         </div>
-
-        {relatedProducts.length > 0 ? (
-          <section className="mt-8 rounded-lg bg-white p-6 shadow-md" aria-label="Related products">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">Related products</h2>
-                {categoryLine ? (
-                  <p className="mt-1 text-sm text-gray-500">
-                    {relatedProducts.length} in {categoryLine}
-                    {relatedProducts.length >= 16 ? ' (showing first 16)' : ''}
-                    {' · '}
-                    <Link
-                      href={productsHref({
-                        categorySlug: product.categories?.[0]?.slug,
-                        category: product.categories?.[0]?.title ?? '',
-                      })}
-                      className="font-medium text-[#0F4C69] hover:text-[#E36630]"
-                    >
-                      View all
-                    </Link>
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  aria-label="Scroll related products left"
-                  onClick={() =>
-                    relatedScrollRef.current?.scrollBy({ left: -320, behavior: 'smooth' })
-                  }
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-lg text-gray-700 shadow-sm transition-colors hover:border-[#E36630] hover:text-[#E36630]"
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  aria-label="Scroll related products right"
-                  onClick={() =>
-                    relatedScrollRef.current?.scrollBy({ left: 320, behavior: 'smooth' })
-                  }
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-lg text-gray-700 shadow-sm transition-colors hover:border-[#E36630] hover:text-[#E36630]"
-                >
-                  ›
-                </button>
-              </div>
-            </div>
-            <div
-              ref={relatedScrollRef}
-              className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-2"
-            >
-              {relatedProducts.map((r) => {
-                const img = r.images?.[0] || PRODUCT_PLACEHOLDER;
-                const price = rowDisplayPrice(r);
-                return (
-                  <Link
-                    key={r._id}
-                    href={productDetailPath(productUrlSegment(r), primaryCategorySlug(r.categories))}
-                    className="w-40 shrink-0 snap-start overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-48"
-                  >
-                    <div className="relative h-40 w-full bg-[#E5E5E5] sm:h-44">
-                      <Image
-                        src={img}
-                        alt=""
-                        fill
-                        className="bg-[#E5E5E5] object-cover"
-                        sizes="(max-width: 640px) 160px, 192px"
-                      />
-                    </div>
-                    <div className="p-3">
-                      <p className="line-clamp-2 text-sm font-medium leading-snug text-gray-900">
-                        {r.name}
-                      </p>
-                      <p className="mt-2 text-base font-bold text-[#E36630]">
-                        PKR {price.toLocaleString()}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        ) : null}
       </div>
 
       <CartPopup

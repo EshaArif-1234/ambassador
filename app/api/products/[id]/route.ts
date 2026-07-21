@@ -8,6 +8,7 @@ import {
 } from '@/backend/lib/findPublicProduct';
 import { resolveProductImages, resolveProductVideos } from '@/utils/productMedia.util';
 import { orderProductSpecifications } from '@/lib/productSpecifications';
+import { resolveSparePartsForProduct } from '@/backend/lib/spareParts';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -83,6 +84,8 @@ export async function GET(
       Array.isArray(product.specificationOrder) ? product.specificationOrder : undefined,
     );
 
+    const spareParts = await resolveSparePartsForProduct(product);
+
     return NextResponse.json(
       {
         success: true,
@@ -105,6 +108,7 @@ export async function GET(
             comment: r.comment,
             date: r.createdAt,
           })),
+          spareParts,
         },
       },
       { status: 200, headers: NO_STORE }

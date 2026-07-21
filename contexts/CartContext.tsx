@@ -59,7 +59,15 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   }, [cartItems]);
 
   const addToCart = (item: CartItem) => {
-    setCartItems((prev) => [...prev, item]);
+    setCartItems((prev) => {
+      const idx = prev.findIndex((x) => x.id === item.id);
+      if (idx >= 0) {
+        return prev.map((x, i) =>
+          i === idx ? { ...x, quantity: x.quantity + item.quantity } : x,
+        );
+      }
+      return [...prev, item];
+    });
   };
 
   const removeFromCart = (index: number) => {

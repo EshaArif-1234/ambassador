@@ -12,6 +12,7 @@ import {
   sanitizeProductBrands,
 } from '@/backend/lib/productMarketingFields';
 import { requireAdmin } from '@/backend/lib/adminAuth';
+import { applyProductTypeFilter } from '@/backend/lib/productTypeFilters';
 import mongoose from 'mongoose';
 
 const ADMIN_PAGE_LIMIT = 10;
@@ -23,7 +24,7 @@ const ADMIN_LIST_PROJECTION = {
   categories: 1, images: { $slice: 1 }, createdAt: 1,
 };
 
-/** GET /api/admin/products?page=1&limit=10&search=...&status=...&category=...&stock=... */
+/** GET /api/admin/products?page=1&limit=10&search=...&status=...&category=...&categories=id1,id2&stock=... */
 export async function GET(req: NextRequest) {
   const authError = await requireAdmin(req);
   if (authError) return authError;
@@ -36,6 +37,8 @@ export async function GET(req: NextRequest) {
     const status     = searchParams.get('status')   ?? 'all';
     const stock      = searchParams.get('stock')    ?? 'all';
     const categoryId = searchParams.get('category') ?? '';
+    const categoryIdsParam = searchParams.get('categories') ?? '';
+    const productType = searchParams.get('productType') ?? 'all';
     const page       = Math.max(1, parseInt(searchParams.get('page')  ?? '1', 10));
     const limit      = Math.min(50, parseInt(searchParams.get('limit') ?? String(ADMIN_PAGE_LIMIT), 10));
     const skip       = (page - 1) * limit;
@@ -68,7 +71,16 @@ export async function GET(req: NextRequest) {
       filter.$or = orConditions;
     }
     if (status !== 'all') filter.status = status;
-    if (categoryId) filter.categories = categoryId;
+    applyProductTypeFilter(filter, productType);
+    if (categoryIdsParam) {
+      const ids = categoryIdsParam
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => mongoose.Types.ObjectId.isValid(id));
+      if (ids.length) filter.categories = { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) };
+    } else if (categoryId) {
+      filter.categories = categoryId;
+    }
     if (stock === 'in_stock') filter.stock = { $gt: 0 };
     if (stock === 'out_of_stock') filter.stock = { $lte: 0 };
 

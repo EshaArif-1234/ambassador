@@ -15,7 +15,7 @@ export async function findActiveProductByIdentifier(identifier: string) {
 
   if (isMongoObjectId(raw)) {
     const byId = await Product.findOne({ _id: raw, status: 'active' })
-      .populate('categories', 'title slug sortOrder')
+      .populate('categories', 'title slug sortOrder _id')
       .lean();
     if (byId) {
       return {
