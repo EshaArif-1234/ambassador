@@ -136,6 +136,105 @@ const SORT_MAP: Record<string, string> = {
 
 const PAGE_SIZE = 12;
 
+ function ProductResultRow({
+  product,
+  onAddToCart,
+  onBuyItNow,
+}: {
+  product: Product;
+  onAddToCart: () => void;
+  onBuyItNow: () => void;
+}) {
+  const showStrike = product.originalPrice > product.price && product.price > 0;
+  const detailHref = productDetailPath(productUrlSegment(product), product.categorySlug);
+
+  return (
+    <article className="flex flex-col gap-4 py-4 sm:flex-row sm:items-start sm:gap-6">
+      <div className="relative mx-auto h-[260px] w-[260px] shrink-0 overflow-hidden bg-[#F3F3F3] shadow-md sm:mx-0 md:h-[300px] md:w-[300px]">
+        <Link href={detailHref} className="block h-full w-full">
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-contain"
+            sizes="(max-width: 768px) 260px, 300px"
+          />
+        </Link>
+        <WishlistButton productId={product._id} />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <Link href={detailHref} className="block">
+          <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#0F4C69] hover:text-[#E36630] hover:underline">
+            {product.name}
+          </h3>
+        </Link>
+
+        <div className="mt-1">
+          <ProductRatingDropdown
+            productId={product._id}
+            averageRating={product.reviewCount ? product.avgRating : 0}
+            totalReviews={product.reviewCount}
+            productName={product.name}
+          />
+        </div>
+
+        {product.brands.length > 0 && (
+          <p className="mt-1 text-xs font-semibold text-[#E36630]">{formatBrandLabels(product.brands)}</p>
+        )}
+
+        {product.category ? (
+          <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[#0F4C69]">
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            {product.category}
+          </span>
+        ) : null}
+
+        <p className="mt-1.5 line-clamp-4 text-sm leading-relaxed text-gray-600">
+          {product.description || 'No description available for this product.'}
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-baseline gap-2">
+          <span className="text-2xl font-normal text-[#E36630]">
+            PKR {product.price.toLocaleString()}
+          </span>
+          {showStrike ? (
+            <span className="text-sm text-gray-500 line-through">
+              List Price: PKR {product.originalPrice.toLocaleString()}
+            </span>
+          ) : null}
+          {showStrike ? (
+            <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-bold text-green-600">
+              {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onAddToCart}
+            disabled={product.stock <= 0}
+            className="rounded-xl bg-[#E36630] px-5 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#cc5a2a] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Add to Cart
+          </button>
+          <button
+            type="button"
+            onClick={onBuyItNow}
+            disabled={product.stock <= 0}
+            className="rounded-xl border-2 border-[#0F4C69] px-4 py-2 text-sm font-semibold text-[#0F4C69] transition-colors hover:bg-[#0F4C69] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Buy it Now
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 type CategoryMeta = { title: string; slug: string };
 
 interface ProductsPageProps {
@@ -464,8 +563,8 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#E3E6E6]">
-      <div className="sticky top-28 z-20 border-b border-gray-200 bg-white shadow-sm">
+    <div className="min-h-screen bg-white">
+      <div className="sticky top-28 z-20 border-b border-gray-200 bg-white">
         <div className="container mx-auto max-w-[1600px] px-4">
           <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-h-[1.25rem] text-sm text-gray-600">
@@ -520,14 +619,22 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-[1600px] px-4 py-8">
-        <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-          <aside className="w-full shrink-0 lg:w-64">
-            <div className="rounded-lg bg-white p-6 shadow-md">
-              <h2 className="text-lg font-semibold text-gray-800 mb-6">Filters</h2>
+      <div className="container mx-auto max-w-[1600px]">
+        <div className="flex flex-col lg:flex-row">
+          <aside className="w-full shrink-0 border-b border-gray-200 px-4 py-4 lg:w-60 lg:border-b-0 lg:border-r lg:px-5 xl:w-64">
+            <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
+              <h2 className="text-base font-bold text-gray-900">Filters</h2>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-xs font-medium text-[#0F4C69] hover:text-[#E36630] hover:underline"
+              >
+                Clear all
+              </button>
+            </div>
 
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Category</h3>
+              <div className="mb-4 border-b border-gray-200 pb-4">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">Category</h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   {categories.map((category) => (
                     <label key={category} className="flex items-center">
@@ -548,8 +655,8 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Features</h3>
+              <div className="mb-4 border-b border-gray-200 pb-4">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">Features</h3>
                 <div className="space-y-2">
                   {FEATURE_FILTERS.map(({ key, label }) => (
                     <label key={key} className="flex cursor-pointer items-center">
@@ -565,8 +672,8 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Brand</h3>
+              <div className="mb-4 border-b border-gray-200 pb-4">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">Brand</h3>
                 <div className="space-y-2">
                   {BRAND_FILTERS.map(({ key, label }) => (
                     <label key={key} className="flex cursor-pointer items-center">
@@ -582,8 +689,8 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Availability</h3>
+              <div className="mb-4 border-b border-gray-200 pb-4">
+                <h3 className="mb-3 text-sm font-bold text-gray-900">Availability</h3>
                 <div className="space-y-2">
                   <label className="flex items-center">
                     <input
@@ -606,8 +713,8 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Price Range</h3>
+              <div>
+                <h3 className="mb-3 text-sm font-bold text-gray-900">Price Range</h3>
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs text-gray-600">
@@ -643,162 +750,38 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                   </div>
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                Clear All Filters
-              </button>
-            </div>
           </aside>
 
-          <div className="min-w-0 flex-1">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                <span className="text-[#E36630]">Premium</span> 
-                <span className="text-[#0F4C69]"> Products</span>
-              </h1>
-              <p className="text-lg text-gray-600">Browse our extensive collection of kitchen equipment</p>
-            </div>
+          <main className="min-w-0 flex-1 px-4 py-4 lg:px-6">
+            <h2 className="text-lg font-bold text-gray-900">Results</h2>
+            <p className="mt-1 text-xs text-gray-500">
+              Check each product page for other buying options. Prices and availability may vary.
+            </p>
 
-            <div>
             {loading ? (
               <PageLoader
                 message="Loading products…"
                 fullScreen={false}
-                className="rounded-lg bg-white shadow-md"
+                className="min-h-[280px] bg-white"
               />
             ) : filteredProducts.length > 0 ? (
-              <div className="space-y-4">
-                {filteredProducts.map((product) => {
-                  const showStrike =
-                    product.originalPrice > product.price &&
-                    product.price > 0;
-                  return (
-                    <div
-                      key={product._id}
-                      className="group relative flex flex-col sm:flex-row overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:border-[#E36630]/30 transition-all duration-300 sm:h-64"
-                    >
-                      {/* ── Image ── */}
-                      <div className="relative h-64 w-full shrink-0 sm:h-full sm:w-72 overflow-hidden bg-[#EEF5F9]">
-                        <Link href={productDetailPath(productUrlSegment(product), product.categorySlug)} className="block absolute inset-0">
-                          <Image
-                            src={product.image}
-                            alt={product.name}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                            sizes="(max-width: 640px) 100vw, 288px"
-                          />
-                        </Link>
-                        <WishlistButton productId={product._id} />
-
-                        {/* Orange bottom accent */}
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#E36630] via-[#0F4C69] to-[#E36630] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      </div>
-
-                      {/* ── Content ── */}
-                      <div className="flex flex-1 flex-col justify-between p-4 sm:p-5 min-w-0">
-
-                        {/* Top: name + category + description */}
-                        <div className="flex flex-col gap-1.5 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <Link href={productDetailPath(productUrlSegment(product), product.categorySlug)} className="flex-1 min-w-0">
-                              <h3 className="text-base font-bold leading-snug text-gray-900 line-clamp-1 group-hover:text-[#E36630] transition-colors duration-200">
-                                {product.name}
-                              </h3>
-                            </Link>
-                            {product.brands.length > 0 && (
-                              <span className="shrink-0 rounded-full border border-[#E36630] bg-[#E36630]/8 px-2.5 py-0.5 text-[10px] font-bold text-[#E36630]">
-                                {formatBrandLabels(product.brands)}
-                              </span>
-                            )}
-                          </div>
-
-                          {product.category && (
-                            <span className="inline-flex items-center gap-1 text-xs text-[#0F4C69] font-medium">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                              </svg>
-                              {product.category}
-                            </span>
-                          )}
-
-                          <p className="text-xs leading-relaxed text-gray-500 line-clamp-2 mt-0.5">
-                            {product.description || 'No description available for this product.'}
-                          </p>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="my-3 h-px bg-gray-100" />
-
-                        {/* Bottom: rating + price + button */}
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex flex-col gap-1">
-                            <div className="shrink-0">
-                              <ProductRatingDropdown
-                                productId={product._id}
-                                averageRating={product.reviewCount ? product.avgRating : 0}
-                                totalReviews={product.reviewCount}
-                                productName={product.name}
-                              />
-                            </div>
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-xl font-extrabold text-[#E36630] tracking-tight">
-                                PKR {product.price.toLocaleString()}
-                              </span>
-                              {showStrike && (
-                                <span className="text-xs text-gray-400 line-through">
-                                  PKR {product.originalPrice.toLocaleString()}
-                                </span>
-                              )}
-                              {showStrike && (
-                                <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
-                                  {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleBuyItNow(product)}
-                              disabled={product.stock <= 0}
-                              className="flex items-center gap-1.5 rounded-xl border-2 border-[#0F4C69] px-3 py-2 text-xs font-semibold text-[#0F4C69] hover:bg-[#0F4C69] hover:text-white transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                              </svg>
-                              Buy it Now
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleAddToCart(product)}
-                              disabled={product.stock <= 0}
-                              className="flex items-center gap-2 rounded-xl bg-[#E36630] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#cc5a2a] active:scale-95 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
-                              Add to Cart
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="mt-3 divide-y divide-gray-200 border-t border-gray-200">
+                {filteredProducts.map((product) => (
+                  <ProductResultRow
+                    key={product._id}
+                    product={product}
+                    onAddToCart={() => handleAddToCart(product)}
+                    onBuyItNow={() => handleBuyItNow(product)}
+                  />
+                ))}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <div className="text-gray-500 text-lg mb-4">No products found</div>
-                <p className="text-gray-400">Try adjusting your filters or search terms</p>
+              <div className="mt-3 border-t border-gray-200 py-16 text-center">
+                <div className="mb-2 text-lg font-medium text-gray-800">No products found</div>
+                <p className="text-sm text-gray-500">Try adjusting your filters or search terms</p>
               </div>
             )}
 
-            {/* ── Pagination ── */}
             {!loading && totalPages > 1 && (() => {
               const getPages = (): (number | '…')[] => {
                 if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -810,31 +793,28 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                 return pages;
               };
               return (
-                <div className="mt-8 flex items-center justify-center gap-1.5">
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-2 border-t border-gray-200 pt-4">
                   <button
                     type="button"
                     disabled={currentPage === 1}
                     onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:border-[#E36630] hover:text-[#E36630] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-600"
+                    className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-[#E36630] hover:text-[#E36630] disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Prev
+                    Previous
                   </button>
                   <div className="flex items-center gap-1">
                     {getPages().map((page, idx) =>
                       page === '…' ? (
-                        <span key={`ellipsis-${idx}`} className="px-2 py-2 text-gray-400 text-sm select-none">…</span>
+                        <span key={`ellipsis-${idx}`} className="select-none px-2 py-2 text-sm text-gray-400">…</span>
                       ) : (
                         <button
                           key={page}
                           type="button"
                           onClick={() => { setCurrentPage(page as number); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                          className={`min-w-[38px] h-[38px] rounded-xl text-sm font-semibold transition-all ${
+                          className={`min-h-[36px] min-w-[36px] rounded-lg text-sm font-semibold transition-colors ${
                             currentPage === page
-                              ? 'bg-[#E36630] text-white shadow-md shadow-[#E36630]/30 scale-105'
-                              : 'border border-gray-200 bg-white text-gray-700 hover:bg-[#E36630]/8 hover:border-[#E36630] hover:text-[#E36630]'
+                              ? 'bg-[#E36630] text-white'
+                              : 'border border-gray-200 bg-white text-gray-700 hover:border-[#E36630] hover:text-[#E36630]'
                           }`}
                         >
                           {page}
@@ -846,18 +826,14 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                     type="button"
                     disabled={currentPage === totalPages}
                     onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:border-[#E36630] hover:text-[#E36630] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-600"
+                    className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-[#E36630] hover:text-[#E36630] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Next
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
                   </button>
                 </div>
               );
             })()}
-            </div>
-          </div>
+          </main>
         </div>
       </div>
 
