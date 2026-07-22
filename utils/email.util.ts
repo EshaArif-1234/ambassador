@@ -122,7 +122,7 @@ export const sendVerificationEmail = async (
   otp: string
 ): Promise<void> => {
   const transporter = getTransporter();
-  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
 
   const body = `
@@ -131,7 +131,7 @@ export const sendVerificationEmail = async (
     </h2>
     <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
       Hi <strong>${fullName}</strong>,<br/>
-      Thank you for creating an account with Ambassador Kitchen Equipment.
+      Thank you for creating an account with Ambassador Commercial Kitchen Equipment.
       Use the OTP code below to verify your email address and complete your registration.
     </p>
 
@@ -145,7 +145,7 @@ export const sendVerificationEmail = async (
   await transporter.sendMail({
     from: `"${fromName}" <${fromEmail}>`,
     to,
-    subject: 'Verify Your Email — Ambassador Kitchen Equipment',
+    subject: 'Verify Your Email — Ambassador Commercial Kitchen Equipment',
     html: baseTemplate('Email Verification', body),
   });
 };
@@ -160,7 +160,7 @@ export const sendAccountDisabledEmail = async (
   description?: string
 ): Promise<void> => {
   const transporter = getTransporter();
-  const fromName  = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromName  = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
 
   const reasonLabels: Record<string, string> = {
@@ -179,7 +179,7 @@ export const sendAccountDisabledEmail = async (
     </h2>
     <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
       Hi <strong>${fullName}</strong>,<br/>
-      We are writing to inform you that your account on <strong>Ambassador Kitchen Equipment</strong>
+      We are writing to inform you that your account on <strong>Ambassador Commercial Kitchen Equipment</strong>
       has been temporarily disabled by our admin team.
     </p>
 
@@ -198,14 +198,14 @@ export const sendAccountDisabledEmail = async (
     </p>
 
     <p style="margin:0;color:#999999;font-size:13px;">
-      — The Ambassador Kitchen Equipment Team
+      — The Ambassador Commercial Kitchen Equipment Team
     </p>
   `;
 
   await transporter.sendMail({
     from:    `"${fromName}" <${fromEmail}>`,
     to,
-    subject: 'Your Account Has Been Disabled — Ambassador Kitchen Equipment',
+    subject: 'Your Account Has Been Disabled — Ambassador Commercial Kitchen Equipment',
     html:    baseTemplate('Account Disabled', body),
   });
 };
@@ -218,7 +218,7 @@ export const sendAccountEnabledEmail = async (
   fullName: string
 ): Promise<void> => {
   const transporter = getTransporter();
-  const fromName  = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromName  = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
 
   const body = `
@@ -227,7 +227,7 @@ export const sendAccountEnabledEmail = async (
     </h2>
     <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
       Hi <strong>${fullName}</strong>,<br/>
-      Great news! Your account on <strong>Ambassador Kitchen Equipment</strong> has been
+      Great news! Your account on <strong>Ambassador Commercial Kitchen Equipment</strong> has been
       re-enabled by our admin team. You can now sign in and access your account as usual.
     </p>
 
@@ -249,7 +249,7 @@ export const sendAccountEnabledEmail = async (
   await transporter.sendMail({
     from:    `"${fromName}" <${fromEmail}>`,
     to,
-    subject: 'Your Account Has Been Re-Enabled — Ambassador Kitchen Equipment',
+    subject: 'Your Account Has Been Re-Enabled — Ambassador Commercial Kitchen Equipment',
     html:    baseTemplate('Account Re-Enabled', body),
   });
 };
@@ -263,7 +263,7 @@ export const sendPasswordResetEmail = async (
   otp: string
 ): Promise<void> => {
   const transporter = getTransporter();
-  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
 
   const body = `
@@ -287,7 +287,7 @@ export const sendPasswordResetEmail = async (
   await transporter.sendMail({
     from: `"${fromName}" <${fromEmail}>`,
     to,
-    subject: 'Password Reset OTP — Ambassador Kitchen Equipment',
+    subject: 'Password Reset OTP — Ambassador Commercial Kitchen Equipment',
     html: baseTemplate('Password Reset', body),
   });
 };
@@ -325,7 +325,7 @@ export interface ContactFormPayload {
 /** Notify the company inbox about a contact form submission. */
 export async function sendContactInquiryEmail(payload: ContactFormPayload): Promise<void> {
   const transporter = getTransporter();
-  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
   const inbox = getContactInboxEmail();
 
@@ -388,7 +388,7 @@ export async function sendContactInquiryEmail(payload: ContactFormPayload): Prom
 /** Auto-reply confirming receipt of the contact form. */
 export async function sendContactConfirmationEmail(payload: ContactFormPayload): Promise<void> {
   const transporter = getTransporter();
-  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
   const fromEmail = process.env.SMTP_USER!;
   const inbox = getContactInboxEmail();
   const nameSafe = escapeHtmlForEmail(payload.name);
@@ -402,8 +402,8 @@ export async function sendContactConfirmationEmail(payload: ContactFormPayload):
       Hi <strong>${nameSafe}</strong>,<br/>
       ${
         isShowroom
-          ? 'Thank you for booking a showroom visit with Ambassador Kitchen Equipment. Our team will review your preferred branch and date, then confirm your appointment within 24 hours.'
-          : 'Thank you for contacting Ambassador Kitchen Equipment. Our team has received your message and will get back to you within 24 hours.'
+          ? 'Thank you for booking a showroom visit with Ambassador Commercial Kitchen Equipment. Our team will review your preferred branch and date, then confirm your appointment within 24 hours.'
+          : 'Thank you for contacting Ambassador Commercial Kitchen Equipment. Our team has received your message and will get back to you within 24 hours.'
       }
     </p>
     <p style="margin:0;color:#555555;font-size:14px;line-height:1.7;">
@@ -415,7 +415,7 @@ export async function sendContactConfirmationEmail(payload: ContactFormPayload):
   await transporter.sendMail({
     from: `"${fromName}" <${fromEmail}>`,
     to: payload.email,
-    subject: 'We received your message — Ambassador Kitchen Equipment',
+    subject: 'We received your message — Ambassador Commercial Kitchen Equipment',
     html: baseTemplate('Message Received', body),
   });
 }
@@ -484,7 +484,7 @@ function buildOrderConfirmationPlainText(payload: OrderConfirmationEmailPayload)
   return [
     `Hi ${payload.customerName.trim() || 'Customer'},`,
     '',
-    'Thank you for your order with Ambassador Kitchen Equipment.',
+    'Thank you for your order with Ambassador Commercial Kitchen Equipment.',
     '',
     `Order Number: ${payload.orderNumber}`,
     `Order Date: ${formatOrderEmailDate(payload.paidAt)}`,
@@ -518,7 +518,7 @@ export async function sendOrderConfirmationEmail(
 
   const attemptSend = async (): Promise<{ messageId: string; response?: string }> => {
     const transporter = getTransporter();
-    const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+    const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
     const fromEmail = process.env.SMTP_USER!.trim();
     const siteUrl =
       process.env.NEXT_PUBLIC_APP_URL ??
@@ -558,7 +558,7 @@ export async function sendOrderConfirmationEmail(
     </h2>
     <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
       Hi <strong>${nameSafe}</strong>,<br/>
-      Thank you for your order with Ambassador Kitchen Equipment. We have received your payment
+      Thank you for your order with Ambassador Commercial Kitchen Equipment. We have received your payment
       and your order is now being processed.
     </p>
 
@@ -627,7 +627,7 @@ export async function sendOrderConfirmationEmail(
     </p>
   `;
 
-    const subject = `Order Confirmation ${payload.orderNumber} — Ambassador Kitchen Equipment`;
+    const subject = `Order Confirmation ${payload.orderNumber} — Ambassador Commercial Kitchen Equipment`;
     const text = buildOrderConfirmationPlainText(payload);
 
     const info = await transporter.sendMail({
@@ -678,7 +678,7 @@ export async function sendReviewThankYouEmail(
 ): Promise<void> {
   try {
     const transporter = getTransporter();
-    const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Kitchen Equipment';
+    const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
     const fromEmail = process.env.SMTP_USER!;
 
     const nameSafe = escapeHtmlForEmail(opts.reviewerName.trim() || 'there');
@@ -705,14 +705,14 @@ export async function sendReviewThankYouEmail(
     </p>
 
     <p style="margin:0;color:#999999;font-size:13px;">
-      — Ambassador Kitchen Equipment
+      — Ambassador Commercial Kitchen Equipment
     </p>
   `;
 
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to,
-      subject: 'Thank you for your review — Ambassador Kitchen Equipment',
+      subject: 'Thank you for your review — Ambassador Commercial Kitchen Equipment',
       html: baseTemplate('Thank You for Your Review', body),
     });
   } catch (err) {

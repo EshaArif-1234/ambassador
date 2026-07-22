@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import { COMPLAINT_PORTAL_URL } from '@/lib/siteLinks';
@@ -26,33 +25,21 @@ const COMPLAINT_LINKS = [
 const linkClass =
   'text-xs text-white/60 transition-colors hover:text-[#E36630] sm:text-sm';
 
+const headingClass = 'mb-3 text-base font-semibold sm:mb-4 sm:text-lg';
+
+const columnClass = 'min-w-0 text-left';
+
 const socialBtnClass =
   'flex h-9 w-9 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-[#E36630] sm:h-10 sm:w-10';
 
 const Footer = () => {
   return (
-    <footer className="bg-[#0F4C69] text-white">
+    <footer className="w-full bg-[#0F4C69] text-white">
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 md:gap-8 lg:grid-cols-5">
-          {/* Logo Column */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="mb-3 inline-flex items-center sm:mb-4">
-              <Image
-                src="/Images/home/Logo-Png.png"
-                alt="Ambassador Logo"
-                width={150}
-                height={50}
-                className="h-auto w-[120px] sm:w-[135px] md:w-[150px]"
-              />
-            </Link>
-            <p className="max-w-sm text-xs leading-relaxed text-white/60 sm:text-sm">
-              Your trusted partner for premium kitchen and restaurant equipment solutions.
-            </p>
-          </div>
-
+        <div className="grid w-full grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-8 lg:grid-cols-12 lg:items-start lg:gap-x-6 xl:gap-x-8">
           {/* Our Services */}
-          <div>
-            <h3 className="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Our Services</h3>
+          <div className={`${columnClass} lg:col-span-2`}>
+            <h3 className={headingClass}>Our Services</h3>
             <ul className="space-y-1.5 sm:space-y-2">
               {SERVICE_LINKS.map(({ label, href, ...rest }) => (
                 <li key={href}>
@@ -71,8 +58,8 @@ const Footer = () => {
           </div>
 
           {/* Complaint */}
-          <div>
-            <h3 className="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Complaint</h3>
+          <div className={`${columnClass} lg:col-span-2`}>
+            <h3 className={headingClass}>Complaint</h3>
             <ul className="space-y-1.5 sm:space-y-2">
               {COMPLAINT_LINKS.map(({ label, href }) => (
                 <li key={href}>
@@ -88,8 +75,8 @@ const Footer = () => {
           </div>
 
           {/* Contact Information */}
-          <div>
-            <h3 className="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Contact Information</h3>
+          <div className={`${columnClass} lg:col-span-3`}>
+            <h3 className={headingClass}>Contact Information</h3>
             <div className="space-y-3">
               <div className="flex items-start gap-2.5 sm:gap-3">
                 <svg
@@ -112,7 +99,7 @@ const Footer = () => {
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                <p className="text-xs leading-snug text-white/60 sm:text-sm">
+                <p className="break-words text-xs leading-snug text-white/60 sm:text-sm">
                   5-A Fazal Elahi Road, Rehman Pura Link Ferozpur Road, Lahore, Pakistan.
                 </p>
               </div>
@@ -179,9 +166,26 @@ const Footer = () => {
             </div>
           </div>
 
+          {/* Legal */}
+          <div className={`${columnClass} lg:col-span-2`}>
+            <h3 className={headingClass}>Legal</h3>
+            <ul className="space-y-1.5 sm:space-y-2">
+              <li>
+                <Link href="/privacy-policy" className={linkClass}>
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms-of-service" className={linkClass}>
+                  Terms of Service
+                </Link>
+              </li>
+            </ul>
+          </div>
+
           {/* Social + Newsletter */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <h3 className="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">Follow Us</h3>
+          <div className={`${columnClass} sm:col-span-2 lg:col-span-3`}>
+            <h3 className={headingClass}>Follow Us</h3>
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <a
                 href="https://www.facebook.com/AmbassadorcommercialKitchen/"
@@ -237,15 +241,15 @@ const Footer = () => {
               <p className="mb-2.5 text-xs text-white/60 sm:mb-3 sm:text-sm">
                 Subscribe to get updates on new products
               </p>
-              <div className="flex max-w-md flex-col gap-2 sm:flex-row sm:gap-0">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
                 <input
                   type="email"
                   placeholder="Your email"
-                  className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs text-white placeholder:text-white/40 focus:border-[#E36630] focus:outline-none sm:rounded-none sm:rounded-l-lg sm:text-sm lg:flex-1"
+                  className="w-full min-w-0 flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs text-white placeholder:text-white/40 focus:border-[#E36630] focus:outline-none sm:rounded-r-none sm:text-sm"
                 />
                 <button
                   type="button"
-                  className="w-full rounded-lg bg-[#E36630] px-4 py-2 text-xs text-white transition-colors hover:bg-[#cc5a2a] sm:w-auto sm:rounded-none sm:rounded-r-lg sm:text-sm"
+                  className="shrink-0 rounded-lg bg-[#E36630] px-4 py-2 text-xs text-white transition-colors hover:bg-[#cc5a2a] sm:rounded-l-none sm:text-sm"
                 >
                   Subscribe
                 </button>
@@ -255,21 +259,10 @@ const Footer = () => {
         </div>
 
         <div className="mt-6 border-t border-white/20 pt-6 sm:mt-8 sm:pt-8">
-          <div className="flex flex-col items-center gap-4 text-center md:flex-row md:justify-between md:text-left">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
             <p className="text-xs text-white/60 sm:text-sm">
               © 2024 Ambassador Commercial Kitchen Equipment. All rights reserved.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-x-6 md:mt-0">
-              <Link href="#" className={linkClass}>
-                Privacy Policy
-              </Link>
-              <Link href="#" className={linkClass}>
-                Terms of Service
-              </Link>
-              <Link href="#" className={linkClass}>
-                Shipping Policy
-              </Link>
-            </div>
           </div>
         </div>
       </div>

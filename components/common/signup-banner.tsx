@@ -6,7 +6,7 @@ const SignupBanner = () => {
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Join Ambassador Kitchen Equipment
+            Join Ambassador Commercial Kitchen Equipment
           </h2>
           <p className="text-lg text-white/80 mb-8">
             Create an account or sign in to access exclusive pricing, bulk orders, and professional support

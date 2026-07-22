@@ -218,7 +218,7 @@ const GalleryPage = () => {
               Gallery & Reviews
             </h1>
             <p className="text-xl md:text-2xl text-orange-100 drop-shadow-lg">
-              See what top chefs, YouTubers, and celebrities say about Ambassador kitchen equipment
+              See what top chefs, YouTubers, and celebrities say about Ambassador Commercial Kitchen Equipment
             </p>
           </div>
         </div>
@@ -235,7 +235,7 @@ const GalleryPage = () => {
             Customer <span className="text-orange-500">Reviews</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Hear directly from culinary professionals who trust Ambassador kitchen equipment for their businesses
+            Hear directly from culinary professionals who trust Ambassador Commercial Kitchen Equipment for their businesses
           </p>
         </div>
 

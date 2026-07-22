@@ -24,10 +24,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const product = await findActiveProductByIdentifier(decoded);
     if (product) {
       const canonicalPath = productDetailPath(productUrlSegment(product));
-      const title = product.metaTitle?.trim() || `${product.name} | Ambassador Kitchen Equipment`;
+      const title = product.metaTitle?.trim() || `${product.name} | Ambassador Commercial Kitchen Equipment`;
       const description =
         product.metaDescription?.trim() ||
-        (product.about?.trim() ? product.about.trim().slice(0, 160) : `Buy ${product.name} from Ambassador Kitchen Equipment.`);
+        (product.about?.trim() ? product.about.trim().slice(0, 160) : `Buy ${product.name} from Ambassador Commercial Kitchen Equipment.`);
 
       return {
         title,
@@ -52,8 +52,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       const canonicalPath = productsCategoryPath(category.slug);
       const title =
         category.metaTitle?.trim() ||
-        `${category.title} | Products | Ambassador Kitchen Equipment`;
-      const description = `Browse ${category.title} — commercial kitchen equipment at Ambassador Kitchen Equipment.`;
+        `${category.title} | Products | Ambassador Commercial Kitchen Equipment`;
+      const description = `Browse ${category.title} — commercial kitchen equipment at Ambassador Commercial Kitchen Equipment.`;
 
       return {
         title,
@@ -70,7 +70,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     console.error('[products/[slug] generateMetadata]', error);
   }
 
-  return { title: 'Products | Ambassador Kitchen Equipment' };
+  return { title: 'Products | Ambassador Commercial Kitchen Equipment' };
 }
 
 /** /products/[slug] — product detail or category listing (single canonical URL per page). */

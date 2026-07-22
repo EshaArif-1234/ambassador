@@ -99,7 +99,7 @@ const ContactPage = () => {
       <section className="relative h-96 md:h-[560px] overflow-hidden bg-[#06131A]">
         <Image
           src="/Images/Contact-Us-Banner-1.png"
-          alt="Contact Ambassador Kitchen Equipment"
+          alt="Contact Ambassador Commercial Kitchen Equipment"
           fill
           className="object-cover object-center"
           priority

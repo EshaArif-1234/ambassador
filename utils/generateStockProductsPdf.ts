@@ -102,7 +102,7 @@ export async function downloadStockProductsPdf(
 
   doc.setFontSize(16);
   doc.setTextColor(15, 76, 105);
-  doc.text('Ambassador Kitchen Equipment', 14, 14);
+  doc.text('Ambassador Commercial Kitchen Equipment', 14, 14);
 
   doc.setFontSize(12);
   doc.setTextColor(40, 40, 40);

@@ -66,7 +66,7 @@ export function downloadStockProductsExcel(
   XLSX.utils.book_append_sheet(workbook, worksheet, EXCEL_TITLES[stockType].slice(0, 31));
 
   const metaSheet = XLSX.utils.aoa_to_sheet([
-    ['Ambassador Kitchen Equipment'],
+    ['Ambassador Commercial Kitchen Equipment'],
     [EXCEL_TITLES[stockType]],
     [`Generated: ${generatedAt}`],
     [`Total products: ${products.length}`],
