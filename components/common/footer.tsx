@@ -29,6 +29,13 @@ const headingClass = 'mb-3 text-base font-semibold sm:mb-4 sm:text-lg';
 
 const columnClass = 'min-w-0 text-left';
 
+/** Proportional flex columns on desktop (2 + 2 + 3 + 2 + 3 = 12). */
+const servicesColumnClass = `${columnClass} w-full sm:w-[calc(50%-1rem)] lg:flex-[2] lg:basis-0`;
+const complaintColumnClass = `${columnClass} w-full sm:w-[calc(50%-1rem)] lg:flex-[2] lg:basis-0`;
+const contactColumnClass = `${columnClass} w-full sm:w-[calc(50%-1rem)] lg:flex-[3] lg:basis-0`;
+const legalColumnClass = `${columnClass} w-full sm:w-[calc(50%-1rem)] lg:flex-[2] lg:basis-0`;
+const followColumnClass = `${columnClass} w-full lg:flex-[3] lg:basis-0`;
+
 const socialBtnClass =
   'flex h-9 w-9 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-[#E36630] sm:h-10 sm:w-10';
 
@@ -36,9 +43,9 @@ const Footer = () => {
   return (
     <footer className="w-full bg-[#0F4C69] text-white">
       <div className="container mx-auto px-4 py-8 sm:py-10 md:py-12">
-        <div className="grid w-full grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-8 lg:grid-cols-12 lg:items-start lg:gap-x-6 xl:gap-x-8">
+        <div className="flex w-full flex-col gap-8 sm:flex-row sm:flex-wrap sm:gap-x-8 sm:gap-y-8 lg:flex-nowrap lg:items-start lg:gap-x-6 xl:gap-x-8">
           {/* Our Services */}
-          <div className={`${columnClass} lg:col-span-2`}>
+          <div className={servicesColumnClass}>
             <h3 className={headingClass}>Our Services</h3>
             <ul className="space-y-1.5 sm:space-y-2">
               {SERVICE_LINKS.map(({ label, href, ...rest }) => (
@@ -58,7 +65,7 @@ const Footer = () => {
           </div>
 
           {/* Complaint */}
-          <div className={`${columnClass} lg:col-span-2`}>
+          <div className={complaintColumnClass}>
             <h3 className={headingClass}>Complaint</h3>
             <ul className="space-y-1.5 sm:space-y-2">
               {COMPLAINT_LINKS.map(({ label, href }) => (
@@ -75,7 +82,7 @@ const Footer = () => {
           </div>
 
           {/* Contact Information */}
-          <div className={`${columnClass} lg:col-span-3`}>
+          <div className={contactColumnClass}>
             <h3 className={headingClass}>Contact Information</h3>
             <div className="space-y-3">
               <div className="flex items-start gap-2.5 sm:gap-3">
@@ -167,7 +174,7 @@ const Footer = () => {
           </div>
 
           {/* Legal */}
-          <div className={`${columnClass} lg:col-span-2`}>
+          <div className={legalColumnClass}>
             <h3 className={headingClass}>Legal</h3>
             <ul className="space-y-1.5 sm:space-y-2">
               <li>
@@ -184,7 +191,7 @@ const Footer = () => {
           </div>
 
           {/* Social + Newsletter */}
-          <div className={`${columnClass} sm:col-span-2 lg:col-span-3`}>
+          <div className={followColumnClass}>
             <h3 className={headingClass}>Follow Us</h3>
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <a
