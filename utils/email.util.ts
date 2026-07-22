@@ -523,7 +523,7 @@ export async function sendOrderConfirmationEmail(
     const siteUrl =
       process.env.NEXT_PUBLIC_APP_URL ??
       process.env.NEXT_PUBLIC_BASE_URL ??
-      'https://ambassador.pk/';
+      'http://localhost:3000';
 
     const nameSafe = escapeHtmlForEmail(payload.customerName.trim() || 'Customer');
     const orderSafe = escapeHtmlForEmail(payload.orderNumber);
