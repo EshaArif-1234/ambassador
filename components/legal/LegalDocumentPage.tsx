@@ -35,28 +35,34 @@ function renderContactLine(line: string) {
         href={COMPLAINT_PORTAL_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[#0F4C69] underline decoration-[#0F4C69]/30 underline-offset-2 hover:text-[#E36630]"
+        className="text-white underline decoration-[#0F4C69]/30 underline-offset-2 hover:text-[#E36630]"
       >
         {line}
       </a>
     );
   }
-  if (line.includes('info@ambassador.pk')) {
+  const emailMatch = line.match(/([a-z0-9._+-]+@ambassador\.pk)/i);
+  if (emailMatch) {
+    const email = emailMatch[1];
+    const prefix = line.slice(0, line.indexOf(email));
     return (
-      <a href="mailto:info@ambassador.pk" className="text-[#0F4C69] hover:text-[#E36630]">
-        {line}
-      </a>
+      <>
+        {prefix}
+        <a href={`mailto:${email}`} className="text-white">
+          {email}
+        </a>
+      </>
     );
   }
   if (line.includes('0333-1166925')) {
     return (
       <>
         Phone:{' '}
-        <a href="tel:+923331166925" className="text-[#0F4C69] hover:text-[#E36630]">
+        <a href="tel:+923331166925" className="text-white">
           0333-1166925
         </a>
         {' | UAN: '}
-        <a href="tel:042111313106" className="text-[#0F4C69] hover:text-[#E36630]">
+        <a href="tel:042111313106" className="text-whites">
           042-111-313-106
         </a>
       </>
@@ -68,7 +74,7 @@ function renderContactLine(line: string) {
 export default function LegalDocumentPage({ document }: LegalDocumentPageProps) {
   return (
     <div className="min-h-screen bg-[#F4F6F8]">
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#0F4C69] via-[#0B3D52] to-[#06131A] text-white">
+      <section className="relative overflow-hidden bg-[#0F4C69] text-white">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute -right-20 top-0 h-64 w-64 rounded-full bg-[#E36630] blur-3xl" />
           <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-white blur-3xl" />
@@ -175,10 +181,10 @@ export default function LegalDocumentPage({ document }: LegalDocumentPageProps) 
 
             <section
               id="contact"
-              className="scroll-mt-32 mt-8 rounded-2xl bg-gradient-to-br from-[#0F4C69] to-[#0B3D52] p-6 text-white sm:p-8"
+              className="scroll-mt-32 mt-8 rounded-2xl bg-[#0F4C69] p-6 text-white sm:p-8"
             >
               <h2 className="text-xl font-bold sm:text-2xl">{document.contactTitle}</h2>
-              <ul className="mt-4 space-y-3 text-sm leading-relaxed text-white/90 sm:text-base">
+              <ul className="mt-4 space-y-3 text-sm leading-relaxed text-white sm:text-base">
                 {document.contactItems.map((item) => (
                   <li key={item.slice(0, 40)} className="flex gap-2">
                     <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#E36630]" aria-hidden />

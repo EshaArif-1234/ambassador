@@ -194,7 +194,5 @@ export const termsOfServiceDocument: LegalDocument = {
     'Phone: 0333-1166925 | UAN: 042-111-313-106',
     'Complaint / support portal: complaint.ambassador.pk',
   ],
-  disclaimer:
-    'This document is a general-purpose Terms and Conditions template prepared for business use and does not constitute legal advice. Ambassador Commercial Kitchen Equipment is encouraged to have this document reviewed by a licensed Pakistani lawyer before publishing it on the live website, particularly regarding payment/refund terms, consumer-protection obligations, and warranty commitments specific to its products.',
   relatedLink: { label: 'Privacy Policy', href: '/privacy-policy' },
 };

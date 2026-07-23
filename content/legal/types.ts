@@ -14,7 +14,7 @@ export type LegalSection = {
 };
 
 export type LegalDocument = {
-  slug: 'privacy-policy' | 'terms-of-service';
+  slug: 'privacy-policy' | 'terms-of-service' | 'warranty-policy';
   title: string;
   subtitle: string;
   effectiveDate: string;

@@ -187,6 +187,11 @@ const Footer = () => {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <Link href="/warranty-policy" className={linkClass}>
+                  Warranty Policy
+                </Link>
+              </li>
             </ul>
           </div>
 
