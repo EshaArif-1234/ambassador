@@ -128,7 +128,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!sparePart) {
       return NextResponse.json({ success: false, message: 'Spare part not found.' }, { status: 404 });
     }
-    await destroyProductMedia(sparePart);
+
+    const imageIds = (sparePart.imagePublicIds ?? []).filter(Boolean);
+    await Promise.allSettled(imageIds.map((pid) => destroyCloudinaryAsset(pid)));
+
     await SparePart.findByIdAndDelete(id);
     return NextResponse.json({ success: true, message: 'Spare part deleted.' });
   } catch (error) {
