@@ -26,9 +26,6 @@ import {
   productUrlSegment,
 } from '@/lib/siteRoutes';
 import { orderedSpecificationEntries } from '@/lib/productSpecifications';
-import SparePartsSection from '@/components/products/SparePartsSection';
-import type { SparePartSummary } from '@/lib/spareParts.types';
-
 interface CategoryRef {
   title?: string;
   slug?: string;
@@ -169,7 +166,6 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<CatalogProductRow[]>([]);
-  const [spareParts, setSpareParts] = useState<SparePartSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
@@ -231,7 +227,6 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
       setProduct(null);
       setReviews([]);
       setRelatedProducts([]);
-      setSpareParts([]);
 
       try {
         const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, { cache: 'no-store' });
@@ -253,7 +248,6 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
         const rev = (json.data.reviews ?? []) as ReviewRow[];
         setProduct(p);
         setReviews(rev);
-        setSpareParts((json.data.spareParts ?? []) as SparePartSummary[]);
       } catch {
         if (!cancelled) {
           setLoadError('Could not load this product. Please check your connection and try again.');
@@ -497,14 +491,6 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
           </div>
 
           <div className="min-w-0 flex-1">
-            <div
-              className={
-                spareParts.length > 0
-                  ? 'flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-6'
-                  : ''
-              }
-            >
-              <div className={spareParts.length > 0 ? 'min-w-0 flex-1 lg:flex-[4]' : ''}>
                 <div className="flex items-start justify-between gap-3">
                   <h1 className="text-xl font-normal leading-snug text-gray-900 sm:text-2xl lg:text-[1.65rem]">
                     {product.name}
@@ -563,26 +549,6 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
                     {product.about?.trim() || 'No description yet.'}
                   </p>
                 </div>
-
-                {spareParts.length > 0 && (
-                  <SparePartsSection
-                    spareParts={spareParts}
-                    mainProductName={product.name}
-                    variant="stacked"
-                  />
-                )}
-              </div>
-
-              {spareParts.length > 0 && (
-                <div className="hidden shrink-0 lg:block lg:flex-[3]">
-                  <SparePartsSection
-                    spareParts={spareParts}
-                    mainProductName={product.name}
-                    variant="sidebar"
-                  />
-                </div>
-              )}
-            </div>
 
             {specificationEntries.length > 0 && (
               <section className="mt-8">

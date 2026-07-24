@@ -140,7 +140,7 @@ const BookVisitSection = ({ branches }: BookVisitSectionProps) => {
               <p className="mt-8 text-sm text-white/50">
                 Prefer to call?{' '}
                 <a href="tel:+923314937412" className="text-[#E36630] font-medium hover:underline">
-                  +92 331 4937412
+                  0333-1166925
                 </a>
               </p>
             </div>

@@ -115,7 +115,7 @@ const BranchesPage = () => {
                 href="tel:+923314937412"
                 className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20 transition-colors"
               >
-                +92 331 4937412
+                0333-1166925
               </a>
               <Link
                 href="/contact-us"

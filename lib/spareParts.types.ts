@@ -7,5 +7,5 @@ export type SparePartSummary = {
   stock: number;
   images: string[];
   specifications: Record<string, string>;
-  source: 'product' | 'category';
+  description: string;
 };

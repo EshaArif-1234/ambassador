@@ -1,16 +1,13 @@
-import mongoose, { Document, Model, Schema, Types } from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface ISparePart extends Document {
   name: string;
   slug: string;
-  /** Show on every product in these categories when linkedProductIds is empty. */
-  linkedCategoryIds: Types.ObjectId[];
-  /** Optional — when set, show only on these main products. */
-  linkedProductIds: Types.ObjectId[];
   price?: number;
   originalPrice: number;
   stock: number;
   status: 'active' | 'inactive';
+  description: string;
   images: string[];
   imagePublicIds: string[];
   specifications: Record<string, string>;
@@ -33,20 +30,6 @@ const sparePartSchema = new Schema<ISparePart>(
       lowercase: true,
       trim: true,
     },
-    linkedCategoryIds: {
-      type: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
-      default: [],
-      validate: {
-        validator(v: unknown[]) {
-          return Array.isArray(v) && v.length >= 1;
-        },
-        message: 'At least one linked category is required',
-      },
-    },
-    linkedProductIds: {
-      type: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
-      default: [],
-    },
     price: {
       type: Number,
       min: [0, 'Price cannot be negative'],
@@ -65,6 +48,12 @@ const sparePartSchema = new Schema<ISparePart>(
       type: String,
       enum: ['active', 'inactive'],
       default: 'active',
+    },
+    description: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: [5000, 'Description cannot exceed 5000 characters'],
     },
     images: {
       type: [String],
@@ -102,8 +91,6 @@ if (process.env.NODE_ENV !== 'production' && mongoose.models.SparePart) {
 }
 
 sparePartSchema.index({ status: 1, createdAt: -1 });
-sparePartSchema.index({ linkedProductIds: 1, status: 1 });
-sparePartSchema.index({ linkedCategoryIds: 1, status: 1 });
 sparePartSchema.index({ name: 'text' });
 
 const SparePart: Model<ISparePart> =

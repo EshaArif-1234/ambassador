@@ -10,7 +10,7 @@ import { submitContactForm } from '@/utils/contact.api';
 
 const CONTACT = {
   address: '5-A Fazal Elahi Road, Rehman Pura Link Ferozpur Road, Lahore, Pakistan',
-  phone: '+92 331 4937412',
+  phone: '0333-1166925',
   phoneHref: 'tel:+923314937412',
   uan: '042-111-313-106',
   uanHref: 'tel:042111313106',

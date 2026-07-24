@@ -407,7 +407,7 @@ export async function sendContactConfirmationEmail(payload: ContactFormPayload):
       }
     </p>
     <p style="margin:0;color:#555555;font-size:14px;line-height:1.7;">
-      For urgent enquiries, call us at <strong>+92 331 4937412</strong> or email
+      For urgent enquiries, call us at <strong>0333-1166925</strong> or email
       <a href="mailto:${inbox}" style="color:#0F4C69;">${inbox}</a>.
     </p>
   `;
@@ -622,7 +622,7 @@ export async function sendOrderConfirmationEmail(
     </div>
 
     <p style="margin:0;color:#555555;font-size:14px;line-height:1.7;">
-      Questions? Call <strong>+92 331 4937412</strong> or email
+      Questions? Call <strong>0333-1166925</strong> or email
       <a href="mailto:${getContactInboxEmail()}" style="color:#0F4C69;">${getContactInboxEmail()}</a>.
     </p>
   `;

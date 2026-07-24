@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { PRODUCTS_PATH } from '@/lib/siteRoutes';
+import { PRODUCTS_PATH, SPARE_PARTS_PATH } from '@/lib/siteRoutes';
 import { COMPLAINT_PORTAL_URL } from '@/lib/siteLinks';
 
 /** Public routes — keep in sync with main site navigation */
 const SERVICE_LINKS = [
   { label: 'Products', href: PRODUCTS_PATH },
+  { label: 'Spare parts', href: SPARE_PARTS_PATH },
   { label: 'Custom kitchen', href: '/custom-kitchen' },
   { label: 'Gallery', href: '/gallery' },
   { label: 'About', href: '/about' },
@@ -133,7 +134,7 @@ const Footer = () => {
                       href="tel:+923314937412"
                       className="text-white/70 transition-colors hover:text-[#E36630]"
                     >
-                      +92 331 4937412
+                      0333-1166925
                     </a>
                   </p>
                   <p className="text-white/60">

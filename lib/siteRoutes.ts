@@ -1,6 +1,9 @@
 /** Canonical storefront products URL — listing, categories, and detail pages. */
 export const PRODUCTS_PATH = '/products';
 
+/** Public spare parts catalog — standalone from products. */
+export const SPARE_PARTS_PATH = '/spare-parts';
+
 /** @deprecated Use PRODUCTS_PATH */
 export const COLLECTION_PATH = PRODUCTS_PATH;
 /** @deprecated Use PRODUCTS_PATH */
