@@ -6,7 +6,7 @@ import {
   LEGACY_PRODUCT_PATH,
   PRODUCTS_PATH,
 } from '@/lib/siteRoutes';
-import { getCanonicalHost, shouldSkipHostCanonicalization } from '@/lib/siteUrl';
+import { getCanonicalHost, getSiteUrl, shouldSkipHostCanonicalization } from '@/lib/siteUrl';
 
 /** Permanent redirect — tells Google the canonical URL has moved (fixes duplicate indexing). */
 const PERMANENT = 308;
@@ -43,10 +43,12 @@ function canonicalHostRedirect(request: NextRequest): NextResponse | null {
 
   if (host === canonicalHost && proto === 'https') return null;
 
-  const url = request.nextUrl.clone();
-  url.protocol = 'https:';
-  url.host = canonicalHost;
-  return NextResponse.redirect(url, PERMANENT);
+  // Build redirect from canonical origin — do not clone request.nextUrl (keeps internal :3000 behind proxy).
+  const destination = new URL(
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    `${getSiteUrl()}/`,
+  );
+  return NextResponse.redirect(destination, PERMANENT);
 }
 
 export function middleware(request: NextRequest) {
