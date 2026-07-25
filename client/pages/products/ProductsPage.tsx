@@ -247,6 +247,10 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   const router        = useRouter();
   const pathname      = usePathname();
   const isMounted     = useRef(false);
+  const filtersReadyFromUrl = useRef(false);
+  const preferAllCategories = useRef(false);
+  const categoryListScrollRef = useRef<HTMLDivElement>(null);
+  const categoryOptionRefs = useRef<Map<string, HTMLLabelElement>>(new Map());
 
   // ── Initialise all filter state from URL on first render ──
   const [products,  setProducts]  = useState<Product[]>([]);
@@ -267,10 +271,9 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   const [total,     setTotal]     = useState(0);
   const [totalPages,setTotalPages]= useState(0);
 
-  const [selectedCategory, setSelectedCategory] = useState(() => {
-    if (categorySlugFromPath) return ALL;
-    return searchParams.get('category') || ALL;
-  });
+  const [selectedCategory, setSelectedCategory] = useState(
+    () => searchParams.get('category') || ALL,
+  );
   const [searchTerm,  setSearchTerm]  = useState(() => searchParams.get('search')  || '');
   const [shuffleSeed] = useState(() => Date.now());
   const [sortBy,      setSortBy]      = useState(() => searchParams.get('sort')    || 'random');
@@ -300,6 +303,39 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   const [showCartPopup, setShowCartPopup] = useState(false);
   const [addedProduct,  setAddedProduct]  = useState<Product | null>(null);
   const { addToCart } = useCart();
+
+  const slugPath = useMemo(
+    () => categorySlugFromPath ?? slugFromCollectionPath(pathname),
+    [categorySlugFromPath, pathname],
+  );
+
+  const categoryTitleForSlug = useMemo(() => {
+    if (!slugPath || categoryMeta.length === 0) return null;
+    const normalized = slugPath.toLowerCase();
+    return categoryMeta.find((c) => c.slug.toLowerCase() === normalized)?.title ?? null;
+  }, [slugPath, categoryMeta]);
+
+  /** Sidebar + API category — matches /products/[categorySlug] even before state catches up. */
+  const activeCategory = useMemo(() => {
+    if (selectedCategory !== ALL) return selectedCategory;
+    if (preferAllCategories.current) return ALL;
+    if (slugPath && categoryTitleForSlug) return categoryTitleForSlug;
+    return ALL;
+  }, [selectedCategory, slugPath, categoryTitleForSlug]);
+
+  // Keep the selected category visible inside the scrollable category list
+  useEffect(() => {
+    const container = categoryListScrollRef.current;
+    if (!container) return;
+
+    if (activeCategory === ALL) {
+      container.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const option = categoryOptionRefs.current.get(activeCategory);
+    option?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [activeCategory, categories]);
 
   const buildListingPath = useCallback(
     (overrides: Record<string, string> = {}) => {
@@ -379,12 +415,13 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
 
   // Sync URL whenever any filter changes (internal — uses router.replace so no history entry)
   useEffect(() => {
-    const slugPath = categorySlugFromPath ?? slugFromCollectionPath(pathname);
+    if (!filtersReadyFromUrl.current) return;
     if (slugPath && categoryMeta.length === 0) return;
+    if (slugPath && categoryTitleForSlug && selectedCategory === ALL && !preferAllCategories.current) return;
     syncURL();
   },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability]);
+    [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability, categoryMeta, slugPath, categoryTitleForSlug]);
 
   // Respond to external navigation (header search, path-based category URLs)
   useEffect(() => {
@@ -392,21 +429,25 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
     if (newSearch.trim()) {
       setSearchTerm(newSearch);
       setSelectedCategory(ALL);
+      filtersReadyFromUrl.current = true;
       return;
     }
 
     setSearchTerm('');
 
-    const slugFromPath = categorySlugFromPath ?? slugFromCollectionPath(pathname);
-    if (slugFromPath && categoryMeta.length > 0) {
-      const match = categoryMeta.find((c) => c.slug === slugFromPath);
-      setSelectedCategory(match?.title ?? ALL);
+    if (slugPath && categoryMeta.length > 0) {
+      preferAllCategories.current = false;
+      setSelectedCategory(categoryTitleForSlug ?? ALL);
+      filtersReadyFromUrl.current = true;
       return;
     }
 
-    setSelectedCategory(searchParams.get('category') ?? ALL);
+    if (!slugPath) {
+      setSelectedCategory(searchParams.get('category') ?? ALL);
+      filtersReadyFromUrl.current = true;
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, pathname, categoryMeta, categorySlugFromPath]);
+  }, [searchParams, pathname, categoryMeta, categorySlugFromPath, slugPath, categoryTitleForSlug]);
 
   // Migrate legacy ?category=Title to /products/slug
   useEffect(() => {
@@ -437,8 +478,8 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
         params.set('limit', String(PAGE_SIZE));
         if (searchTerm.trim()) {
           params.set('search', searchTerm.trim());
-        } else if (selectedCategory !== ALL) {
-          params.set('category', selectedCategory);
+        } else if (activeCategory !== ALL) {
+          params.set('category', activeCategory);
         }
         if (priceRange.min > 0)             params.set('minPrice', String(priceRange.min));
         if (priceRange.max > 0)             params.set('maxPrice', String(priceRange.max));
@@ -474,7 +515,7 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
       }
     })();
     return () => { cancelled = true; };
-  }, [currentPage, searchTerm, selectedCategory, priceRange, sortBy, brands, features, availability, shuffleSeed]);
+  }, [currentPage, searchTerm, activeCategory, priceRange, sortBy, brands, features, availability, shuffleSeed]);
 
   // Reset to page 1 when a filter changes — but NOT on initial mount (so ?page=13 survives a refresh)
   useEffect(() => {
@@ -525,6 +566,8 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   };
 
   const clearFilters = () => {
+    preferAllCategories.current = true;
+    filtersReadyFromUrl.current = true;
     setSelectedCategory(ALL);
     setPriceRange({ min: 0, max: 0 });
     setSortBy('newest');
@@ -578,13 +621,13 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
                       of <span className="font-semibold">{total}</span> results for{' '}
                       <span className="font-semibold text-gray-800">&quot;{searchTerm.trim()}&quot;</span>
                     </>
-                  ) : selectedCategory !== ALL ? (
+                  ) : activeCategory !== ALL ? (
                     <>
                       <span className="font-semibold">
                         {total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)}
                       </span>{' '}
                       of <span className="font-semibold">{total}</span> results in{' '}
-                      <span className="font-semibold text-gray-800">{selectedCategory}</span>
+                      <span className="font-semibold text-gray-800">{activeCategory}</span>
                     </>
                   ) : (
                     <>
@@ -635,17 +678,27 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
 
               <div className="mb-4 border-b border-gray-200 pb-4">
                 <h3 className="mb-3 text-sm font-bold text-gray-900">Category</h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <div ref={categoryListScrollRef} className="max-h-64 space-y-2 overflow-y-auto pr-1">
                   {categories.map((category) => (
-                    <label key={category} className="flex items-center">
+                    <label
+                      key={category}
+                      ref={(node) => {
+                        if (node) categoryOptionRefs.current.set(category, node);
+                        else categoryOptionRefs.current.delete(category);
+                      }}
+                      className="flex items-center"
+                    >
                       <input
                         type="radio"
                         name="category"
                         value={category}
-                        checked={selectedCategory === category}
+                        checked={activeCategory === category}
                         onChange={(e) => {
-                          setSelectedCategory(e.target.value);
+                          const value = e.target.value;
+                          preferAllCategories.current = value === ALL;
+                          setSelectedCategory(value);
                           setSearchTerm('');
+                          filtersReadyFromUrl.current = true;
                         }}
                         className="mr-2 accent-[#E36630] focus:ring-2 focus:ring-[#E36630]/35"
                       />

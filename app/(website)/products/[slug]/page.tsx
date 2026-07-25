@@ -14,6 +14,17 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
+async function findActiveCategoryBySlug(slug: string) {
+  const decoded = decodeURIComponent(slug).trim().toLowerCase();
+  if (!decoded) return null;
+  return Category.findOne({
+    slug: decoded,
+    status: { $ne: 'inactive' },
+  })
+    .select('title metaTitle slug')
+    .lean();
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const decoded = decodeURIComponent(slug).trim();
@@ -21,13 +32,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     await connectDB();
 
-    const product = await findActiveProductByIdentifier(decoded);
-    if (product) {
-      const canonicalPath = productDetailPath(productUrlSegment(product));
-      const title = product.metaTitle?.trim() || `${product.name} | Ambassador Commercial Kitchen Equipment`;
-      const description =
-        product.metaDescription?.trim() ||
-        (product.about?.trim() ? product.about.trim().slice(0, 160) : `Buy ${product.name} from Ambassador Commercial Kitchen Equipment.`);
+    const category = await findActiveCategoryBySlug(decoded);
+    if (category?.slug) {
+      const canonicalPath = productsCategoryPath(category.slug);
+      const title =
+        category.metaTitle?.trim() ||
+        `${category.title} | Products | Ambassador Commercial Kitchen Equipment`;
+      const description = `Browse ${category.title} — commercial kitchen equipment at Ambassador Commercial Kitchen Equipment.`;
 
       return {
         title,
@@ -41,19 +52,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       };
     }
 
-    const category = await Category.findOne({
-      slug: decoded.toLowerCase(),
-      status: { $ne: 'inactive' },
-    })
-      .select('title metaTitle slug')
-      .lean();
-
-    if (category?.slug) {
-      const canonicalPath = productsCategoryPath(category.slug);
-      const title =
-        category.metaTitle?.trim() ||
-        `${category.title} | Products | Ambassador Commercial Kitchen Equipment`;
-      const description = `Browse ${category.title} — commercial kitchen equipment at Ambassador Commercial Kitchen Equipment.`;
+    const product = await findActiveProductByIdentifier(decoded);
+    if (product) {
+      const canonicalPath = productDetailPath(productUrlSegment(product));
+      const title = product.metaTitle?.trim() || `${product.name} | Ambassador Commercial Kitchen Equipment`;
+      const description =
+        product.metaDescription?.trim() ||
+        (product.about?.trim() ? product.about.trim().slice(0, 160) : `Buy ${product.name} from Ambassador Commercial Kitchen Equipment.`);
 
       return {
         title,
@@ -79,6 +84,16 @@ export default async function ProductsSegmentPage({ params }: Props) {
   const decoded = decodeURIComponent(slug).trim();
 
   await connectDB();
+
+  const category = await findActiveCategoryBySlug(decoded);
+  if (category?.slug) {
+    return (
+      <Suspense fallback={<PageLoader message="Loading products…" fullScreen={false} className="min-h-[60vh]" />}>
+        <ProductsPage categorySlugFromPath={category.slug} />
+      </Suspense>
+    );
+  }
+
   const product = await findActiveProductByIdentifier(decoded);
 
   if (product) {
