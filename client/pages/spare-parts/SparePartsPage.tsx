@@ -283,11 +283,7 @@ export default function SparePartsPage() {
               >
                 Search
               </button>
-            </form>
-
-            <p className="mt-6 text-xs leading-relaxed text-gray-500">
-              Genuine Ambassador spare parts. Add to cart or buy now — checkout works the same as products.
-            </p>
+            </form>    
           </aside>
 
           <main className="min-w-0 flex-1 px-4 py-4 lg:px-6">
