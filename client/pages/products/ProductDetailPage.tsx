@@ -481,7 +481,7 @@ const ProductDetailPage = ({ productId }: { productId: string }) => {
         </div>
 
         {/* ── Gallery (left) | info + specs + buy (right) ── */}
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8 pb-20">
           <div className="w-full shrink-0 lg:w-[42%]">
             <ProductDetailGallery
               productName={product.name}
