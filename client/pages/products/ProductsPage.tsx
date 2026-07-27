@@ -237,6 +237,11 @@ const PAGE_SIZE = 12;
 
 type CategoryMeta = { title: string; slug: string };
 
+function pageFromSearchParams(sp: URLSearchParams): number {
+  const n = parseInt(sp.get('page') || '1', 10);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
 interface ProductsPageProps {
   /** When routed via /products/[categorySlug] */
   categorySlugFromPath?: string;
@@ -248,6 +253,7 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   const pathname      = usePathname();
   const isMounted     = useRef(false);
   const filtersReadyFromUrl = useRef(false);
+  const suppressPageReset = useRef(false);
   const preferAllCategories = useRef(false);
   const categoryListScrollRef = useRef<HTMLDivElement>(null);
   const categoryOptionRefs = useRef<Map<string, HTMLLabelElement>>(new Map());
@@ -340,7 +346,7 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   const buildListingPath = useCallback(
     (overrides: Record<string, string> = {}) => {
       const p = new URLSearchParams();
-      const cat = overrides.category ?? selectedCategory;
+      const cat = overrides.category ?? activeCategory;
       const q = (overrides.search ?? searchTerm).trim();
       const sort = overrides.sort ?? sortBy;
       const page = overrides.page ?? String(currentPage);
@@ -378,7 +384,9 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
       }
 
       if (cat && cat !== ALL) {
-        const slug = categoryMeta.find((c) => c.title === cat)?.slug;
+        const slug =
+          categoryMeta.find((c) => c.title === cat)?.slug ??
+          (slugPath && categoryTitleForSlug === cat ? slugPath : undefined);
         if (slug) {
           return qs ? `${productsCategoryPath(slug)}?${qs}` : productsCategoryPath(slug);
         }
@@ -390,7 +398,7 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
       return qs ? `${PRODUCTS_PATH}?${qs}` : PRODUCTS_PATH;
     },
     [
-      selectedCategory,
+      activeCategory,
       searchTerm,
       sortBy,
       currentPage,
@@ -399,6 +407,8 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
       brands,
       availability,
       categoryMeta,
+      slugPath,
+      categoryTitleForSlug,
     ]
   );
 
@@ -417,11 +427,10 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
   useEffect(() => {
     if (!filtersReadyFromUrl.current) return;
     if (slugPath && categoryMeta.length === 0) return;
-    if (slugPath && categoryTitleForSlug && selectedCategory === ALL && !preferAllCategories.current) return;
     syncURL();
   },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability, categoryMeta, slugPath, categoryTitleForSlug]);
+    [selectedCategory, searchTerm, sortBy, currentPage, priceRange, features, brands, availability, categoryMeta, slugPath, categoryTitleForSlug, activeCategory]);
 
   // Respond to external navigation (header search, path-based category URLs)
   useEffect(() => {
@@ -437,13 +446,17 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
 
     if (slugPath && categoryMeta.length > 0) {
       preferAllCategories.current = false;
+      suppressPageReset.current = true;
       setSelectedCategory(categoryTitleForSlug ?? ALL);
+      setCurrentPage(pageFromSearchParams(searchParams));
       filtersReadyFromUrl.current = true;
       return;
     }
 
     if (!slugPath) {
+      suppressPageReset.current = true;
       setSelectedCategory(searchParams.get('category') ?? ALL);
+      setCurrentPage(pageFromSearchParams(searchParams));
       filtersReadyFromUrl.current = true;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -517,9 +530,16 @@ const ProductsPage = ({ categorySlugFromPath }: ProductsPageProps = {}) => {
     return () => { cancelled = true; };
   }, [currentPage, searchTerm, activeCategory, priceRange, sortBy, brands, features, availability, shuffleSeed]);
 
-  // Reset to page 1 when a filter changes — but NOT on initial mount (so ?page=13 survives a refresh)
+  // Reset to page 1 when a filter changes — not on mount or URL/path hydration (?page=2 on category URLs)
   useEffect(() => {
-    if (!isMounted.current) { isMounted.current = true; return; }
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+    if (suppressPageReset.current) {
+      suppressPageReset.current = false;
+      return;
+    }
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, priceRange, sortBy, brands, features, availability]);
 
