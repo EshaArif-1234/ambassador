@@ -5,8 +5,9 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ProductModal, { ProductFormData } from '@/components/products/ProductModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
-import { downloadStockProductsPdf } from '@/utils/generateStockProductsPdf';
+import { downloadStockProductsPdf, type StockExportProduct } from '@/utils/generateStockProductsPdf';
 import { downloadStockProductsExcel } from '@/utils/generateStockProductsExcel';
+import { dedupeExportProducts, uniqueIdsInOrder } from '@/utils/dedupeExportProducts';
 import PageLoader from '@/components/ui/PageLoader';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -199,7 +200,7 @@ const ProductsPage = () => {
   const fetchExportProducts = async (scope: ExportScope) => {
     const url =
       scope === 'selected'
-        ? `/api/admin/products/export?ids=${encodeURIComponent(selectedIds.join(','))}`
+        ? `/api/admin/products/export?ids=${encodeURIComponent(uniqueIdsInOrder(selectedIds).join(','))}`
         : `/api/admin/products/export?stock=${scope}`;
 
     const res = await fetch(url, { credentials: 'include' });
@@ -207,7 +208,8 @@ const ProductsPage = () => {
     if (!res.ok || !data.success) {
       throw new Error(data.message || 'Failed to export products.');
     }
-    return data.data;
+    const list = Array.isArray(data.data) ? (data.data as StockExportProduct[]) : [];
+    return dedupeExportProducts(list);
   };
 
   const exportSuccessMessage = (format: ExportFormat, scope: ExportScope, count?: number) => {

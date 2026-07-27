@@ -4,6 +4,7 @@ import connectDB from '@/backend/config/db';
 import Product from '@/backend/models/Product.model';
 import { requireAdmin } from '@/backend/lib/adminAuth';
 import { MAIN_CATALOG_FILTER } from '@/backend/lib/productTypeFilters';
+import { dedupeExportProducts, uniqueIdsInOrder } from '@/utils/dedupeExportProducts';
 
 const EXPORT_PROJECTION = {
   name: 1,
@@ -33,10 +34,12 @@ export async function GET(req: NextRequest) {
     let orderIds: string[] | null = null;
 
     if (idsParam) {
-      const ids = idsParam
-        .split(',')
-        .map((id) => id.trim())
-        .filter((id) => mongoose.Types.ObjectId.isValid(id));
+      const ids = uniqueIdsInOrder(
+        idsParam
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => mongoose.Types.ObjectId.isValid(id)),
+      );
 
       if (ids.length === 0) {
         return NextResponse.json(
@@ -46,7 +49,10 @@ export async function GET(req: NextRequest) {
       }
 
       orderIds = ids;
-      filter._id = { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) };
+      filter = {
+        ...MAIN_CATALOG_FILTER,
+        _id: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) },
+      };
     } else {
       if (stock !== 'in_stock' && stock !== 'out_of_stock' && stock !== 'all') {
         return NextResponse.json(
@@ -63,18 +69,18 @@ export async function GET(req: NextRequest) {
             : { ...MAIN_CATALOG_FILTER };
     }
 
-    const products = await Product.find(filter, EXPORT_PROJECTION)
+    let products = await Product.find(filter, EXPORT_PROJECTION)
       .populate('categories', 'title')
       .sort({ name: 1 })
       .lean();
 
+    products = dedupeExportProducts(products);
+
     if (orderIds) {
-      const orderMap = new Map(orderIds.map((id, index) => [id, index]));
-      products.sort(
-        (a, b) =>
-          (orderMap.get(String(a._id)) ?? Number.MAX_SAFE_INTEGER) -
-          (orderMap.get(String(b._id)) ?? Number.MAX_SAFE_INTEGER),
-      );
+      const byId = new Map(products.map((p) => [String(p._id), p]));
+      products = orderIds
+        .map((id) => byId.get(id))
+        .filter((p): p is (typeof products)[number] => p != null);
     }
 
     return NextResponse.json(

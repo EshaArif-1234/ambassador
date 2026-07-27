@@ -1,8 +1,10 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { resolveProductImages } from '@/utils/productMedia.util';
+import { dedupeExportProducts } from '@/utils/dedupeExportProducts';
 
 export type StockExportProduct = {
+  _id?: string;
   name: string;
   slug?: string;
   price?: number;
@@ -82,8 +84,10 @@ export async function downloadStockProductsPdf(
   products: StockExportProduct[],
   stockType: StockPdfType,
 ) {
+  const uniqueProducts = dedupeExportProducts(products);
+
   const imageDataList = await Promise.all(
-    products.map(async (product) => {
+    uniqueProducts.map(async (product) => {
       const url = productImageUrl(product);
       if (!url) return null;
       return loadImageAsDataUrl(url);
@@ -111,9 +115,9 @@ export async function downloadStockProductsPdf(
   doc.setFontSize(9);
   doc.setTextColor(90, 90, 90);
   doc.text(`Generated: ${generatedAt}`, 14, 28);
-  doc.text(`Total products: ${products.length}`, 14, 33);
+  doc.text(`Total products: ${uniqueProducts.length}`, 14, 33);
 
-  const rows = products.map((product, index) => {
+  const rows = uniqueProducts.map((product, index) => {
     const price = Number(product.price ?? product.originalPrice ?? 0);
     return [
       '',

@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { StockExportProduct } from '@/utils/generateStockProductsPdf';
+import { dedupeExportProducts } from '@/utils/dedupeExportProducts';
 
 export type StockExcelType = 'in_stock' | 'out_of_stock' | 'all' | 'selected';
 
@@ -28,6 +29,8 @@ export function downloadStockProductsExcel(
   products: StockExportProduct[],
   stockType: StockExcelType,
 ) {
+  const uniqueProducts = dedupeExportProducts(products);
+
   const generatedAt = new Date().toLocaleString('en-PK', {
     day: 'numeric',
     month: 'long',
@@ -36,7 +39,7 @@ export function downloadStockProductsExcel(
     minute: '2-digit',
   });
 
-  const rows = products.map((product, index) => ({
+  const rows = uniqueProducts.map((product, index) => ({
     '#': index + 1,
     Product: product.name,
     Slug: product.slug ?? '',
@@ -69,7 +72,7 @@ export function downloadStockProductsExcel(
     ['Ambassador Commercial Kitchen Equipment'],
     [EXCEL_TITLES[stockType]],
     [`Generated: ${generatedAt}`],
-    [`Total products: ${products.length}`],
+    [`Total products: ${uniqueProducts.length}`],
   ]);
   XLSX.utils.book_append_sheet(workbook, metaSheet, 'Info');
 
