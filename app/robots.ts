@@ -29,7 +29,6 @@ const DISALLOW_PREFIXES = [
   '/not-found',
   '/api',
   /** Legacy duplicate product URLs — canonical is /products (/product/ avoids blocking /product-management) */
-  '/our-collection',
   '/catalogue',
   '/product/',
 ];

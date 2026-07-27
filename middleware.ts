@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import {
   LEGACY_CATALOGUE_PATH,
-  LEGACY_COLLECTION_PATH,
   LEGACY_PRODUCT_PATH,
   PRODUCTS_PATH,
 } from '@/lib/siteRoutes';
@@ -64,7 +63,6 @@ export function middleware(request: NextRequest) {
 
   // Legacy product URL prefixes → /products
   const legacy =
-    mapLegacyPrefix(request, LEGACY_COLLECTION_PATH, PRODUCTS_PATH) ??
     mapLegacyPrefix(request, LEGACY_CATALOGUE_PATH, PRODUCTS_PATH) ??
     mapLegacyPrefix(request, LEGACY_PRODUCT_PATH, PRODUCTS_PATH);
 

@@ -11,8 +11,7 @@ export const CATALOGUE_PATH = PRODUCTS_PATH;
 /** @deprecated Use PRODUCTS_PATH */
 export const PRODUCT_PATH = PRODUCTS_PATH;
 
-/** Legacy URLs — each has a redirect route to PRODUCTS_PATH */
-export const LEGACY_COLLECTION_PATH = '/our-collection';
+/** Legacy URL prefixes — redirected in middleware to PRODUCTS_PATH */
 export const LEGACY_CATALOGUE_PATH = '/catalogue';
 export const LEGACY_PRODUCT_PATH = '/product';
 
@@ -25,8 +24,6 @@ type ProductsHrefParams = Record<string, string | undefined | null> & {
 
 function isLegacyProductsPath(pathname: string): boolean {
   return (
-    pathname === LEGACY_COLLECTION_PATH ||
-    pathname.startsWith(`${LEGACY_COLLECTION_PATH}/`) ||
     pathname === LEGACY_CATALOGUE_PATH ||
     pathname.startsWith(`${LEGACY_CATALOGUE_PATH}/`) ||
     pathname === LEGACY_PRODUCT_PATH ||

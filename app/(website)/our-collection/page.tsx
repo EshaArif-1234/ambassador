@@ -1,7 +1,0 @@
-import { permanentRedirect } from 'next/navigation';
-import { PRODUCTS_PATH } from '@/lib/siteRoutes';
-
-/** Legacy /our-collection → /products */
-export default function LegacyOurCollectionRedirect() {
-  permanentRedirect(PRODUCTS_PATH);
-}

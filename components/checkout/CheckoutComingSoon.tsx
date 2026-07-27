@@ -25,7 +25,7 @@ const CheckoutComingSoon = () => {
         <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#E36630]">Coming Soon</p>
         <h1 className="mb-3 text-2xl font-bold text-gray-900 sm:text-3xl">Checkout</h1>
         <p className="mb-8 text-sm leading-relaxed text-gray-600 sm:text-base">
-          Online ordering is not available at the moment. Please continue browsing our collection, or
+          Online ordering is not available at the moment. Please continue browsing our products, or
           reach out to our team if you need assistance.
         </p>
 
