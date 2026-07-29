@@ -61,7 +61,7 @@ export function middleware(request: NextRequest) {
     return redirectTo(request, pathname.replace(/\/+$/, '') || '/');
   }
 
-  // Legacy product URL prefixes → /products
+  // Legacy indexed URLs (no App Router pages) — 308 to canonical /products
   const legacy =
     mapLegacyPrefix(request, LEGACY_CATALOGUE_PATH, PRODUCTS_PATH) ??
     mapLegacyPrefix(request, LEGACY_PRODUCT_PATH, PRODUCTS_PATH);
