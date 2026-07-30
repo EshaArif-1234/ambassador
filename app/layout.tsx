@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import LayoutWrapper from "@/components/common/LayoutWrapper";
@@ -27,6 +28,8 @@ export const metadata: Metadata = {
     'Commercial kitchen equipment and professional food service solutions in Pakistan.',
 };
 
+const GA_MEASUREMENT_ID = 'G-Y951ZNMJX9';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -37,6 +40,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
         <CartProvider>
           <UserProvider>
             <WishlistProvider>
