@@ -29,8 +29,7 @@ const DISALLOW_PREFIXES = [
   '/not-found',
   '/api',
   /** Legacy duplicate product URLs — canonical is /products (/product/ avoids blocking /product-management) */
-  '/catalogue',
-  '/product/',
+  '/products',
 ];
 
 export default function robots(): MetadataRoute.Robots {
