@@ -28,8 +28,8 @@ const DISALLOW_PREFIXES = [
   '/network-error',
   '/not-found',
   '/api',
-  /** Legacy duplicate product URLs — canonical is /products (/product/ avoids blocking /product-management) */
-  '/products',
+  /** Legacy singular URL prefix only — do not use /products (that blocks the whole catalog) */
+  '/product/',
 ];
 
 export default function robots(): MetadataRoute.Robots {
