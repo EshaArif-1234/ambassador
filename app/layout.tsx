@@ -21,11 +21,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: {
-    default: 'Ambassador Commercial Kitchen Equipment',
-    template: '%s | Ambassador Commercial Kitchen Equipment',
+    default: 'Ambassador Commercial Kitchen',
+    template: '%s | Ambassador Commercial Kitchen',
   },
   description:
     'Commercial kitchen equipment and professional food service solutions in Pakistan.',
+  verification: {
+    google: 'GPwLH_IH9yss5cdM7XbVhgA3Y2aBD_Pg5EmIdwYatsU',
+  },
 };
 
 const GA_MEASUREMENT_ID = 'G-Y951ZNMJX9';
