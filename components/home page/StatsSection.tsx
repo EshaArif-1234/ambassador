@@ -17,13 +17,13 @@ const stats: StatItem[] = [
     description: 'Serving commercial kitchens across Pakistan since 1999',
   },
   {
-    value: 500,
+    value: 1500,
     suffix: '+',
     label: 'Products',
     description: 'Comprehensive range of commercial kitchen equipment for every need',
   },
   {
-    value: 1000,
+    value: 3000,
     suffix: '+',
     label: 'Happy Clients',
     description: 'Hotels, restaurants & institutions across Pakistan',
