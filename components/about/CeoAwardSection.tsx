@@ -40,8 +40,7 @@ const CeoAwardSection = () => {
               </p>
               <p>
                 Our commitment to quality, innovation, and craftsmanship has earned the trust of chefs
-                and hospitality professionals worldwide — from Pakistan to Switzerland, Sri Lanka, Iran,
-                the UAE, and beyond. Every product we design reflects our dedication to durability,
+                and hospitality professionals worldwide. Every product we design reflects our dedication to durability,
                 performance, and world-class engineering.
               </p>
               <p>
