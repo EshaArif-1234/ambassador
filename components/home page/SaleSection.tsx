@@ -259,11 +259,11 @@ export default function SaleSection() {
               <span className="text-[#E36630]">
                 <br className="sm:hidden" />
                 <span className="hidden sm:inline"> </span>
-                Premium Equipment
+                Premium Commercial Kitchen Equipment
               </span>
             </h2>
             <p className="mt-2 text-xs leading-relaxed text-white/70 sm:mt-3 sm:text-sm md:text-base">
-              Grab exclusive discounts on commercial kitchen essentials — while stocks last.
+              Grab exclusive discounts on commercial kitchen essentials in Pakistan — from fryers and ovens to cooking ranges — while stocks last.
             </p>
           </div>
 

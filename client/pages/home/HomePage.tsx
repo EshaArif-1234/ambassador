@@ -77,12 +77,12 @@ const HomePage = () => {
               <span className="h-px w-6 bg-[#0F4C69] sm:w-8" />
             </span>
             <h2 className="mb-3 text-2xl font-bold leading-tight text-gray-900 sm:mb-4 sm:text-3xl md:mb-5 md:text-4xl lg:text-5xl">
-              Equipment Built for
-              <br className="hidden sm:block" />{' '}
+              Equipment Built for{' '}
               <span className="text-[#E36630]">Every Kitchen</span>
             </h2>
             <p className="mx-auto max-w-2xl px-1 text-sm leading-relaxed text-gray-500 sm:text-base md:text-lg">
-              From fast food counters to hospital canteens — explore our full range of commercial kitchen solutions tailored to your industry.
+              From fast food counters to hospital canteens — explore our full range of commercial kitchen equipment
+              in Pakistan, tailored to every industry.
             </p>
           </div>
 

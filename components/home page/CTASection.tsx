@@ -3,6 +3,7 @@ import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 
 const trustItems = [
   {
+    iconLabel: '500+ products in stock',
     icon: (
       <path
         strokeLinecap="round"
@@ -15,18 +16,28 @@ const trustItems = [
     sub: 'In Stock & Ready',
   },
   {
+    iconLabel: 'Fast nationwide delivery',
     icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-      />
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17h14"
+        />
+      </>
     ),
     label: 'Fast Delivery',
     sub: 'Nationwide Coverage',
   },
   {
+    iconLabel: 'Expert phone support',
     icon: (
       <path
         strokeLinecap="round"
@@ -39,6 +50,7 @@ const trustItems = [
     sub: 'Mon–Sat 9am–6pm',
   },
   {
+    iconLabel: 'One-year product warranty',
     icon: (
       <path
         strokeLinecap="round"
@@ -61,12 +73,14 @@ const CTASection = () => (
         </span>
 
         <h2 className="mb-4 px-1 text-2xl font-bold leading-tight text-white sm:mb-5 sm:text-3xl md:mb-6 md:text-5xl">
-          Ready to Equip Your <span className="text-[#E36630]">Commercial Kitchen?</span>
+          Ready to Equip Your{' '}
+          <span className="text-[#E36630]">Commercial Kitchen?</span>
         </h2>
 
         <p className="mx-auto mb-8 max-w-2xl px-1 text-sm leading-relaxed text-white/60 sm:mb-10 sm:text-base md:text-lg">
           Whether you&apos;re opening a new restaurant, upgrading a hotel kitchen, or setting up a large-scale
-          institutional kitchen — our team is ready to help you build the perfect setup.
+          institutional kitchen — Ambassador&apos;s team is ready to help you build the perfect commercial kitchen
+          equipment setup across Pakistan.
         </p>
 
         <div className="mb-10 flex flex-col justify-center gap-3 sm:mb-12 sm:flex-row sm:gap-4 md:mb-14">
@@ -85,17 +99,23 @@ const CTASection = () => (
         </div>
 
         <div className="grid grid-cols-2 gap-4 border-t border-white/20 pt-8 sm:gap-5 sm:pt-9 md:grid-cols-4 md:gap-6 md:pt-10">
-          {trustItems.map((item, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5 px-1 sm:gap-2">
-              <svg
-                className="h-6 w-6 text-[#E36630] sm:h-7 sm:w-7"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden
+          {trustItems.map((item) => (
+            <div key={item.label} className="flex flex-col items-center gap-1.5 px-1 sm:gap-2">
+              <span
+                role="img"
+                aria-label={item.iconLabel}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/5 sm:h-10 sm:w-10"
               >
-                {item.icon}
-              </svg>
+                <svg
+                  className="h-6 w-6 text-[#E36630] sm:h-7 sm:w-7"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  {item.icon}
+                </svg>
+              </span>
               <span className="text-center text-xs font-semibold text-white sm:text-sm">{item.label}</span>
               <span className="text-center text-[10px] text-white/60 sm:text-xs">{item.sub}</span>
             </div>

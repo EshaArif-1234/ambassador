@@ -10,10 +10,30 @@ interface StatItem {
 }
 
 const stats: StatItem[] = [
-  { value: 25, suffix: '+', label: 'Years Experience', description: 'Serving commercial kitchens since 1999' },
-  { value: 500, suffix: '+', label: 'Products', description: 'Comprehensive range for every need' },
-  { value: 1000, suffix: '+', label: 'Happy Clients', description: 'Hotels, restaurants & institutions' },
-  { value: 13, suffix: '', label: 'Industry Sectors', description: 'From fast food to hospital kitchens' },
+  {
+    value: 25,
+    suffix: '+',
+    label: 'Years Experience',
+    description: 'Serving commercial kitchens across Pakistan since 1999',
+  },
+  {
+    value: 500,
+    suffix: '+',
+    label: 'Products',
+    description: 'Comprehensive range of commercial kitchen equipment for every need',
+  },
+  {
+    value: 1000,
+    suffix: '+',
+    label: 'Happy Clients',
+    description: 'Hotels, restaurants & institutions across Pakistan',
+  },
+  {
+    value: 13,
+    suffix: '',
+    label: 'Industry Sectors',
+    description: 'From fast food chains to hospital kitchens',
+  },
 ];
 
 function useCountUp(target: number, duration: number, active: boolean) {
@@ -41,7 +61,7 @@ const StatCard = ({ stat, active }: { stat: StatItem; active: boolean }) => {
         {active ? count : 0}
         {stat.suffix}
       </p>
-      <p className="mb-0.5 text-sm font-bold text-[#0F4C69] sm:mb-1 sm:text-base">{stat.label}</p>
+      <h3 className="mb-0.5 text-sm font-bold text-[#0F4C69] sm:mb-1 sm:text-base">{stat.label}</h3>
       <p className="text-xs leading-snug text-gray-500 sm:text-sm">{stat.description}</p>
     </div>
   );
@@ -74,6 +94,9 @@ const StatsSection = () => {
             Our Track Record
             <span className="h-px w-5 bg-[#0F4C69] sm:w-6" />
           </span>
+          <h2 className="mt-3 text-2xl font-bold text-[#0F4C69] sm:mt-4 sm:text-3xl md:text-4xl">
+            Our Track Record
+          </h2>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white md:rounded-none md:border-0 md:bg-transparent">

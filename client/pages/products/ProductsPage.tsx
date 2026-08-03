@@ -165,7 +165,7 @@ const PAGE_SIZE = 12;
 
       <div className="min-w-0 flex-1">
         <Link href={detailHref} className="block">
-          <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#0F4C69] hover:text-[#E36630] hover:underline">
+          <h3 className="line-clamp-2 text-lg font-bold leading-snug text-[#0F4C69] hover:text-[#E36630] hover:underline sm:text-xl md:text-[1.35rem]">
             {product.name}
           </h3>
         </Link>
@@ -192,7 +192,7 @@ const PAGE_SIZE = 12;
           </span>
         ) : null}
 
-        <p className="mt-1.5 line-clamp-4 text-sm leading-relaxed text-gray-600">
+        <p className="mt-2 line-clamp-4 text-base leading-relaxed text-gray-700 sm:text-[1.05rem]">
           {product.description || 'No description available for this product.'}
         </p>
 
