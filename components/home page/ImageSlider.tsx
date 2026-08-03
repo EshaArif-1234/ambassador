@@ -10,35 +10,41 @@ const slides = [
   {
     id: 1,
     image: '/Images/4000-by-1800.png',
-    alt: 'Premium Kitchen Equipment',
+    alt: 'Commercial kitchen equipment manufacturing facility in Pakistan – Ambassador',
     badge: 'Industry Leading',
-    title: 'Premium Commercial\nKitchen Equipment',
-    subtitle: 'Engineered for performance, built for the professional kitchen — where quality meets reliability.',
+    title: 'Premium Commercial Kitchen Equipment in Pakistan',
+    subtitle:
+      'Engineered for performance, built for the professional kitchen — trusted by restaurants, hotels, and food businesses across Pakistan as a leading commercial kitchen equipment manufacturer.',
     cta: 'Explore Products',
     ctaHref: PRODUCTS_PATH,
     align: 'left' as const,
+    titleTag: 'h1' as const,
   },
   {
     id: 2,
     image: '/Images/40000-by-4-Simple.png',
-    alt: 'Professional Restaurant Solutions',
+    alt: 'Professional restaurant kitchen solutions — food preparation and grilling equipment Pakistan',
     badge: 'Complete Kitchen Solutions',
-    title: 'Professional\nRestaurant Solutions',
-    subtitle: 'Everything your kitchen needs — from concept to completion, backed by 60+ years of expertise.',
+    title: 'Professional Restaurant Kitchen Equipment Solutions',
+    subtitle:
+      'Everything your kitchen needs — from concept to completion. Ambassador delivers custom commercial kitchen design and industrial kitchen equipment for restaurants, hotels, and institutions, backed by 25+ years of expertise.',
     cta: 'View Catalogue',
     ctaHref: PRODUCTS_PATH,
     align: 'center' as const,
+    titleTag: 'h2' as const,
   },
   {
     id: 3,
     image: '/Images/banner-3.png',
-    alt: 'Commercial Kitchen Equipment Range',
+    alt: 'Commercial ovens and cooking range equipment – rotary rack oven, deck oven, griddle Pakistan',
     badge: 'Full Product Range',
-    // title: 'Everything Your\nKitchen Demands',
-    subtitle: 'From griddles to rotary rack ovens — explore our complete lineup of commercial-grade kitchen machinery.',
+    title: 'Complete Range of Commercial-Grade Kitchen Machinery',
+    subtitle:
+      'From griddles to rotary rack ovens — explore our complete commercial oven and cooking range lineup, including bakery ovens, deck ovens, and industrial kitchen machinery for every scale of operation.',
     cta: 'Shop Now',
     ctaHref: PRODUCTS_PATH,
     align: 'left' as const,
+    titleTag: 'h2' as const,
   },
 
 ];
@@ -83,6 +89,7 @@ export default function ImageSlider() {
 
   const slide = slides[current];
   const isCenter = slide.align === 'center';
+  const TitleTag = slide.titleTag ?? 'h2';
   const fromRight = direction === 'next';
   const textAnim = {
     badge: fromRight ? 'slider-badge' : 'slider-badge-from-left',
@@ -145,13 +152,13 @@ export default function ImageSlider() {
           )}
 
           {slide.title && (
-            <h2 className={`${textAnim.title} mb-3 text-[1.625rem] font-extrabold leading-[1.15] tracking-tight text-white whitespace-pre-line drop-shadow-lg sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl`}>
+            <TitleTag className={`${textAnim.title} mb-3 text-[1.625rem] font-extrabold leading-[1.15] tracking-tight text-white whitespace-pre-line drop-shadow-lg sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl`}>
               {slide.title}
-            </h2>
+            </TitleTag>
           )}
 
           {slide.subtitle && (
-            <p className={`${textAnim.subtitle} mb-5 max-w-xl text-xs leading-relaxed text-white/85 drop-shadow sm:mb-6 sm:text-sm md:mb-7 md:text-base lg:text-lg`}>
+            <p className={`${textAnim.subtitle} mb-5 max-w-2xl text-xs leading-relaxed text-white/85 drop-shadow sm:mb-6 sm:text-sm md:mb-7 md:text-base lg:text-lg`}>
               {slide.subtitle}
             </p>
           )}
