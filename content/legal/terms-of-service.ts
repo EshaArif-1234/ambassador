@@ -7,7 +7,7 @@ export const termsOfServiceDocument: LegalDocument = {
   effectiveDate: '22 July 2026',
   lastUpdated: '22 July 2026',
   intro: [
-    'These Terms and Conditions (“Terms”) govern your access to and use of the website www.ambassador.pk, your Ambassador customer account, and any products, quotations, custom kitchen design, fabrication, installation, and after-sales services (collectively, the “Services”) provided by Ambassador Commercial Kitchen Equipment (“Ambassador,” “we,” “us,” or “our”), a commercial kitchen equipment manufacturer and supplier based in Lahore, Pakistan.',
+    'These Terms and Conditions (“Terms”) govern your access to and use of the website www.ambassador.pk, your Ambassador customer account, and any products, quotations, custom kitchen design, fabrication, installation, and after-sales services (collectively, the “Services”) provided by Ambassador Commercial Kitchen Equipment , a commercial kitchen equipment manufacturer and supplier based in Lahore, Pakistan.',
     'By accessing our website, creating an account, requesting a quote, or placing an order, you (“you,” “Customer,” or “Client”) agree to be bound by these Terms and our Privacy Policy. If you do not agree to these Terms, please do not use our website or Services.',
   ],
   sections: [
@@ -28,8 +28,8 @@ export const termsOfServiceDocument: LegalDocument = {
         'Our Services are intended for businesses and individuals aged 18 years or older who have the legal capacity to enter into binding commercial agreements in Pakistan. To access certain features, including B2B pricing, bulk order management, and order tracking, you must create an Account by providing accurate and complete information.',
       ],
       bullets: [
-        'You are responsible for maintaining the confidentiality of your Account login credentials and for all activity that occurs under your Account;',
-        'You must promptly notify us at info@ambassador.pk if you suspect unauthorised use of your Account;',
+        'You are responsible for maintaining the confidentiality of your Account login credentials and for all activity that occurs under your Account.',
+        'You must promptly notify us at info@ambassador.pk if you suspect unauthorised use of your Account.',
         'Ambassador reserves the right to suspend or terminate any Account that provides false information, is used fraudulently, or breaches these Terms.',
       ],
     },
@@ -38,10 +38,10 @@ export const termsOfServiceDocument: LegalDocument = {
       title: '3. Products, Pricing, and Availability',
       paragraphs: ['We make reasonable efforts to display accurate descriptions, images, specifications, and pricing for our Products. However:'],
       bullets: [
-        'Product images are for illustrative purposes and actual products (including finish, dimensions, or accessories) may vary slightly;',
-        'Prices are quoted in Pakistani Rupees (PKR) unless stated otherwise and are subject to change without prior notice, including promotional “on-sale” pricing;',
-        'Registered business Accounts may access exclusive B2B and bulk-order pricing, which is confidential and must not be shared with unauthorised third parties;',
-        'Product availability is not guaranteed until an Order is confirmed in writing by Ambassador; we reserve the right to limit quantities or decline any Order at our discretion, including in cases of pricing or listing errors.',
+        'Product images are for illustrative purposes and actual products (including finish, dimensions, or accessories) may vary slightly.',
+        'Prices are quoted in Pakistani Rupees (PKR) unless stated otherwise and are subject to change without prior notice, including promotional “on-sale” pricing.',
+        'Registered business Accounts may access exclusive B2B and bulk-order pricing, which is confidential and must not be shared with unauthorised third parties.',
+        'Product availability is not guaranteed until an Order is confirmed in writing by Ambassador. we reserve the right to limit quantities or decline any Order at our discretion, including in cases of pricing or listing errors.',
       ],
     },
     {
@@ -66,20 +66,20 @@ export const termsOfServiceDocument: LegalDocument = {
       id: 'payment',
       title: '5. Payment Terms',
       bullets: [
-        'Payment terms (including any deposit, milestone, or full-payment requirements) will be confirmed at the time of quotation or order confirmation;',
-        'We accept payment methods communicated to you by our sales team, which may include bank transfer, cheque, or other methods available at our branches;',
-        'For custom kitchen projects, an advance/deposit payment is typically required before design finalisation or fabrication, with the balance payable per the agreed schedule prior to or upon delivery/installation;',
+        'Payment terms (including any deposit, milestone, or full-payment requirements) will be confirmed at the time of quotation or order confirmation.',
+        'We accept payment methods communicated to you by our sales team, which may include bank transfer, cheque, or other methods available at our branches.',
+        'For custom kitchen projects, an advance/deposit payment is typically required before design finalisation or fabrication, with the balance payable per the agreed schedule prior to or upon delivery/installation.',
         'Ambassador reserves the right to withhold delivery or installation until payment obligations under the applicable Order are met.',
       ],
     },
     {
       id: 'delivery',
-      title: '6. Delivery and Installation',
+      title: '6. Delivery and Shipment',
       bullets: [
-        'Ambassador provides nationwide delivery across major cities in Pakistan, including Karachi, Lahore, and Islamabad, and other locations as agreed;',
-        'Estimated delivery and installation timelines will be communicated at the time of Order confirmation and are estimates only; Ambassador is not liable for delays caused by circumstances beyond our reasonable control (see Section 11, Force Majeure);',
-        'Risk in the Products passes to the Customer upon delivery to the address specified in the Order, or upon completion of installation for turnkey custom kitchen projects;',
-        'The Customer is responsible for ensuring safe and adequate access to the installation site, and for any site-readiness requirements (electrical, gas, plumbing, or civil work) communicated by our design team, unless such work is expressly included in the agreed scope.',
+          'Ambassador provides nationwide delivery across major cities in Pakistan, including Karachi, Lahore, and Islamabad, and other locations as agreed.',
+        'Estimated delivery and shipment timelines will be communicated at the time of Order confirmation and are estimates only. Ambassador is not liable for delays caused by circumstances beyond our reasonable control (see Section 11, Force Majeure).',
+        'Risk in the Products passes to the Customer upon delivery to the address specified in the Order, or upon completion of shipment for turnkey custom kitchen projects.',
+        'The Customer is responsible for ensuring safe and adequate access to the shipment site, and for any site-readiness requirements (electrical, gas, plumbing, or civil work) communicated by our design team, unless such work is expressly included in the agreed scope.',
       ],
     },
     {
@@ -89,8 +89,8 @@ export const termsOfServiceDocument: LegalDocument = {
         'All Ambassador Products carry a standard one-year warranty from the date of delivery or installation, covering manufacturing defects in materials and workmanship under normal commercial use. The warranty does not cover:',
       ],
       bullets: [
-        'Damage resulting from misuse, negligence, unauthorised modification, or failure to follow operating instructions;',
-        'Normal wear and tear, consumable parts, or damage caused by improper electrical, gas, or water supply;',
+        'Damage resulting from misuse, negligence, unauthorised modification, or failure to follow operating instructions.',
+        'Normal wear and tear, consumable parts, or damage caused by improper electrical, gas, or water supply.',
         'Products serviced or repaired by anyone other than Ambassador’s authorised technicians without our prior written consent.',
       ],
       closingParagraphs: [
@@ -107,17 +107,17 @@ export const termsOfServiceDocument: LegalDocument = {
             'The following refund policy applies to customized and non-customized products made by Ambassador Commercial Kitchen Equipment:',
           ],
           bullets: [
-            'Customers may request a refund by returning the product to an Ambassador showroom;',
-            'If the product is sold by Ambassador on the customer’s behalf, a 25% service charge applies to the refund amount;',
+            'Customers may request a refund by returning the product to an Ambassador showroom.',
+            'If the product is sold by Ambassador on the customer’s behalf, a 25% service charge applies to the refund amount.',
             'If the product is not sold within one year, the customer may collect the product back by paying a 10% display rent charge.',
           ],
         },
         {
           title: '8.2 Cancellations and Standard Returns',
           bullets: [
-            'Cancellation requests for standard Orders must be submitted in writing before the Order has been dispatched or fabrication has commenced; Ambassador will confirm whether the Order can be cancelled without charge;',
-            'Once fabrication of custom or made-to-order equipment has begun, such Orders generally cannot be cancelled, and any deposit paid may be non-refundable, reflecting materials and labour already committed;',
-            'Returns of standard (non-custom) Products may be considered on a case-by-case basis where a Product is defective on arrival or does not match the confirmed Order, subject to inspection by Ambassador;',
+            'Cancellation requests for standard Orders must be submitted in writing before the Order has been dispatched or fabrication has commenced. Ambassador will confirm whether the Order can be cancelled without charge.',
+            'Once fabrication of custom or made-to-order equipment has begun, such Orders generally cannot be cancelled, and any deposit paid may be non-refundable, reflecting materials and labour already committed.',
+            'Returns of standard (non-custom) Products may be considered on a case-by-case basis where a Product is defective on arrival or does not match the confirmed Order, subject to inspection by Ambassador.',
             'Approved refunds will be processed to the original payment method or as otherwise agreed within a reasonable time.',
           ],
         },
@@ -148,7 +148,7 @@ export const termsOfServiceDocument: LegalDocument = {
       id: 'limitation-liability',
       title: '12. Limitation of Liability',
       paragraphs: [
-        'To the maximum extent permitted by applicable law, Ambassador’s total liability arising out of or in connection with any Order or these Terms shall not exceed the amount paid by the Customer for the relevant Product or Service giving rise to the claim. Ambassador shall not be liable for any indirect, incidental, special, or consequential loss, including loss of profits, business interruption, or loss of data, arising from the use of our Products, website, or Services, except where such liability cannot be excluded under Pakistani law.',
+        'To the maximum extent permitted by applicable law, Ambassador’s total liability arising out of or in connection with any Order or these= Terms shall not exceed the amount paid by the Customer for the relevant Product or Service giving rise to the claim. Ambassador shall not be liable for any indirect, incidental, special, or consequential loss, including loss of profits, business interruption, or loss of data, arising from the use of our Products, website, or Services, except where such liability cannot be excluded under Pakistani law.',
       ],
     },
     {
