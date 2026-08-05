@@ -8,7 +8,7 @@ const FAQSection = () => {
   const faqs = [
     {
       question: "What types of kitchen equipment do you supply?",
-      answer: "We supply a comprehensive range of commercial kitchen equipment including cooking ranges, ovens, fryers, refrigerators, freezers, food preparation tables, dishwashers, and storage solutions."
+      answer: "We supply a comprehensive range of commercial kitchen equipment including cooking ranges, ovens, fryers, refrigerators, freezers, food preparation tables, dishwashers, and storage solutions and many more."
     },
     {
       question: "Do you offer installation and maintenance services?",
@@ -16,15 +16,15 @@ const FAQSection = () => {
     },
     {
       question: "What is your delivery coverage area?",
-      answer: "We currently deliver across major cities in Pakistan including Lahore, Karachi, Islamabad, Faisalabad, and Rawalpindi. For other areas, please contact our sales team for delivery arrangements."
+      answer: "We deliver across all over Pakistan."
     },
     {
       question: "Do you provide warranty on your products?",
-      answer: "All our products come with manufacturer warranty ranging from 1-3 years depending on the equipment type. We also offer extended warranty options for additional peace of mind."
+      answer: "Local products (Ambassador manufactured Products) come with manufacturer 1 year warranty ."
     },
     {
       question: "What payment methods do you accept?",
-      answer: "We accept multiple payment methods including bank transfers, credit/debit cards, and online payment platforms. We also offer flexible payment terms for our business clients."
+      answer: "We accept multiple payment methods including bank transfers, credit/debit cards, and online payment platforms. "
     },
     {
       question: "Can I get technical support after purchase?",
