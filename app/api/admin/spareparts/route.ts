@@ -3,7 +3,7 @@ import connectDB from '@/backend/config/db';
 import { listAdminSpareParts } from '@/backend/lib/spareParts';
 import { parseSparePartPrice } from '@/backend/lib/adminSpareParts';
 import { uploadImageBuffer } from '@/backend/lib/cloudinaryUpload';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireAdmin, requireFullAdmin } from '@/backend/lib/adminAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -105,6 +105,11 @@ export async function POST(req: NextRequest) {
     }
     if (!images.length) {
       return NextResponse.json({ success: false, message: 'Spare part image is required.' }, { status: 400 });
+    }
+
+    if (status === 'inactive') {
+      const adminError = await requireFullAdmin(req);
+      if (adminError) return adminError;
     }
 
     const sparePart = await SparePart.create({

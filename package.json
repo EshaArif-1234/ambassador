@@ -11,7 +11,9 @@
     "start": "node server.js",
     "lint": "eslint",
     "seed:admin": "npx ts-node --project tsconfig.seed.json backend/seeds/admin.seed.ts",
-    "seed:admin:reset": "npx ts-node --project tsconfig.seed.json backend/seeds/admin.seed.ts -- --reset-password"
+    "seed:admin:reset": "npx ts-node --project tsconfig.seed.json backend/seeds/admin.seed.ts -- --reset-password",
+    "create:manager": "npx ts-node --project tsconfig.seed.json backend/seeds/admin.seed.ts -- --manager-only",
+    "create:manager:reset": "npx ts-node --project tsconfig.seed.json backend/seeds/admin.seed.ts -- --manager-only --reset-manager-password"
   },
   "dependencies": {
     "@types/busboy": "^1.5.4",

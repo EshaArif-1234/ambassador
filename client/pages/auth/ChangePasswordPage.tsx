@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authApi, AuthApiError } from '@/utils/auth.api';
 import { validatePasswordChange } from '@/utils/passwordValidation.util';
+import { useUser } from '@/contexts/UserContext';
+import { isManager } from '@/utils/dashboardRoles';
 import AuthHeader from '../../../components/common/AuthHeader';
 import ChangePasswordForm from '../../../components/changepassword/ChangePasswordForm';
 import SuccessState from '../../../components/changepassword/SuccessState';
@@ -24,6 +26,7 @@ interface Errors {
 export default function ChangePasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useUser();
   const email = searchParams.get('email') || '';
   const otp = searchParams.get('otp') || '';
 
@@ -120,7 +123,11 @@ export default function ChangePasswordPage() {
             />
 
             {/* Success State */}
-            {isSuccess ? (
+            {isAuthenticatedChange && isManager(user?.role) ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Manager accounts cannot change their password. Contact an administrator to reset it.
+              </div>
+            ) : isSuccess ? (
               <SuccessState 
                 title="Password Changed!"
                 message="Your password has been successfully updated."
@@ -128,7 +135,7 @@ export default function ChangePasswordPage() {
                 onAction={() => router.push(isAuthenticatedChange ? '/profile' : '/login')}
                 icon="check"
               />
-            ) : (
+            ) : isAuthenticatedChange && isManager(user?.role) ? null : (
               <>
                 {/* Form */}
                 <ChangePasswordForm

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import GalleryReview from '@/backend/models/GalleryReview.model';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
 
 /** GET /api/admin/gallery-reviews — list testimonials for gallery management */
 export async function GET(req: NextRequest) {
@@ -39,6 +39,9 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const body = await req.json();
+    const deactivateError = await rejectManagerStatusChange(req, body, { isCreate: true });
+    if (deactivateError) return deactivateError;
+
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const role = typeof body.role === 'string' ? body.role.trim() : '';
     const review = typeof body.review === 'string' ? body.review.trim() : '';

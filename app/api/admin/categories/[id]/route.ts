@@ -7,7 +7,7 @@ import Product from '@/backend/models/Product.model';
 import Review from '@/backend/models/Review.model';
 import { migrateLegacySubcategoryParents } from '@/backend/lib/migrateSubCategoryParents';
 import { destroyProductMedia } from '@/backend/lib/destroyProductMedia';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -26,7 +26,10 @@ export async function PATCH(
   try {
     await connectDB();
     const { id } = await params;
-    const { title, image, imagePublicId, status, metaTitle } = await req.json();
+    const body = await req.json();
+    const deactivateError = await rejectManagerStatusChange(req, body);
+    if (deactivateError) return deactivateError;
+    const { title, image, imagePublicId, status, metaTitle } = body;
 
     const category = await Category.findById(id);
     if (!category) {
@@ -83,7 +86,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {

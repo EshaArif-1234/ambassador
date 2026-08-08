@@ -13,7 +13,7 @@ export interface IUser extends Document {
   password?: string;
   googleId?: string;
   authProvider: AuthProvider;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'manager';
   isVerified: boolean;
   isDisabled: boolean;
   disableReason?: string;
@@ -78,7 +78,7 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'admin', 'manager'],
       default: 'user',
     },
     isVerified: {

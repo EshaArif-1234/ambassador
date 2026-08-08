@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
 import { verifyToken, extractToken } from '@/utils/jwt.util';
+import { isManager } from '@/utils/dashboardRoles';
 
 /** POST /api/auth/change-password — authenticated user changes their own password */
 export async function POST(req: NextRequest) {
@@ -35,6 +36,16 @@ export async function POST(req: NextRequest) {
     const user = await User.findById(decoded.id).select('+password');
     if (!user) {
       return NextResponse.json({ success: false, message: 'User no longer exists.' }, { status: 401 });
+    }
+
+    if (isManager(user.role)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Manager accounts cannot change their password. Contact an administrator.',
+        },
+        { status: 403 },
+      );
     }
 
     const isMatch = await user.comparePassword(oldPassword);

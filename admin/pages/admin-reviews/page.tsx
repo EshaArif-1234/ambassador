@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
+import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
 import { productDetailPath, productUrlSegment } from '@/lib/siteRoutes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ const statusCls: Record<string, string> = {
 
 
 const ReviewsPage = () => {
+  const { canDelete } = useDashboardPermissions();
   const [reviews,  setReviews]  = useState<Review[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -491,6 +493,7 @@ const ReviewsPage = () => {
                                 </svg>
                               </span>
                             )}
+                            {canDelete && (
                             <button
                               type="button"
                               title="Delete review"
@@ -505,6 +508,7 @@ const ReviewsPage = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             </button>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <label htmlFor={`review-status-${review._id}`} className="sr-only">

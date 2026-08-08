@@ -11,7 +11,7 @@ import {
   sanitizeProductFeatures,
   sanitizeProductBrands,
 } from '@/backend/lib/productMarketingFields';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
 import { applyProductTypeFilter } from '@/backend/lib/productTypeFilters';
 import mongoose from 'mongoose';
 
@@ -127,6 +127,9 @@ export async function POST(req: NextRequest) {
     await connectDB();
 
     const body = await req.json();
+    const deactivateError = await rejectManagerStatusChange(req, body, { isCreate: true });
+    if (deactivateError) return deactivateError;
+
     const {
       name,
       price,

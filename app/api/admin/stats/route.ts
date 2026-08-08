@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
 import Order from '@/backend/models/Order.model';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireFullAdmin } from '@/backend/lib/adminAuth';
 
 /** GET /api/admin/stats — real-time counts for dashboard */
 export async function GET(req: NextRequest) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {

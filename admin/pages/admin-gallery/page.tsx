@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
+import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
 
 interface Review {
   id: string;
@@ -67,6 +68,7 @@ function videoPreviewKind(url: string | undefined): 'youtube' | 'direct' | 'none
 }
 
 const AdminGalleryPage = () => {
+  const { canDelete, canChangeStatus } = useDashboardPermissions();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -218,7 +220,7 @@ const AdminGalleryPage = () => {
           role,
           review: formData.review.trim(),
           videoUrl,
-          status: formData.status,
+          ...(canChangeStatus ? { status: formData.status } : { status: 'active' }),
         }),
       });
       const json = await res.json();
@@ -298,7 +300,7 @@ const AdminGalleryPage = () => {
           role,
           review: formData.review.trim(),
           videoUrl,
-          status: formData.status,
+          ...(canChangeStatus ? { status: formData.status } : {}),
         }),
       });
       const json = await res.json();
@@ -573,6 +575,7 @@ const AdminGalleryPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {canChangeStatus ? (
                       <button 
                         type="button"
                         disabled={togglingId === review.id}
@@ -591,6 +594,9 @@ const AdminGalleryPage = () => {
                             }`}
                           />
                         </button>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
                       </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex flex-wrap items-center gap-1">
@@ -617,6 +623,7 @@ const AdminGalleryPage = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
+                        {canDelete && (
                         <button
                           type="button"
                           onClick={() => handleDeleteReview(review)}
@@ -628,6 +635,7 @@ const AdminGalleryPage = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -936,6 +944,7 @@ const AdminGalleryPage = () => {
                   ) : null}
 
                   <div className="space-y-5">
+                    {canChangeStatus ? (
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
                         Status
@@ -951,6 +960,7 @@ const AdminGalleryPage = () => {
                         <option value="inactive">Inactive</option>
                       </select>
                     </div>
+                    ) : null}
 
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">

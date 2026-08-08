@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { authApi } from '@/utils/auth.api';
+import { dashboardHomePath, isDashboardStaff } from '@/utils/dashboardRoles';
 import LoginMarketingSection from '../../../components/login/LoginMarketingSection';
 import LoginForm from '../../../components/login/LoginForm';
 import { getGoogleOAuthErrorMessage } from '@/utils/googleOAuthErrors.util';
@@ -106,7 +107,8 @@ export default function LoginPage() {
 
       if (res.data?.user) {
         login(res.data.user);
-        router.push(res.data.user.role === 'admin' ? '/admin' : '/');
+        const role = res.data.user.role;
+        router.push(isDashboardStaff(role) ? dashboardHomePath(role) : '/');
       }
     } catch (error) {
       setErrors(prev => ({

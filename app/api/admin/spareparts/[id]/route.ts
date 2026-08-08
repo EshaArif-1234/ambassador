@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import connectDB from '@/backend/config/db';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -65,6 +65,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const body = await req.json();
+    const deactivateError = await rejectManagerStatusChange(req, body);
+    if (deactivateError) return deactivateError;
 
     if (body.name !== undefined) {
       const name = String(body.name).trim();
@@ -116,7 +118,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 /** DELETE /api/admin/spareparts/[id] */
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {

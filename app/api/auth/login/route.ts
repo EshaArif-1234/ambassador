@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
 import { signToken, attachCookie } from '@/utils/jwt.util';
+import { MANAGER_EMAIL, isDashboardStaff } from '@/utils/dashboardRoles';
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,6 +55,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'Your account has been disabled. Please contact support.' },
         { status: 403 }
+      );
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    if (normalizedEmail === MANAGER_EMAIL && !isDashboardStaff(user.role)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            'This email is not configured for dashboard access. Ask an administrator to run create:manager.',
+        },
+        { status: 403 },
       );
     }
 

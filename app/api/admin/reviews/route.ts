@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import Review from '@/backend/models/Review.model';
 import Product from '@/backend/models/Product.model';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireFullAdmin } from '@/backend/lib/adminAuth';
 import { sendReviewThankYouEmail } from '@/utils/email.util';
 
 const REVIEW_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** GET /api/admin/reviews — list all reviews with optional filters */
 export async function GET(req: NextRequest) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
 /** POST /api/admin/reviews — create a review */
 export async function POST(req: NextRequest) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {

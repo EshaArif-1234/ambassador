@@ -10,6 +10,7 @@ import {
   resolveProductVideos,
 } from '@/utils/productMedia.util';
 import { orderProductSpecifications } from '@/lib/productSpecifications';
+import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ export interface ProductFormData {
   price: string | number;
   originalPrice: string | number;
   stock: string | number;
-  status: 'active' | 'inactive';
+  status?: 'active' | 'inactive';
   about: string;
   specifications: Record<string, string>;
   specificationOrder?: string[];
@@ -496,6 +497,7 @@ const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ pro
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, product, onSave }) => {
+  const { canChangeStatus } = useDashboardPermissions();
 
   // ── Data ──
   const [categories,    setCategories]    = useState<Category[]>([]);
@@ -725,7 +727,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
         price:           form.price,
         originalPrice:   form.originalPrice,
         stock:           form.stock,
-        status:          form.status,
+        ...(canChangeStatus
+          ? { status: form.status }
+          : mode === 'add'
+            ? { status: 'active' as const }
+            : {}),
         about:           form.about.trim(),
         specifications:  form.specifications,
         specificationOrder: specRows.map((r) => r.key.trim()).filter(Boolean),

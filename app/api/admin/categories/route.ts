@@ -3,7 +3,7 @@ import connectDB from '@/backend/config/db';
 import Category from '@/backend/models/Category.model';
 import SubCategory from '@/backend/models/SubCategory.model';
 import { migrateLegacySubcategoryParents } from '@/backend/lib/migrateSubCategoryParents';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
 import { categoryListSort, ensureCategorySortOrders, getNextCategorySortOrder } from '@/backend/lib/categoryOrder';
 
 /** GET /api/admin/categories — list all categories with subcategory count */
@@ -55,7 +55,10 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectDB();
-    const { title, image, imagePublicId, status, metaTitle } = await req.json();
+    const body = await req.json();
+    const deactivateError = await rejectManagerStatusChange(req, body, { isCreate: true });
+    if (deactivateError) return deactivateError;
+    const { title, image, imagePublicId, status, metaTitle } = body;
 
     if (!title?.trim()) {
       return NextResponse.json(

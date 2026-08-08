@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import AdminProtection from './AdminProtection';
 import AdminHeader from './AdminHeader';
+import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,19 +15,24 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { isManager, dashboardHome } = useDashboardPermissions();
 
-  const menuItems = [
-    { name: 'Dashboard', href: '/admin', icon: 'dashboard' },
-    { name: 'Products', href: '/product-management', icon: 'products' },
-    { name: 'Spare Parts', href: '/spare-parts-management', icon: 'spare-parts' },
-    { name: 'Orders', href: '/orders-management', icon: 'orders' },
-    { name: 'Payments', href: '/payments', icon: 'payments' },
-    { name: 'Users', href: '/users', icon: 'users' },
-    { name: 'Categories', href: '/category-management', icon: 'categories' },
-    { name: 'Reviews', href: '/reviews-management', icon: 'reviews' },
-    { name: 'Gallery', href: '/gallery-management', icon: 'gallery' },
-    { name: 'Settings', href: '/admin-settings', icon: 'settings' },
+  const allMenuItems = [
+    { name: 'Dashboard', href: '/admin', icon: 'dashboard', managerAccess: false },
+    { name: 'Products', href: '/product-management', icon: 'products', managerAccess: true },
+    { name: 'Spare Parts', href: '/spare-parts-management', icon: 'spare-parts', managerAccess: true },
+    { name: 'Orders', href: '/orders-management', icon: 'orders', managerAccess: false },
+    { name: 'Payments', href: '/payments', icon: 'payments', managerAccess: false },
+    { name: 'Users', href: '/users', icon: 'users', managerAccess: false },
+    { name: 'Categories', href: '/category-management', icon: 'categories', managerAccess: true },
+    { name: 'Reviews', href: '/reviews-management', icon: 'reviews', managerAccess: false },
+    { name: 'Gallery', href: '/gallery-management', icon: 'gallery', managerAccess: true },
+    { name: 'Settings', href: '/admin-settings', icon: 'settings', managerAccess: false },
   ];
+
+  const menuItems = isManager
+    ? allMenuItems.filter((item) => item.managerAccess)
+    : allMenuItems;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -120,7 +126,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
           <div className="flex items-center justify-between h-16 px-6 bg-gray-800">
-            <Link href="/admin" className="flex items-center">
+            <Link href={dashboardHome} className="flex items-center">
               <Image
                 src="/Images/home/logo.webp"
                 alt="Admin Logo"

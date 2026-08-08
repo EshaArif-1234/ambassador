@@ -15,7 +15,7 @@ import {
   sanitizeProductFeatures,
   sanitizeProductBrands,
 } from '@/backend/lib/productMarketingFields';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -61,6 +61,8 @@ export async function PATCH(
     await migrateLegacyProductTaxonomy(Product.collection);
     const { id } = await params;
     const body = await req.json();
+    const deactivateError = await rejectManagerStatusChange(req, body);
+    if (deactivateError) return deactivateError;
 
     const product = await Product.findById(id);
     if (!product) {
@@ -159,7 +161,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {

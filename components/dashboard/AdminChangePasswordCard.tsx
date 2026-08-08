@@ -4,8 +4,11 @@ import { useState } from 'react';
 import ChangePasswordForm from '@/components/changepassword/ChangePasswordForm';
 import { authApi, AuthApiError } from '@/utils/auth.api';
 import { validatePasswordChange } from '@/utils/passwordValidation.util';
+import { useUser } from '@/contexts/UserContext';
+import { isManager } from '@/utils/dashboardRoles';
 
 const AdminChangePasswordCard = () => {
+  const { user } = useUser();
   const [formData, setFormData] = useState({
     oldPassword: '',
     newPassword: '',
@@ -61,6 +64,17 @@ const AdminChangePasswordCard = () => {
       setIsLoading(false);
     }
   };
+
+  if (isManager(user?.role)) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900">Change admin password</h3>
+        <p className="mt-2 text-sm text-gray-600">
+          Manager accounts cannot change their password here. Contact a full administrator to reset it.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

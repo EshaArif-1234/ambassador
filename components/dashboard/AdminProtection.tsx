@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import { useAdminSessionTimeout } from '@/hooks/useAdminSessionTimeout';
 import PageLoader from '@/components/ui/PageLoader';
+import { isDashboardStaff, isManagerBlockedPath } from '@/utils/dashboardRoles';
 
 interface AdminProtectionProps {
   children: React.ReactNode;
@@ -13,24 +14,34 @@ interface AdminProtectionProps {
 const AdminProtection: React.FC<AdminProtectionProps> = ({ children }) => {
   const { user, isLoading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
 
-  const isAdmin = Boolean(user && user.role === 'admin');
-  useAdminSessionTimeout(isAdmin);
+  const hasDashboardAccess = Boolean(user && isDashboardStaff(user.role));
+  useAdminSessionTimeout(hasDashboardAccess);
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!user || user.role !== 'admin') {
-        router.push('/login');
-      }
-    }
-  }, [user, isLoading, router]);
+    if (isLoading) return;
 
-  if (isLoading || !user || user.role !== 'admin') {
+    if (!user || !isDashboardStaff(user.role)) {
+      router.push('/login');
+      return;
+    }
+
+    if (user.role === 'manager' && isManagerBlockedPath(pathname)) {
+      router.replace('/product-management');
+    }
+  }, [user, isLoading, router, pathname]);
+
+  if (isLoading || !user || !isDashboardStaff(user.role)) {
     return (
       <PageLoader
         message={isLoading ? 'Loading user data...' : 'Redirecting to login...'}
       />
     );
+  }
+
+  if (user.role === 'manager' && isManagerBlockedPath(pathname)) {
+    return <PageLoader message="Redirecting..." />;
   }
 
   return <>{children}</>;

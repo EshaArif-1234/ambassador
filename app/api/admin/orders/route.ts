@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import Order from '@/backend/models/Order.model';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireFullAdmin } from '@/backend/lib/adminAuth';
 import { getDateRangeBounds, type OrderDateRange } from '@/utils/orderDateRange.util';
 import { isValidWorkflowTransition } from '@/utils/orderWorkflow.util';
 
 /** GET /api/admin/orders — list all orders with optional filters */
 export async function GET(req: NextRequest) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
 
 /** PATCH /api/admin/orders — update order status or notes */
 export async function PATCH(req: NextRequest) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {
@@ -115,7 +115,7 @@ export async function PATCH(req: NextRequest) {
 
 /** DELETE /api/admin/orders — delete an order by id */
 export async function DELETE(req: NextRequest) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {

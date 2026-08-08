@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
 import Order from '@/backend/models/Order.model';
 import Product from '@/backend/models/Product.model';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireFullAdmin } from '@/backend/lib/adminAuth';
 import { PRODUCT_PLACEHOLDER, resolveProductImages } from '@/utils/productMedia.util';
 
 function lineItemRevenueExpr(whenCondition: Record<string, unknown>) {
@@ -41,7 +41,7 @@ function catalogDisplayPrice(price?: number, originalPrice?: number): number {
 
 /** GET /api/admin/top-products?limit=5&days=30 — best sellers from order line items */
 export async function GET(req: NextRequest) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {

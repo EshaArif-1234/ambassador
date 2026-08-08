@@ -5,16 +5,33 @@ export const GOOGLE_OAUTH_STATE_COOKIE = 'google_oauth_state';
 
 const SCOPES = ['openid', 'email', 'profile'];
 
+type RequestLike = { headers: { get(name: string): string | null } };
+
+/** Canonical app origin from env (production default). */
 export function getAppBaseUrl(): string {
   const raw = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   return raw.replace(/\/$/, '');
 }
 
-export function getGoogleRedirectUri(): string {
-  return `${getAppBaseUrl()}/api/auth/google/callback`;
+/** Use the incoming request host so OAuth works on localhost and production. */
+export function getAppBaseUrlFromRequest(req: RequestLike): string {
+  const host = req.headers.get('host');
+  if (host) {
+    const hostOnly = host.split(':')[0].toLowerCase();
+    const proto = (
+      req.headers.get('x-forwarded-proto') ??
+      (hostOnly === 'localhost' || hostOnly === '127.0.0.1' ? 'http' : 'https')
+    ).replace(/:$/, '');
+    return `${proto}://${host}`.replace(/\/$/, '');
+  }
+  return getAppBaseUrl();
 }
 
-export function getGoogleOAuthClient(): OAuth2Client {
+export function getGoogleRedirectUri(baseUrl?: string): string {
+  return `${baseUrl ?? getAppBaseUrl()}/api/auth/google/callback`;
+}
+
+export function getGoogleOAuthClient(baseUrl?: string): OAuth2Client {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
@@ -23,7 +40,7 @@ export function getGoogleOAuthClient(): OAuth2Client {
   return new OAuth2Client({
     clientId,
     clientSecret,
-    redirectUri: getGoogleRedirectUri(),
+    redirectUri: getGoogleRedirectUri(baseUrl),
   });
 }
 
@@ -31,8 +48,8 @@ export function createOAuthState(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
-export function getGoogleAuthUrl(state: string): string {
-  const client = getGoogleOAuthClient();
+export function getGoogleAuthUrl(state: string, baseUrl?: string): string {
+  const client = getGoogleOAuthClient(baseUrl);
   return client.generateAuthUrl({
     access_type: 'online',
     scope: SCOPES,
@@ -50,8 +67,8 @@ export interface GoogleProfile {
 }
 
 /** Exchange authorization code and verify ID token payload. */
-export async function verifyGoogleAuthCode(code: string): Promise<GoogleProfile> {
-  const client = getGoogleOAuthClient();
+export async function verifyGoogleAuthCode(code: string, baseUrl?: string): Promise<GoogleProfile> {
+  const client = getGoogleOAuthClient(baseUrl);
   const { tokens } = await client.getToken(code);
   const idToken = tokens.id_token;
   if (!idToken) {

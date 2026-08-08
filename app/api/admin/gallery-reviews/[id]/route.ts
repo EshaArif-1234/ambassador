@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import GalleryReview from '@/backend/models/GalleryReview.model';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
 import mongoose from 'mongoose';
 
 /** GET /api/admin/gallery-reviews/[id] */
@@ -47,6 +47,9 @@ export async function PATCH(
     }
 
     const body = await req.json();
+    const deactivateError = await rejectManagerStatusChange(req, body);
+    if (deactivateError) return deactivateError;
+
     const doc = await GalleryReview.findById(id);
     if (!doc) {
       return NextResponse.json({ success: false, message: 'Not found.' }, { status: 404 });
@@ -97,7 +100,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {

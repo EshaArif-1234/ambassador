@@ -14,7 +14,7 @@ export interface User {
   address?: string;
   profileImage?: string;
   initials: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'manager' | 'user';
   isVerified: boolean;
 }
 

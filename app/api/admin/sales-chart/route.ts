@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import Order from '@/backend/models/Order.model';
-import { requireAdmin } from '@/backend/lib/adminAuth';
+import { requireFullAdmin } from '@/backend/lib/adminAuth';
 import {
   buildDateBuckets,
   findBucketIndex,
@@ -18,7 +18,7 @@ const ORDER_MATCH = { status: { $nin: ['cancelled'] } };
 
 /** GET /api/admin/sales-chart?range=daily|weekly|monthly|yearly */
 export async function GET(req: NextRequest) {
-  const authError = await requireAdmin(req);
+  const authError = await requireFullAdmin(req);
   if (authError) return authError;
 
   try {

@@ -18,7 +18,7 @@ export interface ApiUser {
   phoneNumber?: string;
   city?: string;
   address?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'manager';
   isVerified: boolean;
   createdAt: string;
   updatedAt: string;

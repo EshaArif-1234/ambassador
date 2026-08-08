@@ -17,6 +17,7 @@ import {
   slugFromCollectionPath,
 } from '@/lib/siteRoutes';
 import { useStorefrontCategories } from '@/hooks/useStorefrontCategories';
+import { dashboardHomePath, isDashboardStaff } from '@/utils/dashboardRoles';
 
 type SearchSuggestion = {
   _id: string;
@@ -450,10 +451,10 @@ const Header = () => {
                         <p className="truncate text-xs text-gray-500">{user.email}</p>
                       </div>
 
-                      {user.role === 'admin' ? (
+                      {isDashboardStaff(user.role) ? (
                         <div className="py-1">
                           <Link
-                            href="/admin"
+                            href={dashboardHomePath(user.role)}
                             onClick={() => setIsProfileOpen(false)}
                             className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#E36630] transition-colors hover:bg-[#E36630]/5"
                           >

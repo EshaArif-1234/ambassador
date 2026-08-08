@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser } from '@/contexts/UserContext';
+import { dashboardHomePath, isManager } from '@/utils/dashboardRoles';
 
 const AdminHeader = () => {
   const { user, logout } = useUser();
@@ -28,7 +29,7 @@ const AdminHeader = () => {
         <div className="flex items-center justify-between h-16">
           {/* Left side - Logo and breadcrumb */}
           <div className="flex items-center">
-            <Link href="/admin" className="flex items-center">
+            <Link href={dashboardHomePath(user?.role)} className="flex items-center">
               <Image
                 src="/Images/home/logo.webp"
                 alt="Admin Dashboard"
@@ -38,7 +39,7 @@ const AdminHeader = () => {
               />
             </Link>
             <div className="ml-4 text-sm text-gray-600">
-              <span className="text-gray-400">Admin</span>
+              <span className="text-gray-400">{isManager(user?.role) ? 'Manager' : 'Admin'}</span>
               <span className="mx-2">/</span>
               <span className="text-gray-900 font-medium">Dashboard</span>
             </div>

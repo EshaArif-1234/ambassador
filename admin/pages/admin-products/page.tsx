@@ -8,6 +8,7 @@ import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminT
 import { downloadStockProductsPdf, type StockExportProduct } from '@/utils/generateStockProductsPdf';
 import { downloadStockProductsExcel } from '@/utils/generateStockProductsExcel';
 import { dedupeExportProducts, uniqueIdsInOrder } from '@/utils/dedupeExportProducts';
+import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
 import PageLoader from '@/components/ui/PageLoader';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -87,6 +88,7 @@ const EXPORT_SCOPE_OPTIONS: {
 ];
 
 const ProductsPage = () => {
+  const { canDelete, canChangeStatus } = useDashboardPermissions();
   const [products,     setProducts]    = useState<Product[]>([]);
   const [categories,   setCategories]  = useState<Category[]>([]);
   const [total,        setTotal]       = useState(0);
@@ -646,6 +648,7 @@ const ProductsPage = () => {
 
                       {/* Toggle */}
                       <td className="px-6 py-4">
+                        {canChangeStatus ? (
                         <button
                           onClick={() => handleToggleStatus(product)}
                           disabled={actionLoading === product._id}
@@ -657,6 +660,9 @@ const ProductsPage = () => {
                             product.status === 'active' ? 'translate-x-6' : 'translate-x-1'
                           }`} />
                         </button>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
                       </td>
 
                       {/* Actions */}
@@ -685,6 +691,7 @@ const ProductsPage = () => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </button>
+                          {canDelete && (
                           <button
                             type="button"
                             title="Delete product"
@@ -696,6 +703,7 @@ const ProductsPage = () => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </button>
+                          )}
                         </div>
                       </td>
 
