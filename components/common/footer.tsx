@@ -8,7 +8,7 @@ import { COMPLAINT_PORTAL_URL } from '@/lib/siteLinks';
 const SERVICE_LINKS = [
   { label: 'Products', href: PRODUCTS_PATH },
   { label: 'Spare parts', href: SPARE_PARTS_PATH },
-  { label: 'Custom kitchen', href: '/custom-kitchen' },
+  { label: 'Custom kitchen', href: '/custom-kitchen' },      
  
 ] as const;
 
@@ -129,7 +129,7 @@ const Footer = () => {
                       href="tel:+923314937412"
                       className="text-white/70 transition-colors hover:text-[#E36630]"
                     >
-                      0333-1166925
+                      +923331166925
                     </a>
                   </p>
                   <p className="text-white/60">
