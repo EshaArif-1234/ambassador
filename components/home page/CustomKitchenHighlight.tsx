@@ -36,7 +36,7 @@ const CustomKitchenHighlight = () => (
         <div className="relative order-2 lg:order-1">
           <div className="relative aspect-[4/3] min-h-[220px] overflow-hidden rounded-xl shadow-2xl shadow-black/30 ring-1 ring-white/10 sm:min-h-[260px] sm:rounded-2xl md:min-h-[300px] md:aspect-[5/4] lg:aspect-auto lg:h-[min(460px,55vh)] lg:min-h-[340px]">
             <Image
-              src="/Images/Nestle-For-Web.webp"
+              src="/Images/installed.webp"
               alt="Custom commercial kitchen design and installation for restaurants – Ambassador Pakistan"
               fill
               className="object-cover object-center"
