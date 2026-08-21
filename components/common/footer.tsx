@@ -281,7 +281,7 @@ const Footer = () => {
         <div className="mt-6 border-t border-white/20 pt-6 sm:mt-8 sm:pt-8">
           <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
             <p className="text-xs text-white/60 sm:text-sm">
-              © 2024 Ambassador Commercial Kitchen Equipment. All rights reserved.
+              © 2026 Ambassador Commercial Kitchen Equipment. All rights reserved.
             </p>
           </div>
         </div>
