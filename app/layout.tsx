@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   description:
     'Commercial kitchen equipment and professional food service solutions in Pakistan.',
   verification: {
-    google: 'GPwLH_IH9yss5cdM7XbVhgA3Y2aBD_Pg5EmIdwYatsU',
+    google: 'E2JREt5YU1IkSxG6kQBwwW4FrD9JKQjwz43hJkrNF78',
   },
 };
 
