@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
     const paymentStatus = searchParams.get('paymentStatus') ?? 'all';
     const dateRange = searchParams.get('dateRange') ?? 'all';
 
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = {
+      // Dashboard shows only successfully paid orders (plus refunded after cancellation).
+      paymentStatus: { $in: ['paid', 'refunded'] },
+    };
 
     if (search) {
       filter.$or = [
@@ -33,7 +36,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (status !== 'all') filter.status = status;
-    if (paymentStatus !== 'all') filter.paymentStatus = paymentStatus;
+    if (paymentStatus === 'paid' || paymentStatus === 'refunded') {
+      filter.paymentStatus = paymentStatus;
+    }
 
     if (dateRange !== 'all') {
       const { from, to } = getDateRangeBounds(dateRange as OrderDateRange);

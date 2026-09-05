@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -82,6 +83,7 @@ function hasText(value?: string | null): value is string {
 }
 
 const OrdersPage = () => {
+  const searchParams = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -102,7 +104,7 @@ const OrdersPage = () => {
   const ACTIONS_MENU_BASE_HEIGHT = 120;
   const ACTIONS_MENU_STEP_HEIGHT = 40;
 
-  const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'pending' | 'paid' | 'failed' | 'refunded'>('all');
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'paid' | 'refunded'>('all');
   const [dateRange, setDateRange] = useState<OrderDateRange>('all');
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -182,6 +184,29 @@ const OrdersPage = () => {
     fetchOrders();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const orderNumber = searchParams.get('orderNumber')?.trim();
+    const paymentId = searchParams.get('paymentId')?.trim();
+    const targetOrderNumber =
+      orderNumber ||
+      (paymentId?.startsWith('PAY-') ? paymentId.slice(4) : undefined);
+
+    if (!targetOrderNumber && !paymentId) return;
+    if (loading) return;
+
+    const order = orders.find(
+      (o) =>
+        (targetOrderNumber && o.orderNumber === targetOrderNumber) ||
+        (paymentId && o.paymentId === paymentId),
+    );
+
+    if (!order) return;
+
+    setSearchTerm(order.orderNumber);
+    setSelectedOrder(order);
+    setShowViewModal(true);
+  }, [searchParams, orders, loading]);
 
   // Close dropdown when clicking outside or scrolling
   useEffect(() => {
@@ -660,9 +685,7 @@ const OrdersPage = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none text-gray-900 focus:ring-orange-500 focus:border-transparent"
               >
                 <option value="all">All Payment</option>
-                <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
-                <option value="failed">Failed</option>
                 <option value="refunded">Refunded</option>
               </select>
             </div>
@@ -919,7 +942,7 @@ const OrdersPage = () => {
                 <div className="flex items-center gap-2 shrink-0">
                   {hasPaymentRecord && (
                   <Link
-                    href={`/payments?paymentId=${encodeURIComponent(selectedOrder.paymentId)}`}
+                    href={`/payments-management?paymentId=${encodeURIComponent(selectedOrder.paymentId)}`}
                     className="inline-flex items-center px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600"
                   >
                     View payment

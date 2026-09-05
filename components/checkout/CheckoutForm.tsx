@@ -9,6 +9,13 @@ import { checkoutDefaultsFromUser, profileUpdateFromCheckout } from '@/utils/use
 import { fetchPakistanCities } from '@/utils/cities.api';
 import AuthModal from '@/components/auth/AuthModal';
 import { getCheckoutTotals } from '@/utils/checkoutTotals';
+import { isValidPakistanPhone } from '@/utils/phone.util';
+import {
+  clearAlfalahRedirect,
+  initAlfalahPayment,
+  storeAlfalahRedirect,
+  submitAlfalahRedirectForm,
+} from '@/utils/alfalahRedirect.util';
 
 const inputFocus =
   'focus:ring-2 focus:ring-[#E36630] focus:border-[#E36630] outline-none';
@@ -128,20 +135,24 @@ const CheckoutForm = () => {
     if (!formData.city.trim()) newErrors.city = 'City is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) {
       newErrors.email = 'Please enter a valid email';
     }
 
-    // Phone validation (Pakistan format)
-    const phoneRegex = /^(\+92|0)?3[0-9]{9}$/;
-    if (formData.phone && !phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Please enter a valid Pakistani phone number';
+    if (formData.phone && !isValidPakistanPhone(formData.phone)) {
+      newErrors.phone = 'Enter a valid phone (e.g. 0333-1166925 or 042-111-313-106)';
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
+  };
+
+  const scrollToFirstError = (fieldErrors: Record<string, string>) => {
+    const firstField = ['fullName', 'email', 'phone', 'city', 'address'].find((f) => fieldErrors[f]);
+    if (!firstField) return;
+    requestAnimationFrame(() => {
+      document.querySelector(`[name="${firstField}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   };
 
   const handleInputChange = (
@@ -159,8 +170,17 @@ const CheckoutForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    const fieldErrors = validateForm();
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors({
+        ...fieldErrors,
+        submit: 'Please complete all required fields to continue to payment.',
+      });
+      scrollToFirstError(fieldErrors);
+      return;
+    }
 
+    setErrors({});
     setIsProcessing(true);
 
     try {
@@ -170,17 +190,19 @@ const CheckoutForm = () => {
           city: formData.city,
           address: formData.address,
         });
-        try {
-          const res = await authApi.updateProfile(profilePayload);
-          const u = res.data!.user;
-          updateUser({
-            phoneNumber: u.phoneNumber,
-            city: u.city,
-            address: u.address,
+        void authApi
+          .updateProfile(profilePayload)
+          .then((res) => {
+            const u = res.data!.user;
+            updateUser({
+              phoneNumber: u.phoneNumber,
+              city: u.city,
+              address: u.address,
+            });
+          })
+          .catch(() => {
+            /* order API will sync again after payment if cookie is sent */
           });
-        } catch {
-          /* order API will sync again after payment if cookie is sent */
-        }
       }
 
       const orderData = {
@@ -217,7 +239,42 @@ const CheckoutForm = () => {
       };
 
       localStorage.setItem('paymentData', JSON.stringify(paymentData));
-      router.push('/payment');
+
+      const { ok, json } = await initAlfalahPayment(paymentData);
+
+      if (json.alreadyPaid) {
+        localStorage.setItem(
+          'lastOrder',
+          JSON.stringify({ ...paymentData, paymentStatus: 'paid', dbOrderId: json.dbOrderId }),
+        );
+        localStorage.removeItem('paymentData');
+        clearAlfalahRedirect();
+        router.push(`/order-success?order=${encodeURIComponent(paymentData.orderId)}&status=paid`);
+        return;
+      }
+
+      if (ok && json.success && json.actionUrl && json.fields) {
+        sessionStorage.setItem('pendingPaymentOrderId', paymentData.orderId);
+        const redirect = {
+          actionUrl: String(json.actionUrl),
+          fields: json.fields as Record<string, string>,
+          orderId: paymentData.orderId,
+        };
+        storeAlfalahRedirect(redirect);
+        submitAlfalahRedirectForm(redirect.actionUrl, redirect.fields);
+        return;
+      }
+
+      if (json.code === 'GATEWAY_NOT_CONFIGURED') {
+        router.push('/payment');
+        return;
+      }
+
+      setErrors({
+        submit:
+          (typeof json.message === 'string' && json.message) ||
+          'Could not start payment. Please try again.',
+      });
     } catch (error) {
       console.error('Order failed:', error);
       setErrors({ submit: 'Failed to place order. Please try again.' });
@@ -286,7 +343,7 @@ const CheckoutForm = () => {
                 className={`${inputBase} ${inputFocus} ${
                   errors.phone ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="03XX-XXXXXXX"
+                placeholder="0333-1166925"
               />
               {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
             </div>
@@ -306,26 +363,41 @@ const CheckoutForm = () => {
           <div className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">City *</label>
-              <select
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                disabled={citiesLoading}
-                className={`${inputBase} ${inputFocus} ${
-                  errors.city ? 'border-red-500' : 'border-gray-300'
-                } disabled:bg-gray-50 disabled:text-gray-600`}
-              >
-                <option value="">
-                  {citiesLoading ? 'Loading cities…' : 'Select city'}
-                </option>
-                {cityOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+              {citiesError || (!citiesLoading && cityOptions.length === 0) ? (
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  className={`${inputBase} ${inputFocus} ${
+                    errors.city ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your city"
+                />
+              ) : (
+                <select
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  disabled={citiesLoading}
+                  className={`${inputBase} ${inputFocus} ${
+                    errors.city ? 'border-red-500' : 'border-gray-300'
+                  } disabled:bg-gray-50 disabled:text-gray-600`}
+                >
+                  <option value="">
+                    {citiesLoading ? 'Loading cities…' : 'Select city'}
                   </option>
-                ))}
-              </select>
+                  {cityOptions.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              )}
               {citiesError && (
-                <p className="mt-1 text-sm text-red-600">{citiesError}</p>
+                <p className="mt-1 text-sm text-amber-700">
+                  City list unavailable — type your city manually.
+                </p>
               )}
               {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
             </div>
@@ -435,7 +507,7 @@ const CheckoutForm = () => {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              Processing…
+              Redirecting to Alfalah…
             </span>
           ) : (
             `Continue to payment • PKR ${total.toLocaleString()}`

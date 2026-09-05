@@ -3,11 +3,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import SparePartModal, { SparePartFormData, SparePartSavePayload } from '@/components/spare-parts/SparePartModal';
+import SparePartModal, { SparePartSavePayload } from '@/components/spare-parts/SparePartModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import PageLoader from '@/components/ui/PageLoader';
 import { adminIconActionBtn, adminIconActionBtnDanger } from '@/admin/lib/adminTableActionStyles';
 import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
+import { downloadStockSparePartsPdf, type StockExportSparePart } from '@/utils/generateStockSparePartsPdf';
+import { downloadStockSparePartsExcel } from '@/utils/generateStockSparePartsExcel';
+import { dedupeExportProducts, uniqueIdsInOrder } from '@/utils/dedupeExportProducts';
 
 interface SparePartRow {
   _id: string;
@@ -21,6 +24,41 @@ interface SparePartRow {
 }
 
 const PAGE_SIZE = 10;
+
+type ExportScope = 'in_stock' | 'out_of_stock' | 'all' | 'selected';
+type ExportFormat = 'pdf' | 'excel';
+
+const EXPORT_SCOPE_OPTIONS: {
+  id: ExportScope;
+  label: string;
+  activeClass: string;
+  idleClass: string;
+}[] = [
+  {
+    id: 'all',
+    label: 'All Spare Parts',
+    activeClass: 'border-[#0F4C69] bg-[#0F4C69]/10 text-[#0F4C69] ring-1 ring-[#0F4C69]/30',
+    idleClass: 'border-gray-200 bg-white text-gray-700 hover:border-[#0F4C69]/40 hover:bg-[#0F4C69]/5',
+  },
+  {
+    id: 'in_stock',
+    label: 'In Stock',
+    activeClass: 'border-green-300 bg-green-50 text-green-800 ring-1 ring-green-200',
+    idleClass: 'border-gray-200 bg-white text-gray-700 hover:border-green-200 hover:bg-green-50/60',
+  },
+  {
+    id: 'out_of_stock',
+    label: 'Out of Stock',
+    activeClass: 'border-red-300 bg-red-50 text-red-800 ring-1 ring-red-200',
+    idleClass: 'border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:bg-red-50/60',
+  },
+  {
+    id: 'selected',
+    label: 'Selected Spare Parts',
+    activeClass: 'border-[#E36630]/40 bg-[#E36630]/10 text-[#E36630] ring-1 ring-[#E36630]/25',
+    idleClass: 'border-gray-200 bg-white text-gray-700 hover:border-[#E36630]/30 hover:bg-[#E36630]/5',
+  },
+];
 
 function displayPrice(row: SparePartRow) {
   const v = row.price != null && row.price > 0 ? row.price : row.originalPrice;
@@ -36,6 +74,10 @@ export default function SparePartsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [exportLoading, setExportLoading] = useState<{ format: ExportFormat; scope: ExportScope } | null>(null);
+  const [exportFormatTab, setExportFormatTab] = useState<ExportFormat>('pdf');
+  const [exportScope, setExportScope] = useState<ExportScope>('all');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const [successMsg, setSuccessMsg] = useState('');
   const [error, setError] = useState('');
@@ -123,6 +165,100 @@ export default function SparePartsAdminPage() {
   useEffect(() => {
     fetchRows(page);
   }, [page, fetchRows]);
+
+  const fetchExportSpareParts = async (scope: ExportScope) => {
+    const params = new URLSearchParams({ export: '1' });
+    if (scope === 'selected') {
+      params.set('ids', uniqueIdsInOrder(selectedIds).join(','));
+    } else {
+      params.set('stock', scope);
+    }
+
+    const res = await fetch(`/api/admin/spareparts?${params.toString()}`, {
+      credentials: 'include',
+    });
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) {
+      throw new Error(`Export failed (${res.status}). Please refresh and try again.`);
+    }
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Failed to export spare parts.');
+    }
+    const list = Array.isArray(data.data) ? (data.data as StockExportSparePart[]) : [];
+    return dedupeExportProducts(list);
+  };
+
+  const exportSuccessMessage = (format: ExportFormat, scope: ExportScope, count?: number) => {
+    const kind = format === 'pdf' ? 'PDF' : 'Excel file';
+    if (scope === 'selected') {
+      return `${kind} downloaded for ${count ?? 0} selected spare part(s).`;
+    }
+    if (scope === 'in_stock') return `In stock spare parts ${kind} downloaded.`;
+    if (scope === 'out_of_stock') return `Out of stock spare parts ${kind} downloaded.`;
+    return `All spare parts ${kind} downloaded.`;
+  };
+
+  const handleExport = async (format: ExportFormat, scope: ExportScope) => {
+    if (scope === 'selected' && selectedIds.length === 0) {
+      showError('Select at least one spare part to download.');
+      return;
+    }
+
+    setExportLoading({ format, scope });
+    try {
+      const spareParts = await fetchExportSpareParts(scope);
+      if (format === 'pdf') {
+        await downloadStockSparePartsPdf(spareParts, scope);
+      } else {
+        downloadStockSparePartsExcel(spareParts, scope);
+      }
+      showSuccess(exportSuccessMessage(format, scope, spareParts.length));
+    } catch (err) {
+      showError(
+        (err as Error).message ||
+          `Failed to generate ${format === 'pdf' ? 'PDF' : 'Excel file'}.`,
+      );
+    } finally {
+      setExportLoading(null);
+    }
+  };
+
+  const isExporting = exportLoading !== null;
+  const canExportSelected = selectedIds.length > 0;
+  const exportDownloadDisabled =
+    isExporting || (exportScope === 'selected' && !canExportSelected);
+
+  const exportScopeLabel = (scope: ExportScope) => {
+    if (scope === 'selected') {
+      return canExportSelected
+        ? `Selected Spare Parts (${selectedIds.length})`
+        : 'Selected Spare Parts';
+    }
+    return EXPORT_SCOPE_OPTIONS.find((option) => option.id === scope)?.label ?? scope;
+  };
+
+  const toggleSparePartSelection = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const pageIds = rows.map((row) => row._id);
+  const allPageSelected =
+    pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const somePageSelected =
+    pageIds.some((id) => selectedIds.includes(id)) && !allPageSelected;
+
+  const toggleAllOnPage = () => {
+    if (allPageSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+      return;
+    }
+    setSelectedIds((prev) => [...new Set([...prev, ...pageIds])]);
+  };
+
+  const clearSelection = () => setSelectedIds([]);
 
   const openAdd = () => {
     setModalMode('add');
@@ -229,6 +365,7 @@ export default function SparePartsAdminPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       showSuccess('Spare part deleted.');
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteTarget._id));
       fetchRows(page);
     } catch (err) {
       showError((err as Error).message);
@@ -291,6 +428,101 @@ export default function SparePartsAdminPage() {
               <option value="inactive">Inactive</option>
             </select>
           </div>
+
+          <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Export spare parts</p>
+              <div className="mt-3 inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setExportFormatTab('pdf')}
+                  disabled={isExporting}
+                  className={`rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    exportFormatTab === 'pdf'
+                      ? 'bg-white text-[#0F4C69] shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportFormatTab('excel')}
+                  disabled={isExporting}
+                  className={`rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    exportFormatTab === 'excel'
+                      ? 'bg-white text-[#0F4C69] shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Excel
+                </button>
+              </div>
+              {exportFormatTab === 'excel' && (
+                <p className="mt-2 text-xs text-gray-500">Excel export includes spare part data only — no images.</p>
+              )}
+              {exportFormatTab === 'pdf' && (
+                <p className="mt-2 text-xs text-gray-500">PDF export includes spare part images in the report.</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-gray-800">Choose export type</p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {EXPORT_SCOPE_OPTIONS.map((option) => {
+                  const isActive = exportScope === option.id;
+                  const isSelectedScope = option.id === 'selected';
+                  const disabled =
+                    isExporting || (isSelectedScope && !canExportSelected);
+
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setExportScope(option.id)}
+                      disabled={disabled}
+                      className={`inline-flex min-w-[140px] flex-1 items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none ${
+                        isActive ? option.activeClass : option.idleClass
+                      }`}
+                    >
+                      {isSelectedScope && canExportSelected
+                        ? `Selected Spare Parts (${selectedIds.length})`
+                        : option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={() => handleExport(exportFormatTab, exportScope)}
+                disabled={exportDownloadDisabled}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0F4C69] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#0d3f59] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {isExporting
+                  ? exportFormatTab === 'pdf'
+                    ? 'Generating PDF…'
+                    : 'Generating Excel…'
+                  : `Download ${exportFormatTab === 'pdf' ? 'PDF' : 'Excel'} — ${exportScopeLabel(exportScope)}`}
+              </button>
+
+              {canExportSelected && (
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  disabled={isExporting}
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Clear selection
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -303,6 +535,18 @@ export default function SparePartsAdminPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-4 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        checked={allPageSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = somePageSelected;
+                        }}
+                        onChange={toggleAllOnPage}
+                        aria-label="Select all spare parts on this page"
+                        className="h-4 w-4 rounded border-gray-300 accent-[#0F4C69] focus:ring-[#0F4C69]/35"
+                      />
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Image</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Title</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Price</th>
@@ -313,7 +557,19 @@ export default function SparePartsAdminPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {rows.map((row) => (
-                    <tr key={row._id} className="hover:bg-gray-50/80">
+                    <tr
+                      key={row._id}
+                      className={`hover:bg-gray-50/80 ${selectedIds.includes(row._id) ? 'bg-[#0F4C69]/5' : ''}`}
+                    >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(row._id)}
+                          onChange={() => toggleSparePartSelection(row._id)}
+                          aria-label={`Select ${row.name}`}
+                          className="h-4 w-4 rounded border-gray-300 accent-[#0F4C69] focus:ring-[#0F4C69]/35"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="relative h-11 w-11 overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
                           {row.images?.[0] ? (

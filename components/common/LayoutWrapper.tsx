@@ -24,7 +24,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
     pathname?.startsWith('/gallery-management') ||
     pathname?.startsWith('/reviews-management') ||
     pathname?.startsWith('/admin-settings') ||
-    pathname?.startsWith('/payments') ||
+    pathname?.startsWith('/payments-management') ||
     pathname?.startsWith('/spare-parts-management');
   // Don't render main navigation for admin routes
   if (isAdminRoute) {

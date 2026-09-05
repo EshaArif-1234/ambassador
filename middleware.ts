@@ -56,6 +56,29 @@ export function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Alfalah Return URL → internal return handler (page.tsx cannot accept POST)
+  if (pathname === '/order-success') {
+    const hasOrderParam = request.nextUrl.searchParams.has('order');
+    const alfalahOrderRef =
+      request.nextUrl.searchParams.get('O') ??
+      request.nextUrl.searchParams.get('o') ??
+      request.nextUrl.searchParams.get('TransactionReferenceNumber') ??
+      request.nextUrl.searchParams.get('orderRef') ??
+      request.nextUrl.searchParams.get('orderNumber');
+
+    const hasCallbackParams = Boolean(
+      alfalahOrderRef ||
+        request.nextUrl.searchParams.has('RC') ||
+        request.nextUrl.searchParams.has('ResponseCode'),
+    );
+
+    if (request.method === 'POST' || (request.method === 'GET' && !hasOrderParam && hasCallbackParams)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/api/payment/return';
+      return NextResponse.rewrite(url);
+    }
+  }
+
   // Strip trailing slashes (except root) — /products/deep-fryer/ → /products/deep-fryer
   if (pathname.length > 1 && pathname.endsWith('/')) {
     return redirectTo(request, pathname.replace(/\/+$/, '') || '/');
@@ -73,6 +96,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/order-success',
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 };

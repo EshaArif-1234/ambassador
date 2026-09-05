@@ -8,6 +8,7 @@ import { dashboardHomePath, isDashboardStaff } from '@/utils/dashboardRoles';
 import LoginMarketingSection from '../../../components/login/LoginMarketingSection';
 import LoginForm from '../../../components/login/LoginForm';
 import { getGoogleOAuthErrorMessage } from '@/utils/googleOAuthErrors.util';
+import { getSafeRedirectPath } from '@/utils/safeRedirect.util';
 
 interface FormData {
   email: string;
@@ -29,9 +30,11 @@ export default function LoginPage() {
   const isJustVerified = searchParams.get('verified') === 'true';
   const verifiedEmail = searchParams.get('email') || '';
   const sessionExpired = searchParams.get('reason') === 'session_expired';
+  const redirectPath = getSafeRedirectPath(searchParams.get('redirect'));
+  const prefilledEmail = searchParams.get('email')?.trim() || verifiedEmail;
 
   const [formData, setFormData] = useState<FormData>({
-    email: verifiedEmail,
+    email: prefilledEmail,
     password: '',
     rememberMe: false,
   });
@@ -108,7 +111,11 @@ export default function LoginPage() {
       if (res.data?.user) {
         login(res.data.user);
         const role = res.data.user.role;
-        router.push(isDashboardStaff(role) ? dashboardHomePath(role) : '/');
+        if (redirectPath) {
+          router.push(redirectPath);
+        } else {
+          router.push(isDashboardStaff(role) ? dashboardHomePath(role) : '/');
+        }
       }
     } catch (error) {
       setErrors(prev => ({
@@ -172,6 +179,7 @@ export default function LoginPage() {
               onInputChange={handleInputChange}
               onTogglePassword={() => setShowPassword(!showPassword)}
               onSubmit={handleSubmit}
+              redirectPath={redirectPath}
             />
           </div>
         </div>

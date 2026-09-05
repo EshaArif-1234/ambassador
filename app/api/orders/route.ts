@@ -86,7 +86,10 @@ export async function GET(req: NextRequest) {
 
     const statusParam = new URL(req.url).searchParams.get('status')?.trim().toLowerCase();
 
-    const filter: Record<string, unknown> = ordersFilterForUser(auth.user);
+    const filter: Record<string, unknown> = {
+      ...ordersFilterForUser(auth.user),
+      paymentStatus: { $in: ['paid', 'refunded'] },
+    };
 
     if (
 

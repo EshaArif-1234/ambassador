@@ -22,7 +22,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: 'Products', href: '/product-management', icon: 'products', managerAccess: true },
     { name: 'Spare Parts', href: '/spare-parts-management', icon: 'spare-parts', managerAccess: true },
     { name: 'Orders', href: '/orders-management', icon: 'orders', managerAccess: false },
-    { name: 'Payments', href: '/payments', icon: 'payments', managerAccess: false },
+    { name: 'Payments', href: '/payments-management', icon: 'payments', managerAccess: false },
     { name: 'Users', href: '/users', icon: 'users', managerAccess: false },
     { name: 'Categories', href: '/category-management', icon: 'categories', managerAccess: true },
     { name: 'Reviews', href: '/reviews-management', icon: 'reviews', managerAccess: false },

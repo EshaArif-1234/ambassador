@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/utils/auth.api';
 import SignUpMarketingSection from '@/components/login/SignUpMarketingSection';
@@ -30,7 +30,13 @@ const INITIAL_FORM = {
 
 export default function SignUpPage() {
   const router = useRouter();
-  const [form, setForm] = useState(INITIAL_FORM);
+  const searchParams = useSearchParams();
+  const prefilledEmail = searchParams.get('email')?.trim() ?? '';
+
+  const [form, setForm] = useState({
+    ...INITIAL_FORM,
+    email: prefilledEmail,
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 

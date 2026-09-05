@@ -16,7 +16,11 @@ import {
 
 type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
-type GatewayChannel = 'all' | 'card' | 'jazzcash' | 'easypaisa' | 'bank' | 'cod' | 'online';
+import {
+  ALFALAH_GATEWAY_CHANNELS,
+  resolveAlfalahGatewayChannel,
+  type AlfalahGatewayChannel,
+} from '@/lib/alfalahPaymentMethods';
 
 interface PaymentTransaction {
   id: string;
@@ -30,7 +34,7 @@ interface PaymentTransaction {
   paymentStatus: PaymentStatus;
   paymentMethod: string;
   gatewayMethod: string;
-  gatewayChannel: GatewayChannel;
+  gatewayChannel: AlfalahGatewayChannel;
   paymentId: string;
   transactionId: string;
   orderSummary: string;
@@ -42,28 +46,14 @@ interface PaymentTransaction {
 
 const CURRENCY_LABEL = 'PKR';
 
-const GATEWAY_CHANNELS: { id: GatewayChannel; label: string; hint: string }[] = [
-  { id: 'card', label: 'Card', hint: 'Credit / Debit' },
-  { id: 'jazzcash', label: 'JazzCash', hint: 'Mobile wallet' },
-  { id: 'easypaisa', label: 'EasyPaisa', hint: 'Mobile wallet' },
-  { id: 'bank', label: 'Bank Transfer', hint: 'Manual verification' },
-  { id: 'cod', label: 'Cash on Delivery', hint: 'Collect on delivery' },
-  { id: 'online', label: 'Online', hint: 'Other online' },
-];
+const GATEWAY_CHANNELS = ALFALAH_GATEWAY_CHANNELS;
 
 function formatMoney(amount: number): string {
   return `${CURRENCY_LABEL} ${amount.toLocaleString('en-PK')}`;
 }
 
-function resolveGatewayChannel(gatewayMethod: string, paymentMethod: string): GatewayChannel {
-  const raw = `${gatewayMethod} ${paymentMethod}`.toLowerCase();
-  if (raw.includes('jazzcash') || raw.includes('jazz cash')) return 'jazzcash';
-  if (raw.includes('easypaisa') || raw.includes('easy paisa')) return 'easypaisa';
-  if (raw.includes('bank')) return 'bank';
-  if (raw.includes('cod') || raw.includes('cash on delivery') || raw === 'cash') return 'cod';
-  if (raw.includes('card') || raw.includes('credit') || raw.includes('debit')) return 'card';
-  if (paymentMethod === 'online' || raw.includes('online')) return 'online';
-  return 'online';
+function resolveGatewayChannel(gatewayMethod: string, paymentMethod: string): AlfalahGatewayChannel {
+  return resolveAlfalahGatewayChannel(gatewayMethod, paymentMethod);
 }
 
 function gatewayDisplayLabel(tx: PaymentTransaction): string {
@@ -148,18 +138,25 @@ function getStatusLabel(status: PaymentStatus): string {
   }
 }
 
-function getChannelStyles(channel: GatewayChannel): string {
+function orderManagementHref(orderNumber: string): string {
+  if (!orderNumber || orderNumber === '—') return '/orders-management';
+  return `/orders-management?orderNumber=${encodeURIComponent(orderNumber)}`;
+}
+
+function getChannelStyles(channel: AlfalahGatewayChannel): string {
   switch (channel) {
+    case 'alfa_wallet':
+      return 'bg-purple-50 text-purple-800 ring-1 ring-purple-100';
+    case 'bank_account':
+      return 'bg-indigo-50 text-indigo-800 ring-1 ring-indigo-100';
     case 'card':
       return 'bg-blue-50 text-blue-800 ring-1 ring-blue-100';
+    case 'card_on_delivery':
+      return 'bg-teal-50 text-teal-800 ring-1 ring-teal-100';
     case 'jazzcash':
       return 'bg-red-50 text-red-800 ring-1 ring-red-100';
-    case 'easypaisa':
-      return 'bg-green-50 text-green-800 ring-1 ring-green-100';
-    case 'bank':
-      return 'bg-indigo-50 text-indigo-800 ring-1 ring-indigo-100';
-    case 'cod':
-      return 'bg-teal-50 text-teal-800 ring-1 ring-teal-100';
+    case 'raast':
+      return 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100';
     default:
       return 'bg-gray-50 text-gray-700 ring-1 ring-gray-100';
   }
@@ -173,7 +170,7 @@ const PaymentsPage = () => {
   const [highlightPaymentId, setHighlightPaymentId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | PaymentStatus>('all');
-  const [filterChannel, setFilterChannel] = useState<GatewayChannel>('all');
+  const [filterChannel, setFilterChannel] = useState<AlfalahGatewayChannel>('all');
   const [dateRange, setDateRange] = useState<OrderDateRange>('all');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<PaymentTransaction | null>(null);
@@ -234,14 +231,15 @@ const PaymentsPage = () => {
   const totalCollected = paidTransactions.reduce((sum, tx) => sum + tx.amount, 0);
 
   const channelCounts = useMemo(() => {
-    const counts: Record<GatewayChannel, number> = {
+    const counts: Record<AlfalahGatewayChannel, number> = {
       all: 0,
+      alfa_wallet: 0,
+      bank_account: 0,
       card: 0,
+      card_on_delivery: 0,
       jazzcash: 0,
-      easypaisa: 0,
-      bank: 0,
-      cod: 0,
-      online: 0,
+      raast: 0,
+      other: 0,
     };
     for (const tx of filteredTransactions) {
       counts[tx.gatewayChannel] += 1;
@@ -284,7 +282,7 @@ const PaymentsPage = () => {
           <div>
             <h1 className="mb-2 text-2xl font-bold text-gray-900">Payment Gateway</h1>
             <p className="text-gray-600">
-              Monitor checkout transactions from JazzCash, EasyPaisa, cards, bank transfer, and COD.
+              Successful Bank Alfalah APG payments only. Failed or incomplete checkouts are not listed here.
             </p>
           </div>
           <button
@@ -327,7 +325,7 @@ const PaymentsPage = () => {
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900">
-                  Ambassador Checkout Gateway
+                  Bank Alfalah APG
                   <span
                     className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                       CHECKOUT_ENABLED
@@ -340,8 +338,8 @@ const PaymentsPage = () => {
                 </p>
                 <p className="mt-1 text-sm text-gray-600">
                   {CHECKOUT_ENABLED
-                    ? 'Customers can complete payments online. Transactions sync from placed orders.'
-                    : 'Checkout is in preview mode. Transactions appear here once customers place orders.'}
+                    ? 'Customers pay on Alfalah’s hosted page. The method they choose is saved on each order after payment.'
+                    : 'Checkout is in preview mode. Alfalah payment methods appear here once customers place orders.'}
                 </p>
               </div>
             </div>
@@ -367,7 +365,7 @@ const PaymentsPage = () => {
         )}
 
         {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-lg border-l-4 border-[#0F4C69] bg-white p-5 shadow-sm">
             <p className="text-sm text-gray-600">Total collected</p>
             <p className="mt-1 text-2xl font-bold text-gray-900">
@@ -375,20 +373,8 @@ const PaymentsPage = () => {
             </p>
           </div>
           <div className="rounded-lg border-l-4 border-emerald-500 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-600">Paid</p>
+            <p className="text-sm text-gray-600">Successful payments</p>
             <p className="mt-1 text-2xl font-bold text-gray-900">{paidTransactions.length}</p>
-          </div>
-          <div className="rounded-lg border-l-4 border-amber-500 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-600">Pending</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
-              {filteredTransactions.filter((tx) => tx.paymentStatus === 'pending').length}
-            </p>
-          </div>
-          <div className="rounded-lg border-l-4 border-red-500 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-600">Failed</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
-              {filteredTransactions.filter((tx) => tx.paymentStatus === 'failed').length}
-            </p>
           </div>
           <div className="rounded-lg border-l-4 border-slate-400 bg-white p-5 shadow-sm">
             <p className="text-sm text-gray-600">Refunded</p>
@@ -454,8 +440,6 @@ const PaymentsPage = () => {
               >
                 <option value="all">All statuses</option>
                 <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-                <option value="failed">Failed</option>
                 <option value="refunded">Refunded</option>
               </select>
             </div>
@@ -463,7 +447,7 @@ const PaymentsPage = () => {
               <label className="mb-1 block text-sm font-medium text-gray-700">Gateway</label>
               <select
                 value={filterChannel}
-                onChange={(e) => setFilterChannel(e.target.value as GatewayChannel)}
+                onChange={(e) => setFilterChannel(e.target.value as AlfalahGatewayChannel)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-transparent focus:ring-2 focus:ring-[#0F4C69]"
               >
                 <option value="all">All gateways</option>
@@ -583,10 +567,10 @@ const PaymentsPage = () => {
                           </svg>
                         </button>
                         <Link
-                          href="/admin-orders"
+                          href={orderManagementHref(tx.orderNumber)}
                           className={adminIconActionBtn}
-                          title="Open orders"
-                          aria-label="Open order management"
+                          title="View order"
+                          aria-label="View order details"
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                             <path
@@ -673,10 +657,10 @@ const PaymentsPage = () => {
 
               <div className="flex justify-end gap-3 border-t px-6 py-4">
                 <Link
-                  href="/admin-orders"
+                  href={orderManagementHref(selectedTransaction.orderNumber)}
                   className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  View orders
+                  View order
                 </Link>
                 <button
                   type="button"

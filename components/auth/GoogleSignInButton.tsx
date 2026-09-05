@@ -4,16 +4,21 @@ interface GoogleSignInButtonProps {
   label?: string;
   disabled?: boolean;
   className?: string;
+  redirectPath?: string | null;
 }
 
 export default function GoogleSignInButton({
   label = 'Continue with Google',
   disabled = false,
   className = '',
+  redirectPath,
 }: GoogleSignInButtonProps) {
   const handleClick = () => {
     if (disabled) return;
-    window.location.href = '/api/auth/google';
+    const params = new URLSearchParams();
+    if (redirectPath) params.set('redirect', redirectPath);
+    const query = params.toString();
+    window.location.href = query ? `/api/auth/google?${query}` : '/api/auth/google';
   };
 
   return (

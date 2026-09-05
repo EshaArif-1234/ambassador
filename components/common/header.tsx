@@ -18,6 +18,7 @@ import {
 } from '@/lib/siteRoutes';
 import { useStorefrontCategories } from '@/hooks/useStorefrontCategories';
 import { dashboardHomePath, isDashboardStaff } from '@/utils/dashboardRoles';
+import { PRODUCT_PLACEHOLDER } from '@/utils/productMedia.util';
 
 type SearchSuggestion = {
   _id: string;
@@ -30,7 +31,6 @@ type SearchSuggestion = {
 const SEARCH_SUGGESTION_LIMIT = 8;
 const SEARCH_MIN_CHARS = 2;
 const SEARCH_DEBOUNCE_MS = 280;
-const DEFAULT_PRODUCT_IMAGE = '/Images/home/stainless-steal.webp';
 
 function suggestionCategoryTitle(categories: SearchSuggestion['categories']): string {
   if (!categories?.length) return '';
@@ -659,7 +659,7 @@ const Header = () => {
                         {searchSuggestions.map((product, index) => {
                           const active = index === activeSuggestionIndex;
                           const category = suggestionCategoryTitle(product.categories);
-                          const image = product.images?.[0] || DEFAULT_PRODUCT_IMAGE;
+                          const image = product.images?.[0] || PRODUCT_PLACEHOLDER;
                           return (
                             <li key={product._id}>
                               <button

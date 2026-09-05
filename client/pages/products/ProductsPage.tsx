@@ -17,6 +17,7 @@ import {
   slugFromCollectionPath,
 } from '@/lib/siteRoutes';
 import { useStorefrontCategories } from '@/hooks/useStorefrontCategories';
+import { PRODUCT_PLACEHOLDER } from '@/utils/productMedia.util';
 
 interface ApiCategoryRef {
   _id?: string;
@@ -73,7 +74,7 @@ function mapApiToProduct(p: ApiProductRow): Product {
   const categorySlug = catRefs.find((c) => c.slug)?.slug ?? catRefs[0]?.slug;
   const displayPrice =
     p.price != null && p.price > 0 ? p.price : p.originalPrice ?? 0;
-  const image = p.images?.[0] || '/Images/home/stainless-steal.webp';
+  const image = p.images?.[0] || PRODUCT_PLACEHOLDER;
   const feat = Array.isArray(p.features) ? p.features : [];
   const featured =
     feat.includes('best_seller') || feat.includes('new_arrival');

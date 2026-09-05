@@ -11,7 +11,7 @@ function PaymentsFallback() {
   );
 }
 
-export default function Payments() {
+export default function PaymentsManagement() {
   return (
     <Suspense fallback={<PaymentsFallback />}>
       <PaymentsPage />

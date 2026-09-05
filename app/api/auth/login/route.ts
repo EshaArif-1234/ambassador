@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
+import Order from '@/backend/models/Order.model';
 import { signToken, attachCookie } from '@/utils/jwt.util';
 import { MANAGER_EMAIL, isDashboardStaff } from '@/utils/dashboardRoles';
 
@@ -70,8 +71,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Track last login time
+    // Track last login time and attach guest checkout orders to this account.
     await User.findByIdAndUpdate(user._id, { lastLoginAt: new Date() });
+    await Order.updateMany(
+      {
+        customerEmail: user.email.trim().toLowerCase(),
+        $or: [{ userId: { $exists: false } }, { userId: null }],
+      },
+      { $set: { userId: user._id } },
+    );
 
     const token = signToken(String(user._id));
     const response = NextResponse.json(

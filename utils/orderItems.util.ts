@@ -20,6 +20,67 @@ export type EnrichedOrderItem = IOrderItem & { productCode?: string; category?: 
 
 const UNKNOWN = 'Unknown Product';
 
+export const UNKNOWN_PRODUCT_LABEL = UNKNOWN;
+
+export function isUnknownProductName(name?: string | null): boolean {
+  const value = name?.trim();
+  return !value || value === UNKNOWN;
+}
+
+/** Convert Mongoose subdocuments or plain objects into a strict order line item. */
+export function normalizeStoredOrderItem(item: unknown): IOrderItem {
+  const record =
+    item &&
+    typeof item === 'object' &&
+    'toObject' in item &&
+    typeof (item as { toObject?: () => unknown }).toObject === 'function'
+      ? ((item as { toObject: () => Record<string, unknown> }).toObject() as Record<string, unknown>)
+      : (item as Record<string, unknown>);
+
+  const qty = Number(record.quantity) || 1;
+  const price = Number(record.price) || 0;
+
+  return {
+    productId: record.productId ? String(record.productId) : undefined,
+    productName: String(record.productName ?? UNKNOWN),
+    productImage: String(record.productImage ?? ''),
+    quantity: qty,
+    price,
+    total: Number(record.total) || price * qty,
+    sku: record.sku ? String(record.sku) : undefined,
+  };
+}
+
+export function finalizeOrderLineItems(items: IOrderItem[], subtotal: number): IOrderItem[] {
+  return items.map((item) => {
+    const quantity = Number(item.quantity) || 1;
+    let price = Number(item.price) || 0;
+    if (price <= 0 && items.length === 1 && subtotal > 0) {
+      price = subtotal / quantity;
+    }
+
+    return {
+      productId: item.productId,
+      productName: item.productName?.trim() || UNKNOWN,
+      productImage: item.productImage ?? '',
+      quantity,
+      price,
+      total: Number(item.total) || price * quantity,
+      sku: item.sku,
+    };
+  });
+}
+
+export function resolveCheckoutLineItems(payload: {
+  orderItems?: Record<string, unknown>[];
+  orderData?: { products?: Record<string, unknown>[] };
+}): Record<string, unknown>[] {
+  if (payload.orderItems?.length) return payload.orderItems;
+  const products = payload.orderData?.products;
+  if (Array.isArray(products) && products.length) return products;
+  return [];
+}
+
 function needsName(item: OrderItemLike): boolean {
   const n = (item.productName ?? '').trim();
   return !n || n === UNKNOWN;
@@ -270,14 +331,17 @@ export function mapRawOrderItem(item: Record<string, unknown>): IOrderItem {
     (item.id as string) ||
     undefined;
 
-  const rawCode = String((item.productCode as string) || (item.sku as string) || '').trim();
+  const rawCode = String(
+    (item.productCode as string) || (item.sku as string) || '',
+  ).trim();
   const codeIsId = rawCode && isMongoId(rawCode);
 
   const productId = rawId || (codeIsId ? rawCode : undefined);
   const productCode = rawCode && !codeIsId ? rawCode : undefined;
 
   const qty = Number(item.quantity) || 1;
-  const price = Number(item.price) || 0;
+  const price = Number(item.price ?? item.unitPrice ?? item.amount) || 0;
+  const lineTotal = Number(item.total) || price * qty;
 
   return {
     productId,
@@ -289,7 +353,32 @@ export function mapRawOrderItem(item: Record<string, unknown>): IOrderItem {
     productImage: (item.image as string) || (item.productImage as string) || '',
     quantity: qty,
     price,
-    total: price * qty,
+    total: lineTotal,
     sku: productCode,
+  };
+}
+
+/** Keep checkout names/prices when catalog enrichment cannot improve them. */
+export function mergePreservedOrderItem(original: IOrderItem, enriched: IOrderItem): IOrderItem {
+  const price = enriched.price > 0 ? enriched.price : original.price;
+  const quantity = enriched.quantity || original.quantity || 1;
+  const total =
+    enriched.total > 0
+      ? enriched.total
+      : original.total > 0
+        ? original.total
+        : price * quantity;
+
+  return {
+    ...enriched,
+    productId: enriched.productId || original.productId,
+    productName: isUnknownProductName(enriched.productName)
+      ? original.productName || enriched.productName
+      : enriched.productName ?? original.productName,
+    productImage: enriched.productImage || original.productImage,
+    price,
+    quantity,
+    total,
+    sku: enriched.sku || original.sku,
   };
 }

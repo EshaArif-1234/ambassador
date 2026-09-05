@@ -24,6 +24,7 @@ interface LoginFormProps {
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onTogglePassword: () => void;
   onSubmit: (e: React.FormEvent) => void;
+  redirectPath?: string | null;
 }
 
 export default function LoginForm({
@@ -33,7 +34,8 @@ export default function LoginForm({
   showPassword,
   onInputChange,
   onTogglePassword,
-  onSubmit
+  onSubmit,
+  redirectPath,
 }: LoginFormProps) {
   return (
     <div className="lg:w-1/2 p-6 lg:p-8">
@@ -128,7 +130,7 @@ export default function LoginForm({
         </div>
       </div>
 
-      <GoogleSignInButton disabled={isLoading} />
+      <GoogleSignInButton disabled={isLoading} redirectPath={redirectPath} />
 
       {/* Sign Up Link */}
       <div className="mt-6 text-center">

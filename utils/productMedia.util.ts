@@ -1,5 +1,5 @@
 /** Default product image when none available or load fails. */
-export const PRODUCT_PLACEHOLDER = '/Images/home/stainless-steal.webp';
+export const PRODUCT_PLACEHOLDER = '/Images/installed.webp';
 
 const NEXT_IMAGE_HOSTS = new Set([
   'res.cloudinary.com',

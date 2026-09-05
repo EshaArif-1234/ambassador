@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import { listAdminSpareParts } from '@/backend/lib/spareParts';
+import { fetchAdminSparePartsForExport } from '@/backend/lib/exportAdminSpareParts';
 import { parseSparePartPrice } from '@/backend/lib/adminSpareParts';
 import { uploadImageBuffer } from '@/backend/lib/cloudinaryUpload';
 import { requireAdmin, requireFullAdmin } from '@/backend/lib/adminAuth';
@@ -13,7 +14,7 @@ async function loadSparePartModel() {
   return SparePart;
 }
 
-/** GET /api/admin/spareparts */
+/** GET /api/admin/spareparts — list or export (?export=1&stock=… or ?export=1&ids=…) */
 export async function GET(req: NextRequest) {
   const authError = await requireAdmin(req);
   if (authError) return authError;
@@ -21,6 +22,23 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
+
+    if (searchParams.get('export') === '1') {
+      try {
+        const result = await fetchAdminSparePartsForExport({
+          stock: searchParams.get('stock'),
+          ids: searchParams.get('ids'),
+        });
+        return NextResponse.json({ success: true, ...result });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Export failed.';
+        const status = message.includes('valid spare part id') || message.includes('stock must')
+          ? 400
+          : 500;
+        return NextResponse.json({ success: false, message }, { status });
+      }
+    }
+
     const search = searchParams.get('search')?.trim() ?? '';
     const status = searchParams.get('status') ?? 'all';
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));

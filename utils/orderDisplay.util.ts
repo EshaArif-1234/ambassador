@@ -51,10 +51,20 @@ export function formatOrderDateTime(value?: string | Date | null): string {
 export function formatPaymentMethodLabel(method?: string): string {
   const raw = method?.trim();
   if (!raw) return '—';
+
+  const apgSplit = raw.match(/^Bank Alfalah APG\s*[·•-]\s*(.+)$/i);
+  if (apgSplit) return apgSplit[1].trim();
+  if (/^bank alfalah apg$/i.test(raw)) return 'Bank Alfalah APG';
+
   const key = raw.toLowerCase();
   if (key === 'card' || key === 'credit/debit card') return 'Credit/Debit Card';
   if (key === 'bank' || key === 'bank transfer') return 'Bank Transfer';
-  if (key === 'online') return 'Online';
+  if (key === 'online') return 'Online Payment';
+  if (key.includes('alfa wallet')) return 'Alfa Wallet';
+  if (key.includes('alfalah bank')) return 'Alfalah Bank Account';
+  if (key.includes('card on delivery')) return 'Card on Delivery';
+  if (key.includes('jazzcash') || key.includes('jazz cash')) return 'JazzCash';
+  if (key.includes('raast')) return 'RAAST QR';
   return raw;
 }
 

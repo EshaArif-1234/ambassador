@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { productsHref, productDetailPath, primaryCategorySlug, productUrlSegment } from '@/lib/siteRoutes';
+import { PRODUCT_PLACEHOLDER } from '@/utils/productMedia.util';
 
 interface SaleProduct {
   _id: string;
@@ -16,7 +17,6 @@ interface SaleProduct {
   categories?: Array<{ title?: string; slug?: string }>;
 }
 
-const DEFAULT_IMAGE = '/Images/home/stainless-steal.webp';
 const SALE_LIMIT = 24;
 const SCROLL_PX_PER_SEC = 50;
 
@@ -39,7 +39,7 @@ function SaleProductCard({ product }: { product: SaleProduct }) {
   const pct = discountPercent(product);
   const hasDiscount = pct > 0;
   const outOfStock = (product.stock ?? 0) <= 0;
-  const image = product.images?.[0] || DEFAULT_IMAGE;
+  const image = product.images?.[0] || PRODUCT_PLACEHOLDER;
   const category = categoryTitle(product.categories);
   const categorySlug = primaryCategorySlug(product.categories);
   const detailHref = productDetailPath(productUrlSegment(product), categorySlug);

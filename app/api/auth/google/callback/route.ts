@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/backend/config/db';
 import User from '@/backend/models/User.model';
+import Order from '@/backend/models/Order.model';
 import { signToken, attachCookie, authCookieOptions } from '@/utils/jwt.util';
 import {
   getAppBaseUrlFromRequest,
+  GOOGLE_OAUTH_REDIRECT_COOKIE,
   GOOGLE_OAUTH_STATE_COOKIE,
   verifyGoogleAuthCode,
 } from '@/utils/googleAuth.util';
 import { dashboardHomePath, isDashboardStaff } from '@/utils/dashboardRoles';
+import { getSafeRedirectPath } from '@/utils/safeRedirect.util';
 
 function redirectTo(base: string, path: string, query?: Record<string, string>) {
   const url = new URL(path, base);
@@ -21,6 +24,7 @@ function redirectTo(base: string, path: string, query?: Record<string, string>) 
 
 function clearOAuthStateCookie(response: NextResponse) {
   response.cookies.set(GOOGLE_OAUTH_STATE_COOKIE, '', authCookieOptions(0));
+  response.cookies.set(GOOGLE_OAUTH_REDIRECT_COOKIE, '', authCookieOptions(0));
 }
 
 export async function GET(req: NextRequest) {
@@ -89,7 +93,16 @@ export async function GET(req: NextRequest) {
     }
 
     const token = signToken(String(user._id));
-    const destination = isDashboardStaff(user.role) ? dashboardHomePath(user.role) : '/';
+    await Order.updateMany(
+      {
+        customerEmail: user.email.trim().toLowerCase(),
+        $or: [{ userId: { $exists: false } }, { userId: null }],
+      },
+      { $set: { userId: user._id } },
+    );
+    const redirectPath = getSafeRedirectPath(req.cookies.get(GOOGLE_OAUTH_REDIRECT_COOKIE)?.value);
+    const destination =
+      redirectPath ?? (isDashboardStaff(user.role) ? dashboardHomePath(user.role) : '/');
     const response = redirectTo(baseUrl, destination);
     attachCookie(response, token);
     clearOAuthStateCookie(response);

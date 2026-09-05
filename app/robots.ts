@@ -10,6 +10,7 @@ const DISALLOW_PREFIXES = [
   '/gallery-management',
   '/reviews-management',
   '/admin-settings',
+  '/payments-management',
   '/payments',
   '/users',
   '/login',

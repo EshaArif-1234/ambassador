@@ -11,6 +11,7 @@ import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
 import ProductRatingDropdown from '@/components/products/ProductRatingDropdown';
 import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
+import { PRODUCT_PLACEHOLDER } from '@/utils/productMedia.util';
 
 interface WishlistProduct {
   _id: string;
@@ -92,7 +93,7 @@ export default function WishlistPage() {
       title: product.name,
       price: product.price,
       quantity: 1,
-      image: product.image || '/Images/home/stainless-steal.webp',
+      image: product.image || PRODUCT_PLACEHOLDER,
       productCode: String(code),
     });
   };
@@ -186,7 +187,7 @@ export default function WishlistPage() {
           <div className="space-y-4">
             {items.map((product) => {
               const showStrike = product.originalPrice > product.price && product.price > 0;
-              const img = product.image || '/Images/home/stainless-steal.webp';
+              const img = product.image || PRODUCT_PLACEHOLDER;
               const detailHref = productDetailPath(
                 productUrlSegment(product),
                 primaryCategorySlug(product.categories)
