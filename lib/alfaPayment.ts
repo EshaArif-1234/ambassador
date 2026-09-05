@@ -272,10 +272,15 @@ export async function alfaHandshake(params: {
       json.Message ??
       json.ErrorMessage ??
       JSON.stringify(json);
+    const mode = config.sandbox ? 'sandbox (sandbox.bankalfalah.com)' : 'live (payments.bankalfalah.com)';
     throw new AlfaPaymentError(
-      `Alfalah rejected handshake: ${String(msg)}. Return URL sent: ${returnUrl}. ` +
-        'It must exactly match the Return URL in your Alfalah APG portal (including http/https and no trailing slash). ' +
-        'After resetting credentials, copy the new Merchant Hash, Username, and Password from the portal.',
+      `Alfalah rejected handshake (${mode}): ${String(msg)}. ` +
+        `Return URL sent: ${returnUrl}. ` +
+        (config.sandbox
+          ? 'Production must set ALFA_SANDBOX=false and use live portal credentials. '
+          : '') +
+        'Verify Return URL and Listener URL match the live Alfalah portal exactly (no trailing slash). ' +
+        'Re-copy the full Merchant Hash, Username, Password, Key1, and Key2 from the live portal after any credential reset.',
     );
   }
 
