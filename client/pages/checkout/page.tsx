@@ -6,12 +6,15 @@ import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import CheckoutComingSoon from '@/components/checkout/CheckoutComingSoon';
-import { CHECKOUT_ENABLED } from '@/lib/checkoutEnabled';
 
-const CheckoutPage = () => {
+type CheckoutPageProps = {
+  checkoutEnabled: boolean;
+};
+
+const CheckoutPage = ({ checkoutEnabled }: CheckoutPageProps) => {
   const { cartItems } = useCart();
 
-  if (!CHECKOUT_ENABLED) {
+  if (!checkoutEnabled) {
     return <CheckoutComingSoon />;
   }
 

@@ -12,8 +12,6 @@ import OrderSummary from '@/components/checkout/OrderSummary';
 
 import CheckoutComingSoon from '@/components/checkout/CheckoutComingSoon';
 
-import { CHECKOUT_ENABLED } from '@/lib/checkoutEnabled';
-
 import { useCart, type CartItem } from '@/contexts/CartContext';
 
 import { validateCardPayment } from '@/utils/paymentCard.util';
@@ -916,9 +914,9 @@ function PaymentComingSoonPage() {
 
 
 
-export default function PaymentPage() {
+export default function PaymentPage({ checkoutEnabled }: { checkoutEnabled: boolean }) {
 
-  if (!CHECKOUT_ENABLED) {
+  if (!checkoutEnabled) {
 
     return <PaymentComingSoonPage />;
 
