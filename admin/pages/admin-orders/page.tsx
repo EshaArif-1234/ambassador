@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PRODUCTS_PATH } from '@/lib/siteRoutes';
@@ -73,6 +73,9 @@ interface OrderItem {
   sku?: string;
 }
 
+/** Orders shown per page in the admin table. */
+const ORDERS_PER_PAGE = 20;
+
 /** Amounts are shown in Pakistani Rupees only (no USD/EUR/etc. in UI). */
 const ORDER_CURRENCY_LABEL = 'PKR';
 
@@ -97,6 +100,7 @@ const OrdersPage = () => {
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'paid' | 'refunded'>('all');
   const [dateRange, setDateRange] = useState<OrderDateRange>('all');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [mnpTrackingLoading, setMnpTrackingLoading] = useState(false);
   const [mnpTrackingEvents, setMnpTrackingEvents] = useState<
     { status: string; narration: string; location?: string; time?: string }[]
@@ -276,6 +280,23 @@ const OrdersPage = () => {
   };
 
   const filteredOrders = getFilteredOrders();
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
+
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ORDERS_PER_PAGE;
+    return filteredOrders.slice(start, start + ORDERS_PER_PAGE);
+  }, [filteredOrders, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterPaymentStatus, dateRange]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleDownloadOrdersPdf = () => {
     setPdfLoading(true);
@@ -515,7 +536,7 @@ const OrdersPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOrders.map((order) => (
+                {paginatedOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{order.orderNumber}</div>
@@ -576,6 +597,38 @@ const OrdersPage = () => {
               </tbody>
             </table>
           </div>
+
+          {filteredOrders.length > 0 && (
+            <div className="flex flex-col gap-3 border-t border-gray-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-gray-600">
+                Showing{' '}
+                {(currentPage - 1) * ORDERS_PER_PAGE + 1}–
+                {Math.min(currentPage * ORDERS_PER_PAGE, filteredOrders.length)} of{' '}
+                {filteredOrders.length} orders
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Empty State */}
