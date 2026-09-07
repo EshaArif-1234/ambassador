@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { compressImage, uploadMedia } from '@/utils/uploadMedia';
 import { SPARE_PARTS_PATH } from '@/lib/siteRoutes';
+import type { SparePartVariant } from '@/lib/sparePartVariants.util';
 
 export interface SparePartFormData {
   name: string;
@@ -14,6 +15,7 @@ export interface SparePartFormData {
   description?: string;
   images?: string[];
   imagePublicIds?: string[];
+  variants?: SparePartVariant[];
 }
 
 export type SparePartSavePayload = SparePartFormData | FormData;
@@ -34,6 +36,7 @@ interface SparePartModalProps {
     description?: string;
     images?: string[];
     imagePublicIds?: string[];
+    variants?: SparePartVariant[];
   } | null;
   onSave?: (data: SparePartSavePayload) => Promise<void>;
 }
@@ -67,6 +70,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [variants, setVariants] = useState<SparePartVariant[]>([]);
 
   useEffect(() => {
     if (!isOpen || mode === 'view') return;
@@ -78,6 +82,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
       stock: String(sp?.stock ?? 0),
       weightKg: sp?.weightKg != null ? String(sp.weightKg) : '',
     });
+    setVariants(Array.isArray(sp?.variants) ? sp!.variants!.map((v) => ({ ...v })) : []);
     setImagePreview(sp?.images?.[0] ?? '');
     setImageUrl(sp?.images?.[0] ?? '');
     setImagePublicId(sp?.imagePublicIds?.[0] ?? '');
@@ -111,6 +116,25 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
     return Object.keys(e).length === 0;
   };
 
+  const addVariantRow = () => {
+    setVariants((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        name: '',
+        stock: 0,
+      },
+    ]);
+  };
+
+  const updateVariantRow = (id: string, patch: Partial<SparePartVariant>) => {
+    setVariants((prev) => prev.map((v) => (v.id === id ? { ...v, ...patch } : v)));
+  };
+
+  const removeVariantRow = (id: string) => {
+    setVariants((prev) => prev.filter((v) => v.id !== id));
+  };
+
   const handleSubmit = async () => {
     if (mode === 'view' || !onSave) return;
     if (!validate()) return;
@@ -127,6 +151,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
         fd.append('stock', form.stock || '0');
         fd.append('weightKg', form.weightKg);
         fd.append('description', form.description.trim());
+        fd.append('variants', JSON.stringify(variants.filter((v) => v.name.trim())));
         await onSave(fd);
         onClose();
         return;
@@ -155,6 +180,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
         stock: Number(form.stock || 0),
         weightKg: Number(form.weightKg),
         description: form.description.trim(),
+        variants: variants.filter((v) => v.name.trim()),
       };
 
       if (imageChanged) {
@@ -250,6 +276,36 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
                   {description || <span className="italic text-gray-400">No description provided.</span>}
                 </dd>
               </div>
+              {Array.isArray(sparePart.variants) && sparePart.variants.length > 0 ? (
+                <div>
+                  <dt className="text-xs font-medium text-gray-500 mb-2">Variants</dt>
+                  <dd className="overflow-x-auto rounded-lg border border-gray-200">
+                    <table className="min-w-full text-xs">
+                      <thead className="bg-gray-50 text-left text-gray-500">
+                        <tr>
+                          <th className="px-3 py-2 font-medium">Name</th>
+                          <th className="px-3 py-2 font-medium">Price</th>
+                          <th className="px-3 py-2 font-medium">Stock</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sparePart.variants.map((variant) => (
+                          <tr key={variant.id} className="border-t border-gray-100">
+                            <td className="px-3 py-2 text-gray-900">{variant.name}</td>
+                            <td className="px-3 py-2 text-gray-700">
+                              PKR{' '}
+                              {Number(
+                                variant.price ?? variant.originalPrice ?? displayPrice,
+                              ).toLocaleString()}
+                            </td>
+                            <td className="px-3 py-2 text-gray-700">{variant.stock}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           </div>
 
@@ -374,10 +430,94 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
               />
             </div>
 
+            <div className="rounded-xl border-2 border-dashed border-[#0F4C69]/25 bg-[#0F4C69]/5 p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#0F4C69]">Variants (optional)</h3>
+                  <p className="text-[11px] text-gray-600 mt-0.5">
+                    Add different models, sizes, or voltages — each with its own price and stock.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addVariantRow}
+                  className="shrink-0 rounded-lg bg-[#0F4C69] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0d3f59]"
+                >
+                  + Add variant
+                </button>
+              </div>
+
+              {variants.length === 0 ? (
+                <p className="text-xs text-gray-600">
+                  No variants yet. Click <strong>+ Add variant</strong> to let customers choose options on the website.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {variants.map((variant, index) => (
+                    <div
+                      key={variant.id}
+                      className="rounded-lg border border-gray-200 bg-white p-3 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-gray-700">Variant {index + 1}</p>
+                        <button
+                          type="button"
+                          onClick={() => removeVariantRow(variant.id)}
+                          className="text-xs font-medium text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div className="sm:col-span-1">
+                          <label className="block text-[11px] font-medium text-gray-600 mb-1">Name *</label>
+                          <input
+                            type="text"
+                            value={variant.name}
+                            onChange={(e) => updateVariantRow(variant.id, { name: e.target.value })}
+                            placeholder="e.g. 220V"
+                            className={inputCls(false)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-gray-600 mb-1">Price (PKR)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={variant.price ?? ''}
+                            onChange={(e) =>
+                              updateVariantRow(variant.id, {
+                                price: e.target.value === '' ? undefined : Number(e.target.value),
+                              })
+                            }
+                            placeholder="Uses base price"
+                            className={inputCls(false)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-gray-600 mb-1">Stock *</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={variant.stock}
+                            onChange={(e) =>
+                              updateVariantRow(variant.id, { stock: Math.max(0, Number(e.target.value) || 0) })
+                            }
+                            className={inputCls(false)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Price (PKR) <span className="text-red-500">*</span>
+                  {variants.length > 0 ? 'Base price (PKR)' : 'Price (PKR)'}{' '}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -386,6 +526,9 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
                   onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                   className={inputCls(!!errors.price)}
                 />
+                {variants.length > 0 ? (
+                  <p className="mt-1 text-[11px] text-gray-500">Used when a variant has no own price.</p>
+                ) : null}
                 {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
               </div>
               <div>
@@ -396,7 +539,11 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
                   value={form.stock}
                   onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
                   className={inputCls(false)}
+                  disabled={variants.length > 0}
                 />
+                {variants.length > 0 ? (
+                  <p className="mt-1 text-[11px] text-gray-500">Stock is set per variant above.</p>
+                ) : null}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">

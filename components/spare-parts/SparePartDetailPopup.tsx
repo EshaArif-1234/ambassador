@@ -1,27 +1,45 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import type { SparePartSummary } from '@/lib/spareParts.types';
+import type { SparePartVariant } from '@/lib/sparePartVariants.util';
+import {
+  findSparePartVariant,
+  resolveSparePartVariantPricing,
+  sparePartHasVariants,
+} from '@/lib/sparePartVariants.util';
 import { PRODUCT_PLACEHOLDER } from '@/utils/productMedia.util';
 
 interface SparePartDetailPopupProps {
   open: boolean;
   part: SparePartSummary | null;
-  price: number;
   onClose: () => void;
-  onAddToCart: () => void;
-  onBuyItNow: () => void;
+  onAddToCart: (variant?: SparePartVariant) => void;
+  onBuyItNow: (variant?: SparePartVariant) => void;
 }
 
 export default function SparePartDetailPopup({
   open,
   part,
-  price,
   onClose,
   onAddToCart,
   onBuyItNow,
 }: SparePartDetailPopupProps) {
+  const [selectedVariantId, setSelectedVariantId] = useState<string>('');
+
+  useEffect(() => {
+    if (!open || !part) {
+      setSelectedVariantId('');
+      return;
+    }
+    if (sparePartHasVariants(part) && part.variants.length === 1) {
+      setSelectedVariantId(part.variants[0].id);
+    } else {
+      setSelectedVariantId('');
+    }
+  }, [open, part]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -36,10 +54,24 @@ export default function SparePartDetailPopup({
     };
   }, [open, onClose]);
 
+  const selectedVariant = useMemo(
+    () => (part ? findSparePartVariant(part, selectedVariantId) : undefined),
+    [part, selectedVariantId],
+  );
+
+  const pricing = useMemo(
+    () => (part ? resolveSparePartVariantPricing(part, selectedVariant) : null),
+    [part, selectedVariant],
+  );
+
   if (!open || !part) return null;
 
-  const outOfStock = part.stock <= 0;
-  const showStrike = part.originalPrice > price && price > 0;
+  const hasVariants = sparePartHasVariants(part);
+  const needsVariant = hasVariants && !selectedVariant;
+  const price = pricing?.price ?? 0;
+  const originalPrice = pricing?.originalPrice ?? part.originalPrice;
+  const outOfStock = (pricing?.stock ?? part.stock) <= 0;
+  const showStrike = originalPrice > price && price > 0;
   const image = part.images[0] ?? PRODUCT_PLACEHOLDER;
   const description = part.description?.trim();
   const specEntries = Object.entries(part.specifications ?? {}).filter(
@@ -90,14 +122,49 @@ export default function SparePartDetailPopup({
               <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className="text-lg font-normal text-[#E36630]">{price.toLocaleString()} PKR</span>
                 {showStrike ? (
-                  <span className="text-base text-gray-500 line-through">PKR {part.originalPrice.toLocaleString()}</span>
+                  <span className="text-base text-gray-500 line-through">PKR {originalPrice.toLocaleString()}</span>
                 ) : null}
                 {showStrike ? (
                   <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-green-600">
-                    {Math.round((1 - price / part.originalPrice) * 100)}% OFF
+                    {Math.round((1 - price / originalPrice) * 100)}% OFF
                   </span>
                 ) : null}
               </div>
+
+              {hasVariants ? (
+                <div className="mt-4">
+                  <p className="text-sm font-bold text-gray-900 mb-2">Select variant</p>
+                  <div className="flex flex-wrap gap-2">
+                    {part.variants.map((variant) => {
+                      const variantPricing = resolveSparePartVariantPricing(part, variant);
+                      const variantOut = variantPricing.stock <= 0;
+                      const active = selectedVariantId === variant.id;
+                      return (
+                        <button
+                          key={variant.id}
+                          type="button"
+                          disabled={variantOut}
+                          onClick={() => setSelectedVariantId(variant.id)}
+                          className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                            active
+                              ? 'border-[#0F4C69] bg-[#0F4C69]/5 text-[#0F4C69]'
+                              : 'border-gray-200 bg-white text-gray-800 hover:border-[#0F4C69]/40'
+                          } ${variantOut ? 'cursor-not-allowed opacity-50' : ''}`}
+                        >
+                          <span className="font-semibold block">{variant.name}</span>
+                          <span className="text-xs text-gray-500">
+                            PKR {variantPricing.price.toLocaleString()}
+                            {variantOut ? ' · Out of stock' : ''}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {needsVariant ? (
+                    <p className="mt-2 text-xs text-amber-700">Please select a variant to continue.</p>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="mt-4">
                 <h3 className="text-sm font-bold text-gray-900">Description</h3>
@@ -124,16 +191,16 @@ export default function SparePartDetailPopup({
           <div className="mt-6 flex flex-col gap-2 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
             <button
               type="button"
-              onClick={onAddToCart}
-              disabled={outOfStock}
+              onClick={() => onAddToCart(selectedVariant)}
+              disabled={outOfStock || needsVariant}
               className="w-full rounded-xl bg-[#E36630] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#cc5a2a] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:min-w-[140px]"
             >
               Add to Cart
             </button>
             <button
               type="button"
-              onClick={onBuyItNow}
-              disabled={outOfStock}
+              onClick={() => onBuyItNow(selectedVariant)}
+              disabled={outOfStock || needsVariant}
               className="w-full rounded-xl border-2 border-[#0F4C69] px-5 py-2.5 text-sm font-semibold text-[#0F4C69] transition-colors hover:bg-[#0F4C69] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:min-w-[140px]"
             >
               Buy it Now

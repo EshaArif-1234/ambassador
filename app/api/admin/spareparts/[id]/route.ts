@@ -3,6 +3,10 @@ import { Types } from 'mongoose';
 import connectDB from '@/backend/config/db';
 import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
 import { parseWeightKg } from '@/lib/shippingQuote';
+import {
+  normalizeSparePartVariants,
+  validateSparePartVariants,
+} from '@/lib/sparePartVariants.util';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -102,6 +106,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     if (body.status !== undefined) sparePart.status = body.status === 'inactive' ? 'inactive' : 'active';
     if (body.description !== undefined) sparePart.description = String(body.description).trim();
+
+    if (body.variants !== undefined) {
+      const variants = normalizeSparePartVariants(body.variants);
+      const variantError = validateSparePartVariants(variants, {
+        originalPrice: sparePart.originalPrice,
+        price: sparePart.price,
+        stock: sparePart.stock,
+      });
+      if (variantError) {
+        return NextResponse.json({ success: false, message: variantError }, { status: 400 });
+      }
+      sparePart.variants = variants;
+    }
 
     if (body.images !== undefined) {
       const images = Array.isArray(body.images) ? body.images.filter(Boolean) : [];

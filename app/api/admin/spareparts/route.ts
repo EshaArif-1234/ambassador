@@ -6,6 +6,10 @@ import { parseSparePartPrice } from '@/backend/lib/adminSpareParts';
 import { uploadImageBuffer } from '@/backend/lib/cloudinaryUpload';
 import { requireAdmin, requireFullAdmin } from '@/backend/lib/adminAuth';
 import { parseWeightKg } from '@/lib/shippingQuote';
+import {
+  normalizeSparePartVariants,
+  validateSparePartVariants,
+} from '@/lib/sparePartVariants.util';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -73,6 +77,7 @@ export async function POST(req: NextRequest) {
     let description: string;
     let images: string[];
     let imagePublicIds: string[];
+    let variants = normalizeSparePartVariants(undefined);
 
     if (contentType.includes('multipart/form-data')) {
       const form = await req.formData();
@@ -101,6 +106,12 @@ export async function POST(req: NextRequest) {
       weightKg = parsedWeight;
       status = form.get('status') === 'inactive' ? 'inactive' : 'active';
       description = String(form.get('description') ?? '').trim();
+      const variantsRaw = form.get('variants');
+      try {
+        variants = normalizeSparePartVariants(variantsRaw ? JSON.parse(String(variantsRaw)) : []);
+      } catch {
+        return NextResponse.json({ success: false, message: 'Invalid variants data.' }, { status: 400 });
+      }
 
       if (!(file instanceof File) || file.size === 0) {
         return NextResponse.json({ success: false, message: 'Spare part image is required.' }, { status: 400 });
@@ -132,6 +143,7 @@ export async function POST(req: NextRequest) {
       weightKg = parsedWeight;
       status = body.status === 'inactive' ? 'inactive' : 'active';
       description = String(body.description ?? '').trim();
+      variants = normalizeSparePartVariants(body.variants);
       images = Array.isArray(body.images) ? body.images.filter(Boolean) : [];
       imagePublicIds = Array.isArray(body.imagePublicIds) ? body.imagePublicIds.filter(Boolean) : [];
     }
@@ -141,6 +153,15 @@ export async function POST(req: NextRequest) {
     }
     if (!images.length) {
       return NextResponse.json({ success: false, message: 'Spare part image is required.' }, { status: 400 });
+    }
+
+    const variantError = validateSparePartVariants(variants, {
+      originalPrice,
+      price,
+      stock,
+    });
+    if (variantError) {
+      return NextResponse.json({ success: false, message: variantError }, { status: 400 });
     }
 
     if (status === 'inactive') {
@@ -159,6 +180,7 @@ export async function POST(req: NextRequest) {
       images,
       imagePublicIds,
       specifications: {},
+      variants,
     });
 
     const data = sparePart.toObject();

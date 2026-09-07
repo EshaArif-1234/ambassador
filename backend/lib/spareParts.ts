@@ -1,6 +1,10 @@
 import SparePart from '@/backend/models/SparePart.model';
 import { resolveProductImages } from '@/utils/productMedia.util';
 import type { SparePartSummary } from '@/lib/spareParts.types';
+import {
+  normalizeSparePartVariants,
+  sparePartEffectiveStock,
+} from '@/lib/sparePartVariants.util';
 
 export type { SparePartSummary };
 
@@ -19,10 +23,16 @@ export function toSparePartSummary(row: {
   imagePublicIds?: string[];
   specifications?: Record<string, string>;
   description?: string;
+  variants?: unknown;
 }): SparePartSummary {
+  const variants = normalizeSparePartVariants(row.variants);
   const images = resolveProductImages({
     images: row.images,
     imagePublicIds: row.imagePublicIds,
+  });
+  const stock = sparePartEffectiveStock({
+    stock: row.stock ?? 0,
+    variants,
   });
   return {
     _id: String(row._id),
@@ -30,7 +40,8 @@ export function toSparePartSummary(row: {
     name: row.name,
     price: row.price ?? undefined,
     originalPrice: row.originalPrice,
-    stock: row.stock ?? 0,
+    stock,
+    variants,
     images,
     specifications: (row.specifications as Record<string, string>) ?? {},
     description: row.description?.trim() ?? '',
@@ -38,10 +49,10 @@ export function toSparePartSummary(row: {
 }
 
 const LIST_SELECT =
-  'slug name price originalPrice stock status images imagePublicIds specifications description createdAt';
+  'slug name price originalPrice stock variants status images imagePublicIds specifications description createdAt';
 
 const ADMIN_LIST_SELECT =
-  'name slug price originalPrice stock status images description createdAt';
+  'name slug price originalPrice stock variants status images description createdAt';
 
 /** Admin dashboard listing — all statuses, paginated. */
 export async function listAdminSpareParts(options: {

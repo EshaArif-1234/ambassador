@@ -9,11 +9,21 @@ import SparePartDetailPopup from '@/components/spare-parts/SparePartDetailPopup'
 import PageLoader from '@/components/ui/PageLoader';
 import { PRODUCT_PLACEHOLDER } from '@/utils/productMedia.util';
 import type { SparePartSummary } from '@/lib/spareParts.types';
+import {
+  resolveSparePartVariantPricing,
+  sparePartDisplayPrice,
+  sparePartHasVariants,
+  type SparePartVariant,
+} from '@/lib/sparePartVariants.util';
 
 const PAGE_SIZE = 12;
 
-function partPrice(part: SparePartSummary) {
-  return part.price != null && part.price > 0 ? part.price : part.originalPrice;
+function partPrice(part: SparePartSummary, variant?: SparePartVariant) {
+  return resolveSparePartVariantPricing(part, variant).price;
+}
+
+function partDisplayPricing(part: SparePartSummary) {
+  return sparePartDisplayPrice(part);
 }
 
 function SparePartCard({
@@ -24,12 +34,14 @@ function SparePartCard({
 }: {
   part: SparePartSummary;
   onOpen: () => void;
-  onAddToCart: () => void;
-  onBuyItNow: () => void;
+  onAddToCart: (variant?: SparePartVariant) => void;
+  onBuyItNow: (variant?: SparePartVariant) => void;
 }) {
   const outOfStock = part.stock <= 0;
-  const price = partPrice(part);
-  const showStrike = part.originalPrice > price && price > 0;
+  const pricing = partDisplayPricing(part);
+  const price = pricing.price;
+  const showStrike = pricing.originalPrice > price && price > 0;
+  const hasVariants = sparePartHasVariants(part);
   const image = part.images[0] ?? PRODUCT_PLACEHOLDER;
 
   return (
@@ -77,24 +89,34 @@ function SparePartCard({
         </span>
 
         <div className="mt-1.5 flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
-          <span className="text-base font-normal text-[#E36630] lg:text-lg">PKR {price.toLocaleString()}</span>
+          <span className="text-base font-normal text-[#E36630] lg:text-lg">
+            {pricing.fromPrice != null ? 'From ' : ''}PKR {price.toLocaleString()}
+          </span>
           {showStrike ? (
             <span className="text-xs text-gray-500 line-through sm:text-sm">
-              PKR {part.originalPrice.toLocaleString()}
+              PKR {pricing.originalPrice.toLocaleString()}
             </span>
           ) : null}
           {showStrike ? (
             <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-bold text-green-600">
-              {Math.round((1 - price / part.originalPrice) * 100)}% OFF
+              {Math.round((1 - price / pricing.originalPrice) * 100)}% OFF
             </span>
           ) : null}
         </div>
+
+        {hasVariants ? (
+          <p className="mt-1 text-[10px] font-medium text-[#0F4C69]">{part.variants.length} variants available</p>
+        ) : null}
 
         <div className="mt-auto flex flex-row gap-1.5 pt-2 lg:gap-2 lg:pt-3">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
+              if (hasVariants) {
+                onOpen();
+                return;
+              }
               onAddToCart();
             }}
             disabled={outOfStock}
@@ -106,6 +128,10 @@ function SparePartCard({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
+              if (hasVariants) {
+                onOpen();
+                return;
+              }
               onBuyItNow();
             }}
             disabled={outOfStock}
@@ -169,25 +195,42 @@ export default function SparePartsPage() {
     fetchParts(page, searchTerm);
   }, [page, searchTerm, fetchParts]);
 
-  const buildCartItem = (part: SparePartSummary) => ({
-    id: part._id,
-    title: part.name,
-    price: partPrice(part),
-    quantity: 1,
-    image: part.images[0] ?? PRODUCT_PLACEHOLDER,
-    productCode: part.slug,
-  });
+  const buildCartItem = (part: SparePartSummary, variant?: SparePartVariant) => {
+    const pricing = resolveSparePartVariantPricing(part, variant);
+    const title = variant ? `${part.name} — ${variant.name}` : part.name;
+    return {
+      id: part._id,
+      title,
+      price: pricing.price,
+      quantity: 1,
+      image: part.images[0] ?? PRODUCT_PLACEHOLDER,
+      productCode: variant?.sku || part.slug,
+      variantId: variant?.id,
+      variantName: variant?.name,
+    };
+  };
 
-  const handleAddToCart = (part: SparePartSummary) => {
-    addToCart(buildCartItem(part));
+  const handleAddToCart = (part: SparePartSummary, variant?: SparePartVariant) => {
+    if (sparePartHasVariants(part) && !variant) {
+      setDetailPart(part);
+      return;
+    }
+    const pricing = resolveSparePartVariantPricing(part, variant);
+    if (pricing.stock <= 0) return;
+    addToCart(buildCartItem(part, variant));
     setAddedPart(part);
     setShowCartPopup(true);
     setTimeout(() => setShowCartPopup(false), 3000);
   };
 
-  const handleBuyItNow = (part: SparePartSummary) => {
-    if (part.stock <= 0) return;
-    addToCart(buildCartItem(part));
+  const handleBuyItNow = (part: SparePartSummary, variant?: SparePartVariant) => {
+    if (sparePartHasVariants(part) && !variant) {
+      setDetailPart(part);
+      return;
+    }
+    const pricing = resolveSparePartVariantPricing(part, variant);
+    if (pricing.stock <= 0) return;
+    addToCart(buildCartItem(part, variant));
     router.push('/checkout');
   };
 
@@ -301,8 +344,8 @@ export default function SparePartsPage() {
                     <SparePartCard
                       part={part}
                       onOpen={() => setDetailPart(part)}
-                      onAddToCart={() => handleAddToCart(part)}
-                      onBuyItNow={() => handleBuyItNow(part)}
+                      onAddToCart={(variant) => handleAddToCart(part, variant)}
+                      onBuyItNow={(variant) => handleBuyItNow(part, variant)}
                     />
                   </li>
                 ))}
@@ -383,17 +426,16 @@ export default function SparePartsPage() {
       <SparePartDetailPopup
         open={detailPart != null}
         part={detailPart}
-        price={detailPart ? partPrice(detailPart) : 0}
         onClose={() => setDetailPart(null)}
-        onAddToCart={() => {
+        onAddToCart={(variant) => {
           if (!detailPart) return;
-          handleAddToCart(detailPart);
+          handleAddToCart(detailPart, variant);
           setDetailPart(null);
         }}
-        onBuyItNow={() => {
+        onBuyItNow={(variant) => {
           if (!detailPart) return;
           setDetailPart(null);
-          handleBuyItNow(detailPart);
+          handleBuyItNow(detailPart, variant);
         }}
       />
 
@@ -406,7 +448,7 @@ export default function SparePartsPage() {
                 title: addedPart.name,
                 images: addedPart.images.length ? addedPart.images : [PRODUCT_PLACEHOLDER],
                 specifications: addedPart.specifications,
-                price: partPrice(addedPart),
+                price: addedPart ? partDisplayPricing(addedPart).price : 0,
               }
             : undefined
         }

@@ -9,6 +9,8 @@ export interface CartItem {
   quantity: number;
   image: string;
   productCode: string;
+  variantId?: string;
+  variantName?: string;
 }
 
 interface CartContextType {
@@ -60,7 +62,9 @@ export const CartProvider = ({ children }: CartProviderProps) => {
 
   const addToCart = (item: CartItem) => {
     setCartItems((prev) => {
-      const idx = prev.findIndex((x) => x.id === item.id);
+      const idx = prev.findIndex(
+        (x) => x.id === item.id && (x.variantId ?? '') === (item.variantId ?? ''),
+      );
       if (idx >= 0) {
         return prev.map((x, i) =>
           i === idx ? { ...x, quantity: x.quantity + item.quantity } : x,

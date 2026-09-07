@@ -1,11 +1,22 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
+export interface ISparePartVariant {
+  id: string;
+  name: string;
+  originalPrice?: number;
+  price?: number;
+  stock: number;
+  sku?: string;
+}
+
 export interface ISparePart extends Document {
   name: string;
   slug: string;
   price?: number;
   originalPrice: number;
   stock: number;
+  /** Optional purchasable variants (e.g. size, model). Empty = single SKU uses base price/stock. */
+  variants: ISparePartVariant[];
   /** Shipping weight in kilograms (admin only — not shown on storefront). */
   weightKg?: number;
   status: 'active' | 'inactive';
@@ -45,6 +56,19 @@ const sparePartSchema = new Schema<ISparePart>(
       type: Number,
       default: 0,
       min: [0, 'Stock cannot be negative'],
+    },
+    variants: {
+      type: [
+        {
+          id: { type: String, required: true, trim: true },
+          name: { type: String, required: true, trim: true, maxlength: 120 },
+          originalPrice: { type: Number, min: [0, 'Price cannot be negative'] },
+          price: { type: Number, min: [0, 'Price cannot be negative'] },
+          stock: { type: Number, default: 0, min: [0, 'Stock cannot be negative'] },
+          sku: { type: String, trim: true, maxlength: 80 },
+        },
+      ],
+      default: [],
     },
     weightKg: {
       type: Number,
