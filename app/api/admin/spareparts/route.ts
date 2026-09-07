@@ -5,6 +5,7 @@ import { fetchAdminSparePartsForExport } from '@/backend/lib/exportAdminSparePar
 import { parseSparePartPrice } from '@/backend/lib/adminSpareParts';
 import { uploadImageBuffer } from '@/backend/lib/cloudinaryUpload';
 import { requireAdmin, requireFullAdmin } from '@/backend/lib/adminAuth';
+import { parseWeightKg } from '@/lib/shippingQuote';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
     let originalPrice: number;
     let price: number | undefined;
     let stock: number;
+    let weightKg: number;
     let status: 'active' | 'inactive';
     let description: string;
     let images: string[];
@@ -89,6 +91,14 @@ export async function POST(req: NextRequest) {
       originalPrice = priceCheck.originalPrice;
       price = priceCheck.price;
       stock = Math.max(0, Number(form.get('stock') ?? 0));
+      const parsedWeight = parseWeightKg(form.get('weightKg'));
+      if (parsedWeight == null) {
+        return NextResponse.json(
+          { success: false, message: 'Weight (kg) is required and must be greater than 0.' },
+          { status: 400 },
+        );
+      }
+      weightKg = parsedWeight;
       status = form.get('status') === 'inactive' ? 'inactive' : 'active';
       description = String(form.get('description') ?? '').trim();
 
@@ -112,6 +122,14 @@ export async function POST(req: NextRequest) {
       originalPrice = priceCheck.originalPrice;
       price = priceCheck.price;
       stock = Math.max(0, Number(body.stock ?? 0));
+      const parsedWeight = parseWeightKg(body.weightKg);
+      if (parsedWeight == null) {
+        return NextResponse.json(
+          { success: false, message: 'Weight (kg) is required and must be greater than 0.' },
+          { status: 400 },
+        );
+      }
+      weightKg = parsedWeight;
       status = body.status === 'inactive' ? 'inactive' : 'active';
       description = String(body.description ?? '').trim();
       images = Array.isArray(body.images) ? body.images.filter(Boolean) : [];
@@ -135,6 +153,7 @@ export async function POST(req: NextRequest) {
       originalPrice,
       ...(price != null ? { price } : {}),
       stock,
+      weightKg,
       status,
       description,
       images,

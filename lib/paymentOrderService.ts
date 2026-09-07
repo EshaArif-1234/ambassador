@@ -15,8 +15,14 @@ import {
 } from '@/utils/orderItems.util';
 import { syncUserContactFromCheckout } from '@/utils/syncUserContact.util';
 import { sendOrderConfirmationEmail } from '@/utils/email.util';
+import { tryAutoBookMnpShipment } from '@/lib/mnpBookOrder';
 import { getUserIdFromRequest } from '@/utils/authSession.util';
 import mongoose from 'mongoose';
+import {
+  computeShippingQuote,
+  shippingLineItemsFromCart,
+  ShippingQuoteError,
+} from '@/lib/shippingQuote';
 
 export type CheckoutPaymentPayload = {
   orderId: string;
@@ -92,12 +98,52 @@ async function buildCheckoutDraft(req: NextRequest, payload: CheckoutPaymentPayl
   const rawLineItems = resolveCheckoutLineItems(payload);
   const items = await buildOrderItems(rawLineItems);
 
-  const subtotal = orderData?.subtotal ?? items.reduce((s, i) => s + i.total, 0);
-  const deliveryCharges = orderData?.deliveryCharges ?? 0;
-  const totalAmount = orderData?.totalAmount ?? payload.amount ?? subtotal + deliveryCharges;
+  const cartLines = shippingLineItemsFromCart(
+    rawLineItems.map((item) => ({
+      id: String(item.id ?? item.productId ?? ''),
+      quantity: Number(item.quantity) || 1,
+      price: Number(item.price ?? item.unitPrice ?? item.amount) || 0,
+    })),
+  );
+
+  const city = orderData?.city ?? customerInfo.city ?? '';
+  const address = orderData?.address ?? customerInfo.address ?? '';
+
+  let quote;
+  try {
+    quote = await computeShippingQuote(cartLines, { city, address });
+  } catch (err) {
+    if (err instanceof ShippingQuoteError) {
+      throw err;
+    }
+    throw new Error('Could not calculate shipping.');
+  }
+
+  if (!quote.quoteReady) {
+    throw new ShippingQuoteError(
+      'Enter your city and delivery address before payment.',
+      'SHIPPING_ADDRESS_REQUIRED',
+    );
+  }
+
+  const subtotal = quote.subtotal;
+  const deliveryCharges = quote.deliveryCharges;
+  const totalAmount = quote.total;
+
+  const clientDelivery = Number(orderData?.deliveryCharges);
+  const clientTotal = Number(orderData?.totalAmount ?? payload.amount);
+  if (
+    Number.isFinite(clientDelivery) &&
+    Number.isFinite(clientTotal) &&
+    (Math.abs(clientDelivery - deliveryCharges) > 1 || Math.abs(clientTotal - totalAmount) > 1)
+  ) {
+    throw new ShippingQuoteError(
+      'Shipping quote expired. Refresh checkout and try again.',
+      'SHIPPING_QUOTE_MISMATCH',
+    );
+  }
 
   const rawAddress = orderData?.address ?? customerInfo.address ?? '';
-  const city = orderData?.city ?? customerInfo.city ?? '';
   const street = rawAddress.includes(',') ? rawAddress.split(',')[0].trim() : rawAddress;
   const normalizedEmail = normalizeEmail(customerInfo.email);
 
@@ -121,7 +167,7 @@ async function buildCheckoutDraft(req: NextRequest, payload: CheckoutPaymentPayl
     deliveryNotes: orderData?.deliveryNotes ?? '',
     shippingAddress: {
       street: street || customerInfo.address || 'N/A',
-      city: city || 'N/A',
+      city: city.trim() || 'N/A',
       state: '',
       zipCode: '',
       country: 'Pakistan',
@@ -254,6 +300,8 @@ async function createPaidOrderFromSession(
 
     await CheckoutSession.deleteOne({ _id: session._id });
 
+    await tryAutoBookMnpShipment(String(order._id));
+
     if (order.customerEmail) {
       try {
         await sendOrderConfirmationEmail({
@@ -291,6 +339,7 @@ async function createPaidOrderFromSession(
       await CheckoutSession.deleteOne({ _id: session._id });
       const paid = await Order.findOne({ orderNumber: orderRef, paymentStatus: 'paid' });
       if (paid) {
+        await tryAutoBookMnpShipment(String(paid._id));
         return {
           updated: false,
           orderNumber: paid.orderNumber,
@@ -313,6 +362,9 @@ export async function markOrderPaidFromAlfa(
 
   const existingOrder = await Order.findOne({ orderNumber: orderRef });
   if (existingOrder?.paymentStatus === 'paid') {
+    if (!existingOrder.mnpConsignmentNumber && !existingOrder.mnpOrderReferenceId) {
+      await tryAutoBookMnpShipment(String(existingOrder._id));
+    }
     return {
       updated: false,
       orderNumber: existingOrder.orderNumber,

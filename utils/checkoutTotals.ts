@@ -1,10 +1,8 @@
-export const SHIPPING_CHARGE_PKR = 200;
-
 type PricedItem = { price: number; quantity: number };
 
-export function getCheckoutTotals(items: PricedItem[]) {
+export function getCheckoutTotals(items: PricedItem[], deliveryCharges = 0) {
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
-  const shippingCharges = subtotal > 0 ? SHIPPING_CHARGE_PKR : 0;
+  const shippingCharges = subtotal > 0 ? Math.max(0, deliveryCharges) : 0;
   return {
     subtotal,
     shippingCharges,

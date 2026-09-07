@@ -23,6 +23,7 @@ export interface ProductFormData {
   price: string | number;
   originalPrice: string | number;
   stock: string | number;
+  weightKg: string | number;
   status?: 'active' | 'inactive';
   about: string;
   specifications: Record<string, string>;
@@ -517,6 +518,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
     price:           product?.price           ?? '',
     originalPrice:   product?.originalPrice   || '',
     stock:           product?.stock           ?? 0,
+    weightKg:        product?.weightKg        ?? '',
     status:          (product?.status || 'active') as 'active' | 'inactive',
     about:           product?.about           || '',
     specifications:  (product?.specifications || {}) as Record<string, string>,
@@ -559,6 +561,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
       price: p?.price ?? '',
       originalPrice: p?.originalPrice ?? '',
       stock: p?.stock ?? 0,
+      weightKg: p?.weightKg ?? '',
       status: (p?.status || 'active') as 'active' | 'inactive',
       about: p?.about ?? '',
       specifications: (p?.specifications || {}) as Record<string, string>,
@@ -690,6 +693,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
     if (form.price !== '' && Number(form.price) < 0)            e.price         = 'Discounted price cannot be negative';
     if (form.price !== '' && Number(form.originalPrice) > 0 && Number(form.price) > Number(form.originalPrice))
                                                                 e.price         = 'Discounted price cannot exceed original price';
+    if (!form.weightKg || Number(form.weightKg) <= 0)           e.weightKg      = 'Weight (kg) is required';
     if (!form.about.trim())                                     e.about         = 'Product description is required';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -727,6 +731,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
         price:           form.price,
         originalPrice:   form.originalPrice,
         stock:           form.stock,
+        weightKg:        form.weightKg,
         ...(canChangeStatus
           ? { status: form.status }
           : mode === 'add'
@@ -1078,7 +1083,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
           {/* ── Pricing & Stock ── */}
           <div className="bg-gray-50 p-4 rounded-xl space-y-3">
             <h3 className="text-sm font-semibold text-gray-700">Pricing & Stock</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Original Price (PKR) <span className="text-red-500">*</span>
@@ -1106,6 +1111,22 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, mode, prod
                   onChange={e => setForm(f => ({ ...f, stock: e.target.value }))}
                   placeholder="0"
                   className={inputCls(false)} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Weight (kg) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={0.001}
+                  step={0.001}
+                  value={form.weightKg}
+                  onChange={(e) => setForm((f) => ({ ...f, weightKg: e.target.value }))}
+                  placeholder="e.g. 12.5"
+                  className={inputCls(!!errors.weightKg)}
+                />
+                {errors.weightKg && <p className="text-red-500 text-xs mt-1">{errors.weightKg}</p>}
+                <p className="mt-1 text-[11px] text-gray-400">Admin only — used for delivery charges</p>
               </div>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import CheckoutComingSoon from '@/components/checkout/CheckoutComingSoon';
+import { CheckoutShippingProvider } from '@/contexts/CheckoutShippingContext';
 
 type CheckoutPageProps = {
   checkoutEnabled: boolean;
@@ -76,17 +77,19 @@ const CheckoutPage = ({ checkoutEnabled }: CheckoutPageProps) => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Side - Checkout Form (70%) */}
-          <div className="lg:col-span-2">
-            <CheckoutForm />
-          </div>
+        <CheckoutShippingProvider>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Side - Checkout Form (70%) */}
+            <div className="lg:col-span-2">
+              <CheckoutForm />
+            </div>
 
-          {/* Right Side - Order Summary (30%) */}
-          <div className="lg:col-span-1">
-            <OrderSummary />
+            {/* Right Side - Order Summary (30%) */}
+            <div className="lg:col-span-1">
+              <OrderSummary />
+            </div>
           </div>
-        </div>
+        </CheckoutShippingProvider>
       </div>
     </div>
   );

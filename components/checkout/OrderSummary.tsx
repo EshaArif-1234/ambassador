@@ -5,6 +5,7 @@ import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import { useCart, type CartItem } from '@/contexts/CartContext';
 import Image from 'next/image';
 import { getCheckoutTotals } from '@/utils/checkoutTotals';
+import { useOptionalCheckoutShipping } from '@/contexts/CheckoutShippingContext';
 
 export type OrderSummaryCustomerInfo = {
   name?: string;
@@ -36,11 +37,18 @@ const OrderSummary = ({
 }: OrderSummaryProps = {}) => {
   const { cartItems, removeFromCart } = useCart();
   const items = itemsProp ?? cartItems;
+  const shipping = useOptionalCheckoutShipping();
 
   const computed = getCheckoutTotals(items);
-  const subtotal = subtotalProp ?? computed.subtotal;
-  const shippingCharges = deliveryChargesProp ?? computed.shippingCharges;
-  const total = totalProp ?? subtotal + shippingCharges;
+  const subtotal = subtotalProp ?? (readOnly || !shipping ? computed.subtotal : shipping.subtotal);
+  const shippingCharges =
+    deliveryChargesProp ??
+    (readOnly || !shipping ? computed.shippingCharges : shipping.deliveryCharges);
+  const total =
+    totalProp ??
+    (readOnly || !shipping ? subtotal + shippingCharges : shipping.total);
+  const shippingPending =
+    !readOnly && shipping != null && !shipping.quoteReady && !shipping.loading;
 
   return (
     <div className="rounded-lg border bg-white p-6 sticky top-24">
@@ -163,7 +171,15 @@ const OrderSummary = ({
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Shipping Charges</span>
           <span className="text-gray-900">
-            {shippingCharges === 0 ? 'FREE' : `PKR ${shippingCharges.toLocaleString()}`}
+            {shippingPending
+              ? 'Enter address'
+              : !readOnly && shipping?.loading
+                ? 'Calculating…'
+                : shippingCharges === 0 && (readOnly || shipping?.quoteReady)
+                  ? 'FREE'
+                  : shippingCharges === 0
+                    ? '—'
+                    : `PKR ${shippingCharges.toLocaleString()}`}
           </span>
         </div>
 

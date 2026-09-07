@@ -13,6 +13,7 @@ import {
 } from '@/backend/lib/productMarketingFields';
 import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
 import { applyProductTypeFilter } from '@/backend/lib/productTypeFilters';
+import { parseWeightKg } from '@/lib/shippingQuote';
 import mongoose from 'mongoose';
 
 const ADMIN_PAGE_LIMIT = 10;
@@ -147,6 +148,7 @@ export async function POST(req: NextRequest) {
       metaDescription,
       features,
       brands,
+      weightKg,
     } = body;
 
     const categoryIds = resolveProductCategoryIds(body);
@@ -172,12 +174,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const parsedWeight = parseWeightKg(weightKg);
+    if (parsedWeight == null) {
+      return NextResponse.json(
+        { success: false, message: 'Weight (kg) is required and must be greater than 0.' },
+        { status: 400 },
+      );
+    }
+
     const product = await Product.create({
       name: name.trim(),
       categories: toObjectIdArray(categoryIds),
       ...(price ? { price: Number(price) } : {}),
       originalPrice: Number(originalPrice),
       stock: Number(stock ?? 0),
+      weightKg: parsedWeight,
       status: status ?? 'active',
       about: about?.trim() ?? '',
       images: images ?? [],

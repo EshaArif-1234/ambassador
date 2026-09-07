@@ -3,7 +3,7 @@ import connectDB from '@/backend/config/db';
 import Order from '@/backend/models/Order.model';
 import { requireFullAdmin } from '@/backend/lib/adminAuth';
 import { getDateRangeBounds, type OrderDateRange } from '@/utils/orderDateRange.util';
-import { isValidWorkflowTransition } from '@/utils/orderWorkflow.util';
+import { syncMnpTrackingForOrders } from '@/lib/mnpSyncTracking';
 
 /** GET /api/admin/orders — list all orders with optional filters */
 export async function GET(req: NextRequest) {
@@ -57,6 +57,22 @@ export async function GET(req: NextRequest) {
 
     const orders = await query.lean();
 
+    const syncMnp = searchParams.get('syncMnp') !== '0';
+    if (syncMnp) {
+      const mnpOrderIds = orders
+        .filter((o) => o.mnpConsignmentNumber || o.mnpOrderReferenceId)
+        .map((o) => String(o._id));
+      if (mnpOrderIds.length > 0) {
+        await syncMnpTrackingForOrders(mnpOrderIds);
+        const refreshed = await Order.find({ _id: { $in: mnpOrderIds } }).lean();
+        const byId = new Map(refreshed.map((o) => [String(o._id), o]));
+        for (let i = 0; i < orders.length; i++) {
+          const updated = byId.get(String(orders[i]._id));
+          if (updated) orders[i] = updated;
+        }
+      }
+    }
+
     return NextResponse.json({ success: true, data: orders });
   } catch (err: any) {
     console.error('[GET /api/admin/orders]', err);
@@ -86,11 +102,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Order not found.' }, { status: 404 });
     }
 
-    if (status !== undefined && !isValidWorkflowTransition(existing.status, status)) {
+    if (status !== undefined && status !== existing.status) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Invalid status change. Orders must advance one step at a time.',
+          message: 'Shipment status is managed by M&P Courier and cannot be changed manually.',
         },
         { status: 400 }
       );

@@ -16,6 +16,7 @@ import {
   sanitizeProductBrands,
 } from '@/backend/lib/productMarketingFields';
 import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
+import { parseWeightKg } from '@/lib/shippingQuote';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -86,6 +87,7 @@ export async function PATCH(
       metaDescription,
       features,
       brands,
+      weightKg,
     } = body;
 
     if (name !== undefined) product.name = name.trim();
@@ -110,6 +112,16 @@ export async function PATCH(
     if (price !== undefined) product.price = price === '' || price === null ? undefined : Number(price);
     if (originalPrice !== undefined) product.originalPrice = Number(originalPrice);
     if (stock !== undefined) product.stock = Number(stock);
+    if (weightKg !== undefined) {
+      const parsedWeight = parseWeightKg(weightKg);
+      if (parsedWeight == null) {
+        return NextResponse.json(
+          { success: false, message: 'Weight (kg) must be greater than 0.' },
+          { status: 400 },
+        );
+      }
+      product.weightKg = parsedWeight;
+    }
     if (status !== undefined) product.status = status;
     if (about !== undefined) product.about = about.trim();
     if (specifications !== undefined) product.specifications = specifications;

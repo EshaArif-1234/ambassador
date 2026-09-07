@@ -9,6 +9,8 @@ import { checkoutDefaultsFromUser, profileUpdateFromCheckout } from '@/utils/use
 import { fetchPakistanCities } from '@/utils/cities.api';
 import AuthModal from '@/components/auth/AuthModal';
 import { getCheckoutTotals } from '@/utils/checkoutTotals';
+import { useCheckoutShipping } from '@/contexts/CheckoutShippingContext';
+import { SHIPPING_RATE_PKR_PER_KG } from '@/lib/shippingConstants';
 import { isValidPakistanPhone } from '@/utils/phone.util';
 import {
   clearAlfalahRedirect,
@@ -124,7 +126,19 @@ const CheckoutForm = () => {
     localStorage.setItem('checkoutFormData', JSON.stringify(formData));
   }, [formData, user]);
 
-  const { subtotal, shippingCharges, deliveryCharges, total } = getCheckoutTotals(cartItems);
+  const {
+    subtotal,
+    deliveryCharges,
+    total,
+    quoteReady,
+    loading: shippingLoading,
+    error: shippingError,
+    requestQuote,
+  } = useCheckoutShipping();
+
+  useEffect(() => {
+    requestQuote(formData.city, formData.address);
+  }, [formData.city, formData.address, requestQuote]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -177,6 +191,18 @@ const CheckoutForm = () => {
         submit: 'Please complete all required fields to continue to payment.',
       });
       scrollToFirstError(fieldErrors);
+      return;
+    }
+
+    if (!quoteReady || shippingLoading) {
+      setErrors({
+        submit: shippingError || 'Enter your city and delivery address to calculate shipping before payment.',
+      });
+      return;
+    }
+
+    if (shippingError) {
+      setErrors({ submit: shippingError });
       return;
     }
 
@@ -442,7 +468,13 @@ const CheckoutForm = () => {
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Shipping Charges</span>
               <span className="font-medium text-gray-900">
-                {shippingCharges === 0 ? 'FREE' : `PKR ${shippingCharges.toLocaleString()}`}
+                {!quoteReady && !shippingLoading
+                  ? 'Enter address'
+                  : shippingLoading
+                    ? 'Calculating…'
+                    : deliveryCharges === 0
+                      ? 'FREE'
+                      : `PKR ${deliveryCharges.toLocaleString()}`}
               </span>
             </div>
             <div className="flex justify-between border-t pt-2">
@@ -451,11 +483,16 @@ const CheckoutForm = () => {
             </div>
           </div>
 
+          {shippingError && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="text-sm text-red-800">{shippingError}</p>
+            </div>
+          )}
+
           <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
             <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> Standard shipping is PKR {shippingCharges.toLocaleString()} per
-              order. Delivery is available across Pakistan; remote areas may need extra charges
-              confirmed by our team.
+              <strong>Note:</strong> Delivery is PKR {SHIPPING_RATE_PKR_PER_KG.toLocaleString()} per kg
+              (rounded up). Shipping is calculated after you enter your city and address.
             </p>
           </div>
         </div>
@@ -482,7 +519,7 @@ const CheckoutForm = () => {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isProcessing || cartItems.length === 0}
+          disabled={isProcessing || cartItems.length === 0 || !quoteReady || shippingLoading || Boolean(shippingError)}
           className="w-full rounded-lg bg-[#E36630] py-4 font-medium text-white transition-colors hover:bg-[#cc5a2a] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isProcessing ? (

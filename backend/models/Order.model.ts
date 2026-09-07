@@ -40,6 +40,13 @@ export interface IOrder extends Document {
   notes?: string;
   failedReason?: string;
   deliveryDate?: Date;
+  /** M&P Courier shipment reference (CN / order reference). */
+  mnpConsignmentNumber?: string;
+  mnpOrderReferenceId?: string;
+  mnpTrackingStatus?: string;
+  mnpBookingMessage?: string;
+  mnpBookedAt?: Date;
+  mnpBookingError?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -111,6 +118,12 @@ const orderSchema = new Schema<IOrder>(
     notes: { type: String, default: '' },
     failedReason: { type: String },
     deliveryDate: { type: Date },
+    mnpConsignmentNumber: { type: String, trim: true },
+    mnpOrderReferenceId: { type: String, trim: true },
+    mnpTrackingStatus: { type: String, trim: true },
+    mnpBookingMessage: { type: String, trim: true },
+    mnpBookedAt: { type: Date },
+    mnpBookingError: { type: String, trim: true },
   },
   { timestamps: true }
 );

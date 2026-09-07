@@ -7,6 +7,7 @@ import {
 import { prepareCheckoutForPayment, type CheckoutPaymentPayload } from '@/lib/paymentOrderService';
 import { isCheckoutEnabled } from '@/lib/checkoutEnabled';
 import { isPaymentDemoMode } from '@/lib/paymentGateway';
+import { ShippingQuoteError } from '@/lib/shippingQuote';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -92,6 +93,16 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: unknown) {
     console.error('[POST /api/payment/init]', err);
+    if (err instanceof ShippingQuoteError) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: err.code,
+          message: err.message,
+        },
+        { status: 400 },
+      );
+    }
     const message = err instanceof Error ? err.message : 'Payment initialization failed.';
     return NextResponse.json(
       {

@@ -112,9 +112,7 @@ export async function GET(req: NextRequest) {
       .sort({ updatedAt: -1 })
 
       .select(
-
-        'orderNumber status createdAt updatedAt items subtotal deliveryCharges totalAmount shippingAddress paymentStatus paidAt deliveryDate notes failedReason'
-
+        'orderNumber status createdAt updatedAt items subtotal deliveryCharges totalAmount shippingAddress paymentStatus paidAt deliveryDate notes failedReason mnpConsignmentNumber mnpOrderReferenceId mnpTrackingStatus mnpBookingError mnpBookedAt'
       )
 
       .lean();

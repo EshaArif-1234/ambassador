@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import connectDB from '@/backend/config/db';
 import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
+import { parseWeightKg } from '@/lib/shippingQuote';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -89,6 +90,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     if (body.stock !== undefined) sparePart.stock = Math.max(0, Number(body.stock));
+    if (body.weightKg !== undefined) {
+      const parsedWeight = parseWeightKg(body.weightKg);
+      if (parsedWeight == null) {
+        return NextResponse.json(
+          { success: false, message: 'Weight (kg) must be greater than 0.' },
+          { status: 400 },
+        );
+      }
+      sparePart.weightKg = parsedWeight;
+    }
     if (body.status !== undefined) sparePart.status = body.status === 'inactive' ? 'inactive' : 'active';
     if (body.description !== undefined) sparePart.description = String(body.description).trim();
 

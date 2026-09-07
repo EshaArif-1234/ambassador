@@ -6,6 +6,8 @@ export interface ISparePart extends Document {
   price?: number;
   originalPrice: number;
   stock: number;
+  /** Shipping weight in kilograms (admin only — not shown on storefront). */
+  weightKg?: number;
   status: 'active' | 'inactive';
   description: string;
   images: string[];
@@ -43,6 +45,10 @@ const sparePartSchema = new Schema<ISparePart>(
       type: Number,
       default: 0,
       min: [0, 'Stock cannot be negative'],
+    },
+    weightKg: {
+      type: Number,
+      min: [0.001, 'Weight must be greater than 0'],
     },
     status: {
       type: String,

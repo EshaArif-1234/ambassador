@@ -8,6 +8,7 @@ import { productDetailPath } from '@/lib/siteRoutes';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
 import { formatDeliveryAddress, totalItemQuantity } from '@/utils/orderDisplay.util';
+import { getMnpShipmentDisplayStatus } from '@/utils/orderWorkflow.util';
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
@@ -40,6 +41,45 @@ interface OrderDetail {
   shippingAddress: { street: string; city: string; state?: string; zipCode?: string; country?: string };
   createdAt: string;
   updatedAt: string;
+  mnpConsignmentNumber?: string;
+  mnpOrderReferenceId?: string;
+  mnpTrackingStatus?: string;
+  mnpBookingError?: string;
+  mnpBookedAt?: string;
+}
+
+type MnpTrackingEvent = {
+  status: string;
+  narration: string;
+  location?: string;
+  time?: string;
+};
+
+type MnpTrackingData = {
+  hasShipment: boolean;
+  trackingStatus: string | null;
+  consignmentNumber: string | null;
+  destinationCity?: string;
+  originCity?: string;
+  events: MnpTrackingEvent[];
+  orderStatus?: string;
+  message?: string;
+};
+
+function mnpStatusBadgeClass(order: OrderDetail, trackingStatus?: string | null): string {
+  if (order.status === 'cancelled') return STATUS_STYLES.cancelled;
+  const label = (trackingStatus || getMnpShipmentDisplayStatus(order)).toLowerCase();
+  if (label.includes('deliver')) return STATUS_STYLES.delivered;
+  if (label.includes('transit') || label.includes('dispatch') || label.includes('book')) {
+    return STATUS_STYLES.shipped;
+  }
+  if (label.includes('await') || label.includes('fail')) return STATUS_STYLES.processing;
+  return STATUS_STYLES.processing;
+}
+
+function shipmentStatusLabel(order: OrderDetail, trackingStatus?: string | null): string {
+  if (order.status === 'cancelled') return 'Cancelled';
+  return trackingStatus || getMnpShipmentDisplayStatus(order);
 }
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
@@ -105,6 +145,8 @@ export default function OrderDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
   const [reviewByProduct, setReviewByProduct] = useState<Record<string, ReviewItemStatus>>({});
+  const [mnpTracking, setMnpTracking] = useState<MnpTrackingData | null>(null);
+  const [mnpLoading, setMnpLoading] = useState(false);
 
   const load = useCallback(() => {
     if (authLoading) return;
@@ -118,6 +160,42 @@ export default function OrderDetailsPage() {
   }, [user, id, authLoading]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!order || order.status === 'cancelled' || !id) {
+      setMnpTracking(null);
+      return;
+    }
+
+    let cancelled = false;
+    setMnpLoading(true);
+
+    fetch(`/api/orders/${id}/mnp-tracking`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (cancelled || !d.success) return;
+        setMnpTracking(d.data as MnpTrackingData);
+        if (d.data?.trackingStatus) {
+          setOrder(prev =>
+            prev
+              ? {
+                  ...prev,
+                  mnpTrackingStatus: d.data.trackingStatus,
+                  status: (d.data.orderStatus as OrderStatus) ?? prev.status,
+                }
+              : prev,
+          );
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setMnpLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, order?._id, order?.status]);
 
   useEffect(() => {
     if (!order || order.status !== 'delivered' || !id) return;
@@ -143,7 +221,10 @@ export default function OrderDetailsPage() {
   );
 
   const handlingFee = order ? Math.max(order.totalAmount - order.subtotal - order.deliveryCharges, 0) : 0;
-  const isDelivered = order?.status === 'delivered';
+  const liveMnpStatus = mnpTracking?.trackingStatus ?? order?.mnpTrackingStatus ?? null;
+  const isDelivered =
+    order?.status === 'delivered' ||
+    Boolean(liveMnpStatus?.toLowerCase().includes('deliver'));
   const showReviewButton = (productId?: string) =>
     Boolean(isDelivered && productId);
 
@@ -152,7 +233,7 @@ export default function OrderDetailsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Order Details</h1>
+          <h1 className="text-xl font-bold text-gray-900">Track Order</h1>
           <button onClick={() => router.back()} className="text-sm text-[#0F4C69] hover:text-[#E36630] font-medium">
             ← Back
           </button>
@@ -177,35 +258,85 @@ export default function OrderDetailsPage() {
                 <span className="w-8 h-8 rounded-full bg-[#0F4C69] flex items-center justify-center text-white text-xs font-bold">A</span>
                 <span className="font-semibold text-gray-800 text-sm">Ambassador Store</span>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[order.status]}`}>
-                {order.status}
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${mnpStatusBadgeClass(order, liveMnpStatus)}`}>
+                {shipmentStatusLabel(order, liveMnpStatus)}
               </span>
             </div>
 
-            {/* Delivery banner */}
-            <div className="rounded-2xl bg-gray-50 border border-gray-100 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 text-sm">
-                  <svg className="w-4 h-4 text-[#0F4C69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM9 17h6m4 0a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a2 2 0 104 0" />
-                  </svg>
-                  <span className="font-medium text-gray-700">Standard Delivery</span>
-                  <span className="font-semibold text-gray-900">{order.orderNumber}</span>
+            {/* M&P delivery banner */}
+            <div className="rounded-2xl bg-gray-50 border border-gray-100 px-6 py-4">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-4 h-4 text-[#0F4C69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                    <span className="font-medium text-gray-700">M&P Courier</span>
+                    <span className="font-semibold text-gray-900">{order.orderNumber}</span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-800 mt-2">
+                    {shipmentStatusLabel(order, liveMnpStatus)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {order.status === 'cancelled'
+                      ? 'This order was cancelled by the store'
+                      : mnpTracking?.consignmentNumber
+                        ? `Consignment # ${mnpTracking.consignmentNumber}`
+                        : mnpLoading
+                          ? 'Loading shipment status from M&P…'
+                          : 'Shipment status updates automatically from M&P Courier'}
+                  </p>
+                  {isDelivered && (
+                    <p className="text-xs text-green-700 mt-1">
+                      Delivered {fmtDate(order.deliveryDate || order.updatedAt)}
+                    </p>
+                  )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {order.status === 'delivered'
-                    ? `Package delivered! ${fmtDate(order.deliveryDate || order.updatedAt)}`
-                    : order.status === 'cancelled'
-                    ? 'This order was cancelled by the store'
-                    : 'Your package is on the way'}
-                </p>
               </div>
-              {order.status !== 'cancelled' && !isDelivered && (
-                <button className="px-5 py-2 bg-[#0F4C69] text-white text-sm font-medium rounded-lg hover:bg-[#0c3d54] transition-colors">
-                  Track Package
-                </button>
-              )}
             </div>
+
+            {/* M&P tracking history */}
+            {order.status !== 'cancelled' && (
+              <div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-6 py-5">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h2 className="text-base font-semibold text-gray-900">Shipment tracking</h2>
+                  {mnpLoading && (
+                    <span className="text-xs text-indigo-600">Updating from M&P…</span>
+                  )}
+                </div>
+
+                {!mnpTracking?.hasShipment && !mnpLoading && (
+                  <p className="text-sm text-gray-600">
+                    Your order is being prepared for M&P Courier. Tracking will appear here once the shipment is booked.
+                  </p>
+                )}
+
+                {mnpTracking?.hasShipment && mnpTracking.events.length === 0 && !mnpLoading && (
+                  <p className="text-sm text-gray-600">
+                    Shipment booked with M&P. Detailed tracking updates will appear here as M&P scans the parcel.
+                  </p>
+                )}
+
+                {mnpTracking?.events && mnpTracking.events.length > 0 && (
+                  <ul className="space-y-4">
+                    {mnpTracking.events.map((event, index) => (
+                      <li key={`${event.time ?? index}-${event.status}`} className="flex gap-3">
+                        <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#0F4C69]" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900">{event.status || 'Update'}</p>
+                          {event.narration && (
+                            <p className="text-sm text-gray-600 mt-0.5">{event.narration}</p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            {[event.location, event.time ? fmtDateTime(event.time) : ''].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {/* Items */}
             <div className="rounded-2xl bg-white shadow-sm border border-gray-100 divide-y divide-gray-100">

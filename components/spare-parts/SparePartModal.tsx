@@ -10,6 +10,7 @@ export interface SparePartFormData {
   name: string;
   originalPrice: number;
   stock: number;
+  weightKg: number;
   description?: string;
   images?: string[];
   imagePublicIds?: string[];
@@ -28,6 +29,7 @@ interface SparePartModalProps {
     originalPrice?: number;
     price?: number;
     stock?: number;
+    weightKg?: number;
     status?: 'active' | 'inactive';
     description?: string;
     images?: string[];
@@ -53,6 +55,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
     description: '',
     price: '',
     stock: '0',
+    weightKg: '',
   });
 
   const [imagePreview, setImagePreview] = useState('');
@@ -73,6 +76,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
       description: sp?.description ?? '',
       price: String(sp?.originalPrice ?? sp?.price ?? ''),
       stock: String(sp?.stock ?? 0),
+      weightKg: sp?.weightKg != null ? String(sp.weightKg) : '',
     });
     setImagePreview(sp?.images?.[0] ?? '');
     setImageUrl(sp?.images?.[0] ?? '');
@@ -101,6 +105,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Spare part title is required';
     if (!form.price.trim() || Number(form.price) <= 0) e.price = 'Valid price is required';
+    if (!form.weightKg.trim() || Number(form.weightKg) <= 0) e.weightKg = 'Weight (kg) is required';
     if (!imageFile && !imageUrl && !imagePreview) e.image = 'Image is required';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -120,6 +125,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
         fd.append('name', form.name.trim());
         fd.append('originalPrice', form.price);
         fd.append('stock', form.stock || '0');
+        fd.append('weightKg', form.weightKg);
         fd.append('description', form.description.trim());
         await onSave(fd);
         onClose();
@@ -147,6 +153,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
         name: form.name.trim(),
         originalPrice: Number(form.price),
         stock: Number(form.stock || 0),
+        weightKg: Number(form.weightKg),
         description: form.description.trim(),
       };
 
@@ -367,7 +374,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Price (PKR) <span className="text-red-500">*</span>
@@ -390,6 +397,20 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
                   onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
                   className={inputCls(false)}
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Weight (kg) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={0.001}
+                  step={0.001}
+                  value={form.weightKg}
+                  onChange={(e) => setForm((f) => ({ ...f, weightKg: e.target.value }))}
+                  className={inputCls(!!errors.weightKg)}
+                />
+                {errors.weightKg && <p className="text-red-500 text-xs mt-1">{errors.weightKg}</p>}
               </div>
             </div>
           </div>

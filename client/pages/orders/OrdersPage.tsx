@@ -7,7 +7,7 @@ import { useUser } from '@/contexts/UserContext';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountPageLoader from '@/components/account/AccountPageLoader';
 import { formatDeliveryAddress, orderMetaLine } from '@/utils/orderDisplay.util';
-import { getOrderStatusDisplayLabel } from '@/utils/orderWorkflow.util';
+import { getMnpShipmentDisplayStatus } from '@/utils/orderWorkflow.util';
 import { fetchAuthedJson } from '@/utils/fetchAuthed.util';
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
@@ -37,6 +37,26 @@ interface Order {
   paidAt?: string;
   deliveryDate?: string;
   shippingAddress?: { city?: string; street?: string; state?: string; country?: string };
+  mnpConsignmentNumber?: string;
+  mnpOrderReferenceId?: string;
+  mnpTrackingStatus?: string;
+  mnpBookingError?: string;
+}
+
+function mnpStatusBadgeClass(order: Order): string {
+  if (order.status === 'cancelled') return STATUS_STYLES.cancelled;
+  const label = getMnpShipmentDisplayStatus(order).toLowerCase();
+  if (label.includes('deliver')) return STATUS_STYLES.delivered;
+  if (label.includes('transit') || label.includes('dispatch') || label.includes('book')) {
+    return STATUS_STYLES.shipped;
+  }
+  if (label.includes('await') || label.includes('fail')) return STATUS_STYLES.processing;
+  return STATUS_STYLES.processing;
+}
+
+function shipmentStatusLabel(order: Order): string {
+  if (order.status === 'cancelled') return STATUS_LABELS.cancelled;
+  return getMnpShipmentDisplayStatus(order);
 }
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
@@ -49,12 +69,12 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending:    getOrderStatusDisplayLabel('pending'),
-  confirmed:  getOrderStatusDisplayLabel('confirmed'),
-  processing: getOrderStatusDisplayLabel('processing'),
-  shipped:    getOrderStatusDisplayLabel('shipped'),
-  delivered:  getOrderStatusDisplayLabel('delivered'),
-  cancelled:  getOrderStatusDisplayLabel('cancelled'),
+  pending:    'Pending',
+  confirmed:  'Dispatched',
+  processing: 'Processing',
+  shipped:    'In transit',
+  delivered:  'Delivered',
+  cancelled:  'Cancelled',
 };
 
 export default function OrdersPage() {
@@ -227,9 +247,9 @@ export default function OrdersPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-gray-900">{order.orderNumber}</span>
                       <span
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[order.status] ?? 'bg-gray-100 text-gray-600'}`}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${mnpStatusBadgeClass(order)}`}
                       >
-                        {STATUS_LABELS[order.status] ?? order.status}
+                        {shipmentStatusLabel(order)}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">{orderMetaLine(order)}</p>
@@ -240,7 +260,7 @@ export default function OrdersPage() {
                       href={`/orders/${order._id}`}
                       className="px-4 py-2 text-sm font-semibold text-white bg-[#0F4C69] rounded-lg hover:bg-[#0c3d54] transition-colors whitespace-nowrap"
                     >
-                      View order
+                      Track order
                     </Link>
                   </div>
                 </div>
