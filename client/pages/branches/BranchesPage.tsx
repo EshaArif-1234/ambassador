@@ -86,7 +86,7 @@ const BranchesPage = () => {
       manager: 'Mr Abid Moen',
       hours: 'Mon–Sat: 9:00 AM – 6:00 PM',
       services: ['Bakery Equipment', 'Food Processing', 'Custom Solutions', 'Technical Support'],
-      image: '/Images/branch-2.png',
+      image: '/Images/rawalpindi.jpg',
       coordinates: { lat: 33.600344, lng: 73.060206 },
     },
   ];
