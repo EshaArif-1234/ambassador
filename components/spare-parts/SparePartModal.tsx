@@ -435,7 +435,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
                 <div>
                   <h3 className="text-sm font-semibold text-[#0F4C69]">Variants (optional)</h3>
                   <p className="text-[11px] text-gray-600 mt-0.5">
-                    Add different models, sizes, or voltages — each with its own price and stock.
+                    Add different models, sizes, or voltages — each with its own price and stock. Variant prices can be higher or lower than the base price.
                   </p>
                 </div>
                 <button
@@ -490,7 +490,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
                                 price: e.target.value === '' ? undefined : Number(e.target.value),
                               })
                             }
-                            placeholder="Uses base price"
+                            placeholder="Leave blank for base price"
                             className={inputCls(false)}
                           />
                         </div>

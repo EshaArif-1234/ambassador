@@ -66,14 +66,20 @@ export function validateSparePartVariants(
     if (!variant.name.trim()) return 'Each variant must have a name.';
     if (variant.stock < 0) return 'Variant stock cannot be negative.';
 
-    const originalPrice = variant.originalPrice ?? base.originalPrice;
-    const price = variant.price ?? variant.originalPrice ?? base.price ?? base.originalPrice;
+    const price =
+      variant.price ?? variant.originalPrice ?? base.price ?? base.originalPrice;
 
-    if (!originalPrice || originalPrice <= 0) {
-      return `Variant "${variant.name}" needs a valid price.`;
+    if (!price || price <= 0) {
+      return `Variant "${variant.name}" needs a valid price (set a variant price or base price).`;
     }
-    if (price != null && price > originalPrice) {
-      return `Variant "${variant.name}" sale price cannot exceed original price.`;
+
+    if (
+      variant.originalPrice != null &&
+      variant.originalPrice > 0 &&
+      variant.price != null &&
+      variant.price > variant.originalPrice
+    ) {
+      return `Variant "${variant.name}" sale price cannot exceed its original price.`;
     }
   }
   return null;
@@ -98,13 +104,16 @@ export function resolveSparePartVariantPricing(
   variant?: SparePartVariant | null,
 ): { originalPrice: number; price: number; stock: number } {
   if (variant) {
-    const originalPrice = variant.originalPrice ?? part.originalPrice;
     const price =
       variant.price != null && variant.price > 0
         ? variant.price
         : part.price != null && part.price > 0
           ? part.price
-          : originalPrice;
+          : part.originalPrice;
+    const originalPrice =
+      variant.originalPrice != null && variant.originalPrice > 0
+        ? variant.originalPrice
+        : price;
     return {
       originalPrice,
       price,
