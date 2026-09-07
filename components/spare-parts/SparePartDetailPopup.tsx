@@ -105,87 +105,92 @@ export default function SparePartDetailPopup({
         </div>
 
         <div className="p-5 sm:p-6">
-          <div className="flex flex-col gap-5 sm:flex-row sm:gap-6">
-            <div className="relative mx-auto aspect-square w-full max-w-[280px] shrink-0 bg-[#F3F3F3] sm:mx-0 sm:w-44 md:w-52">
-              <Image src={image} alt={part.name} fill className="object-contain p-4" sizes="(max-width:640px) 280px, 208px" />
-              {outOfStock ? (
-                <span className="absolute left-3 top-3 rounded-full bg-[#B12704] px-2.5 py-1 text-xs font-bold uppercase text-white">
-                  Out of stock
+          <div className="relative mx-auto aspect-square w-full max-w-md bg-[#F3F3F3]">
+            <Image
+              src={image}
+              alt={part.name}
+              fill
+              className="object-contain p-4"
+              sizes="(max-width:768px) 100vw, 448px"
+              priority
+            />
+            {outOfStock ? (
+              <span className="absolute left-3 top-3 rounded-full bg-[#B12704] px-2.5 py-1 text-xs font-bold uppercase text-white">
+                Out of stock
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-5">
+            <h2 id="spare-part-detail-title" className="text-xl font-bold text-[#0F4C69]">
+              {part.name}
+            </h2>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="text-lg font-normal text-[#E36630]">{price.toLocaleString()} PKR</span>
+              {showStrike ? (
+                <span className="text-base text-gray-500 line-through">PKR {originalPrice.toLocaleString()}</span>
+              ) : null}
+              {showStrike ? (
+                <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-green-600">
+                  {Math.round((1 - price / originalPrice) * 100)}% OFF
                 </span>
               ) : null}
             </div>
 
-            <div className="min-w-0 flex-1">
-              <h2 id="spare-part-detail-title" className="text-xl font-bold text-[#0F4C69] sm:text-xl">
-                {part.name}
-              </h2>
-              <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="text-lg font-normal text-[#E36630]">{price.toLocaleString()} PKR</span>
-                {showStrike ? (
-                  <span className="text-base text-gray-500 line-through">PKR {originalPrice.toLocaleString()}</span>
-                ) : null}
-                {showStrike ? (
-                  <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-green-600">
-                    {Math.round((1 - price / originalPrice) * 100)}% OFF
-                  </span>
-                ) : null}
-              </div>
-
-              {hasVariants ? (
-                <div className="mt-4">
-                  <p className="text-sm font-bold text-gray-900 mb-2">Select variant</p>
-                  <div className="flex flex-wrap gap-2">
-                    {part.variants.map((variant) => {
-                      const variantPricing = resolveSparePartVariantPricing(part, variant);
-                      const variantOut = variantPricing.stock <= 0;
-                      const active = selectedVariantId === variant.id;
-                      return (
-                        <button
-                          key={variant.id}
-                          type="button"
-                          disabled={variantOut}
-                          onClick={() => setSelectedVariantId(variant.id)}
-                          className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                            active
-                              ? 'border-[#0F4C69] bg-[#0F4C69]/5 text-[#0F4C69]'
-                              : 'border-gray-200 bg-white text-gray-800 hover:border-[#0F4C69]/40'
-                          } ${variantOut ? 'cursor-not-allowed opacity-50' : ''}`}
-                        >
-                          <span className="font-semibold block">{variant.name}</span>
-                          <span className="text-xs text-gray-500">
-                            PKR {variantPricing.price.toLocaleString()}
-                            {variantOut ? ' · Out of stock' : ''}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {needsVariant ? (
-                    <p className="mt-2 text-xs text-amber-700">Please select a variant to continue.</p>
-                  ) : null}
-                </div>
-              ) : null}
-
+            {hasVariants ? (
               <div className="mt-4">
-                <h3 className="text-sm font-bold text-gray-900">Description</h3>
-                {description ? (
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">{description}</p>
-                ) : (
-                  <p className="mt-2 text-sm italic text-gray-400">No description provided.</p>
-                )}
+                <p className="text-sm font-bold text-gray-900 mb-2">Select variant</p>
+                <div className="flex flex-wrap gap-2">
+                  {part.variants.map((variant) => {
+                    const variantPricing = resolveSparePartVariantPricing(part, variant);
+                    const variantOut = variantPricing.stock <= 0;
+                    const active = selectedVariantId === variant.id;
+                    return (
+                      <button
+                        key={variant.id}
+                        type="button"
+                        disabled={variantOut}
+                        onClick={() => setSelectedVariantId(variant.id)}
+                        className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                          active
+                            ? 'border-[#0F4C69] bg-[#0F4C69]/5 text-[#0F4C69]'
+                            : 'border-gray-200 bg-white text-gray-800 hover:border-[#0F4C69]/40'
+                        } ${variantOut ? 'cursor-not-allowed opacity-50' : ''}`}
+                      >
+                        <span className="font-semibold block">{variant.name}</span>
+                        <span className="text-xs text-gray-500">
+                          PKR {variantPricing.price.toLocaleString()}
+                          {variantOut ? ' · Out of stock' : ''}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {needsVariant ? (
+                  <p className="mt-2 text-xs text-amber-700">Please select a variant to continue.</p>
+                ) : null}
               </div>
+            ) : null}
 
-              {specEntries.length > 0 ? (
-                <dl className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-                  {specEntries.map(([key, value]) => (
-                    <div key={key} className="flex gap-2 text-sm">
-                      <dt className="shrink-0 font-medium text-gray-700">{key}:</dt>
-                      <dd className="text-gray-600">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : null}
+            <div className="mt-4">
+              <h3 className="text-sm font-bold text-gray-900">Description</h3>
+              {description ? (
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">{description}</p>
+              ) : (
+                <p className="mt-2 text-sm italic text-gray-400">No description provided.</p>
+              )}
             </div>
+
+            {specEntries.length > 0 ? (
+              <dl className="mt-4 space-y-2 border-t border-gray-100 pt-4">
+                {specEntries.map(([key, value]) => (
+                  <div key={key} className="flex gap-2 text-sm">
+                    <dt className="shrink-0 font-medium text-gray-700">{key}:</dt>
+                    <dd className="text-gray-600">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
           </div>
 
           <div className="mt-6 flex flex-col gap-2 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
