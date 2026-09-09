@@ -4,6 +4,12 @@ export const PRODUCTS_PATH = '/products';
 /** Public spare parts catalog — standalone from products. */
 export const SPARE_PARTS_PATH = '/spare-parts';
 
+/** Careers landing page. */
+export const CAREERS_PATH = '/careers';
+
+/** Current job openings listing. */
+export const CAREERS_JOBS_PATH = '/careers/jobs';
+
 /** @deprecated Use PRODUCTS_PATH */
 export const COLLECTION_PATH = PRODUCTS_PATH;
 /** @deprecated Use PRODUCTS_PATH */

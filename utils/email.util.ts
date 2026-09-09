@@ -719,3 +719,133 @@ export async function sendReviewThankYouEmail(
     console.warn('[sendReviewThankYouEmail]', err);
   }
 }
+
+export interface JobApplicationPayload {
+  jobId: string;
+  jobSlug: string;
+  jobTitle: string;
+  jobDepartment: string;
+  jobLocation: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  experience?: string;
+  linkedIn?: string;
+  coverLetter: string;
+}
+
+/** Notify HR inbox about a job application. */
+export async function sendJobApplicationInquiryEmail(payload: JobApplicationPayload): Promise<void> {
+  const transporter = getTransporter();
+  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
+  const fromEmail = process.env.SMTP_USER!;
+  const inbox = getContactInboxEmail();
+
+  const nameSafe = escapeHtmlForEmail(payload.name);
+  const emailSafe = escapeHtmlForEmail(payload.email);
+  const phoneSafe = escapeHtmlForEmail(payload.phone);
+  const citySafe = escapeHtmlForEmail(payload.city);
+  const jobTitleSafe = escapeHtmlForEmail(payload.jobTitle);
+  const deptSafe = escapeHtmlForEmail(payload.jobDepartment);
+  const locationSafe = escapeHtmlForEmail(payload.jobLocation);
+  const experienceSafe = escapeHtmlForEmail(payload.experience || '—');
+  const linkedInSafe = payload.linkedIn
+    ? `<a href="${escapeHtmlForEmail(payload.linkedIn)}" style="color:#0F4C69;">${escapeHtmlForEmail(payload.linkedIn)}</a>`
+    : '—';
+  const coverSafe = escapeHtmlForEmail(payload.coverLetter).replace(/\n/g, '<br/>');
+
+  const body = `
+    <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
+      New Job Application
+    </h2>
+    <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
+      A candidate applied for <strong>${jobTitleSafe}</strong> via the careers page.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;color:#333;">
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;width:140px;">Position</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${jobTitleSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">Department</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${deptSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">Job Location</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${locationSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">Applicant</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${nameSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">Email</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">
+          <a href="mailto:${emailSafe}" style="color:#0F4C69;">${emailSafe}</a>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">Phone</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${phoneSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">City</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${citySafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">Experience</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${experienceSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">LinkedIn</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;">${linkedInSafe}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;font-weight:600;vertical-align:top;">Cover Letter</td>
+        <td style="padding:10px 0;line-height:1.7;">${coverSafe}</td>
+      </tr>
+    </table>
+  `;
+
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: inbox,
+    replyTo: payload.email,
+    subject: `Job Application: ${payload.jobTitle} — ${payload.name}`,
+    html: baseTemplate('New Job Application', body),
+  });
+}
+
+/** Auto-reply confirming receipt of job application. */
+export async function sendJobApplicationConfirmationEmail(payload: JobApplicationPayload): Promise<void> {
+  const transporter = getTransporter();
+  const fromName = process.env.SMTP_FROM_NAME ?? 'Ambassador Commercial Kitchen Equipment';
+  const fromEmail = process.env.SMTP_USER!;
+  const inbox = getContactInboxEmail();
+  const nameSafe = escapeHtmlForEmail(payload.name);
+  const jobTitleSafe = escapeHtmlForEmail(payload.jobTitle);
+
+  const body = `
+    <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">
+      Application Received
+    </h2>
+    <p style="margin:0 0 20px;color:#555555;font-size:15px;line-height:1.7;">
+      Hi <strong>${nameSafe}</strong>,<br/>
+      Thank you for applying for <strong>${jobTitleSafe}</strong> at Ambassador Commercial Kitchen Equipment.
+      Our HR team has received your application and will review it shortly.
+    </p>
+    <p style="margin:0;color:#555555;font-size:14px;line-height:1.7;">
+      For urgent enquiries, call us at <strong>0333-1166925</strong> or email
+      <a href="mailto:${inbox}" style="color:#0F4C69;">${inbox}</a>.
+    </p>
+  `;
+
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: payload.email,
+    subject: `Application received — ${payload.jobTitle} | Ambassador`,
+    html: baseTemplate('Application Received', body),
+  });
+}

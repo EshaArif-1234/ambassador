@@ -8,6 +8,7 @@ const DISALLOW_PREFIXES = [
   '/category-management',
   '/orders-management',
   '/gallery-management',
+  '/careers-management',
   '/reviews-management',
   '/admin-settings',
   '/payments-management',

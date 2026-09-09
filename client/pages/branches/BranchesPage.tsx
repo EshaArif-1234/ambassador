@@ -29,6 +29,7 @@ const BranchesPage = () => {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
 
   const branches: Branch[] = [
+   
     {
       id: '4',
       name: 'Head Office',
@@ -88,6 +89,21 @@ const BranchesPage = () => {
       services: ['Bakery Equipment', 'Food Processing', 'Custom Solutions', 'Technical Support'],
       image: '/Images/rawalpindi.jpg',
       coordinates: { lat: 33.600344, lng: 73.060206 },
+    },
+    {
+      id: '5',
+      name: 'Sundar Factory',
+      address: 'Steel World sundar industrial estate',
+      city: 'Lahore',
+      state: 'Punjab',
+      pincode: '54600',
+      phone: '03097770978',
+      email: 'info@ambassador.pk',
+      manager: 'Mr Faizan',
+      hours: 'Mon–Sat: 9:00 AM – 6:00 PM',
+      services: ['Catering Equipment', 'Industrial Kitchen', 'Consulting', 'Training'],
+      image: '/Images/Sunder-Factory.png',
+      coordinates: { lat: 31.2852, lng: 74.1681 },
     },
   ];
 

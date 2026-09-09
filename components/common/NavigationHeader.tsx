@@ -10,6 +10,7 @@ const menuItems = [
   { name: 'Products',       href: PRODUCTS_PATH },
   { name: 'Spare Parts',    href: SPARE_PARTS_PATH },
   { name: 'About',          href: '/about' },
+  { name: 'Careers',        href: '/careers' },
   { name: 'Custom Kitchen', href: '/custom-kitchen' },
   { name: 'Gallery',        href: '/gallery' },
   { name: 'Our Branches',   href: '/branches' },
