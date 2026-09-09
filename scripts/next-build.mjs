@@ -14,6 +14,7 @@ if (env.NODE_ENV && env.NODE_ENV !== 'production') {
 }
 
 env.NODE_ENV = 'production';
+delete env.NEXT_DIST_DIR;
 
 const result = spawnSync('next', ['build'], {
   stdio: 'inherit',

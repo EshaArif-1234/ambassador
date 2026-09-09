@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /** Override with NEXT_DIST_DIR when .next cache is corrupted/locked (Windows). */
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   trailingSlash: false,
   env: {
     NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME ?? '',

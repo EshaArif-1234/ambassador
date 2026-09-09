@@ -105,23 +105,26 @@ export default function SparePartDetailPopup({
         </div>
 
         <div className="p-5 sm:p-6">
-          <div className="relative mx-auto aspect-square w-full max-w-md bg-[#F3F3F3]">
-            <Image
-              src={image}
-              alt={part.name}
-              fill
-              className="object-contain p-4"
-              sizes="(max-width:768px) 100vw, 448px"
-              priority
-            />
-            {outOfStock ? (
-              <span className="absolute left-3 top-3 rounded-full bg-[#B12704] px-2.5 py-1 text-xs font-bold uppercase text-white">
-                Out of stock
-              </span>
-            ) : null}
+          <div className="relative mx-auto w-fit max-w-full">
+            <div className="relative bg-[#F3F3F3]">
+              <Image
+                src={image}
+                alt={part.name}
+                width={512}
+                height={512}
+                className="block max-h-64 w-auto max-w-full object-contain sm:max-h-72"
+                sizes="(max-width:768px) 100vw, 512px"
+                priority
+              />
+              {outOfStock ? (
+                <span className="absolute left-3 top-3 rounded-full bg-[#B12704] px-2.5 py-1 text-xs font-bold uppercase text-white">
+                  Out of stock
+                </span>
+              ) : null}
+            </div>
           </div>
 
-          <div className="mt-5">
+          <div className="mt-4">
             <h2 id="spare-part-detail-title" className="text-xl font-bold text-[#0F4C69]">
               {part.name}
             </h2>
