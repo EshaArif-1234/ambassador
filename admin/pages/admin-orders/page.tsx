@@ -7,6 +7,11 @@ import { PRODUCTS_PATH } from '@/lib/siteRoutes';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Image from 'next/image';
 import { adminIconActionBtn } from '@/admin/lib/adminTableActionStyles';
+import {
+  downloadOrderDetailPdf,
+  printOrderDetail,
+  type OrderDetailExport,
+} from '@/utils/generateOrderDetailPdf';
 import { downloadOrdersPdf } from '@/utils/generateOrdersPdf';
 import { isOrderInDateRange, type OrderDateRange } from '@/utils/orderDateRange.util';
 import {
@@ -87,6 +92,47 @@ function hasText(value?: string | null): value is string {
   return Boolean(value?.trim());
 }
 
+function buildOrderDetailExport(
+  order: Order,
+  mnpTrackingEvents: { status: string; narration: string; location?: string; time?: string }[],
+): OrderDetailExport {
+  return {
+    orderNumber: order.orderNumber,
+    orderDate: order.orderDate,
+    updatedAt: order.updatedAt,
+    deliveryDate: order.deliveryDate,
+    customerName: order.customerName,
+    customerEmail: order.customerEmail,
+    customerPhone: order.customerPhone,
+    paymentStatus: order.paymentStatus,
+    paymentId: hasText(order.paymentId) ? order.paymentId : undefined,
+    transactionId: hasText(order.transactionId) ? order.transactionId : undefined,
+    paymentMethod: order.gatewayMethod || order.paymentMethod,
+    paidAt: order.paidAt,
+    currency: order.currency || ORDER_CURRENCY_LABEL,
+    subtotal: order.subtotal,
+    deliveryCharges: order.deliveryCharges,
+    totalAmount: order.totalAmount,
+    shippingAddress: order.shippingAddress,
+    deliveryNotes: order.deliveryNotes,
+    mnpStatus: getMnpShipmentDisplayStatus(order),
+    mnpConsignment: order.mnpConsignmentNumber || order.mnpOrderReferenceId,
+    mnpBookedAt: order.mnpBookedAt,
+    mnpBookingMessage: order.mnpBookingMessage,
+    mnpBookingError: order.mnpBookingError,
+    mnpTrackingEvents,
+    items: order.items.map((item) => ({
+      productName: item.productName,
+      sku: item.sku,
+      quantity: item.quantity,
+      price: item.price,
+      total: normalizeLineItemTotal(item),
+    })),
+    notes: order.notes,
+    failedReason: order.failedReason,
+  };
+}
+
 const OrdersPage = () => {
   const searchParams = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -100,6 +146,7 @@ const OrdersPage = () => {
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'paid' | 'refunded'>('all');
   const [dateRange, setDateRange] = useState<OrderDateRange>('all');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [orderExportLoading, setOrderExportLoading] = useState<'print' | 'pdf' | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [mnpTrackingLoading, setMnpTrackingLoading] = useState(false);
   const [mnpTrackingEvents, setMnpTrackingEvents] = useState<
@@ -323,6 +370,33 @@ const OrdersPage = () => {
       setPdfLoading(false);
     }
   };
+
+  const handlePrintOrder = () => {
+    if (!selectedOrder) return;
+    setOrderExportLoading('print');
+    try {
+      printOrderDetail(buildOrderDetailExport(selectedOrder, mnpTrackingEvents));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to print this order.');
+    } finally {
+      setOrderExportLoading(null);
+    }
+  };
+
+  const handleDownloadOrderPdf = () => {
+    if (!selectedOrder) return;
+    setOrderExportLoading('pdf');
+    try {
+      downloadOrderDetailPdf(buildOrderDetailExport(selectedOrder, mnpTrackingEvents));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to generate PDF for this order.');
+    } finally {
+      setOrderExportLoading(null);
+    }
+  };
+
+  const orderExportBtnClass =
+    'inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50';
 
   const getMnpStatusBadgeColor = (order: Order) => {
     const label = getMnpShipmentDisplayStatus(order).toLowerCase();
@@ -663,6 +737,28 @@ const OrdersPage = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handlePrintOrder}
+                    disabled={orderExportLoading !== null}
+                    className={orderExportBtnClass}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    {orderExportLoading === 'print' ? 'Opening…' : 'Print'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadOrderPdf}
+                    disabled={orderExportLoading !== null}
+                    className={orderExportBtnClass}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {orderExportLoading === 'pdf' ? 'Generating…' : 'PDF'}
+                  </button>
                   {hasPaymentRecord && (
                   <Link
                     href={`/payments-management?paymentId=${encodeURIComponent(selectedOrder.paymentId)}`}
@@ -974,7 +1070,31 @@ const OrdersPage = () => {
                 )}
               </div>
 
-              <div className="sticky bottom-0 flex justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4">
+              <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-gray-100 bg-white px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handlePrintOrder}
+                    disabled={orderExportLoading !== null}
+                    className={orderExportBtnClass}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    {orderExportLoading === 'print' ? 'Opening…' : 'Print'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadOrderPdf}
+                    disabled={orderExportLoading !== null}
+                    className={orderExportBtnClass}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {orderExportLoading === 'pdf' ? 'Generating…' : 'PDF'}
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowViewModal(false)}
