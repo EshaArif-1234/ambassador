@@ -11,6 +11,11 @@ import {
 } from '@/utils/productMedia.util';
 import { orderProductSpecifications } from '@/lib/productSpecifications';
 import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
+import {
+  downloadProductDetailPdf,
+  printProductDetail,
+  type ProductDetailExport,
+} from '@/utils/generateProductDetailPdf';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,8 +128,12 @@ function buildSpecRows(
 
 // ─── View Modal ───────────────────────────────────────────────────────────────
 
+const exportBtnClass =
+  'inline-flex items-center justify-center gap-2 rounded-lg border border-[#0F4C69]/25 bg-white px-3 py-2 text-sm font-medium text-[#0F4C69] transition-colors hover:bg-[#0F4C69]/5 disabled:cursor-not-allowed disabled:opacity-50';
+
 const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ product: p = {}, onClose }) => {
   const [activeImg, setActiveImg] = useState(0);
+  const [exportLoading, setExportLoading] = useState<'print' | 'pdf' | null>(null);
 
   const catItems = Array.isArray(p.categories) && p.categories.length
     ? p.categories
@@ -156,33 +165,120 @@ const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ pro
   const viewFeatures = normalizeFeaturesFromProduct(p);
   const viewBrands = normalizeBrandsFromProduct(p);
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden">
+  const featureLabels = viewFeatures.map(
+    (id) => PRODUCT_FEATURE_OPTIONS.find((o) => o.id === id)?.label ?? id,
+  );
+  const brandLabels = viewBrands.map(
+    (id) => PRODUCT_BRAND_OPTIONS.find((o) => o.id === id)?.label ?? id,
+  );
 
+  const stockNum = Number(p.stock ?? 0);
+  const stockLabel =
+    stockNum === 0 ? 'Out of stock' : stockNum < 10 ? 'Low stock' : 'In stock';
+
+  const productExport: ProductDetailExport = {
+    name: p.name || 'Unnamed Product',
+    slug: p.slug,
+    status: p.status === 'active' ? 'Active' : 'Inactive',
+    categories: categoryLabels,
+    features: featureLabels,
+    brands: brandLabels,
+    originalPrice: Number(p.originalPrice || 0),
+    price: p.price != null && p.price !== '' ? Number(p.price) : undefined,
+    stock: stockNum,
+    stockLabel,
+    weightKg: p.weightKg != null && p.weightKg !== '' ? Number(p.weightKg) : undefined,
+    about: p.about || '',
+    specifications: Object.fromEntries(
+      Object.entries(specs).map(([key, val]) => [key, String(val ?? '')]),
+    ),
+    createdAt: createdAt ?? undefined,
+    images: imgs,
+    videos: vids,
+    imageCount: imgs.length,
+    videoCount: vids.length,
+    metaTitle: p.metaTitle || undefined,
+    metaDescription: p.metaDescription || undefined,
+    savings: hasDiscount ? savings : undefined,
+    discountPct: hasDiscount ? discountPct : undefined,
+  };
+
+  const handlePrint = () => {
+    setExportLoading('print');
+    try {
+      printProductDetail(productExport);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to print this product.');
+    } finally {
+      setExportLoading(null);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    setExportLoading('pdf');
+    try {
+      await downloadProductDetailPdf(productExport);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to generate PDF.');
+    } finally {
+      setExportLoading(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* ── Sticky Header ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+        <div className="relative z-10 flex flex-shrink-0 items-center justify-between gap-3 border-b border-gray-100 bg-white px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#0F4C69]/10 flex items-center justify-center">
-              <svg className="w-4 h-4 text-[#0F4C69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10l8 4" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-[#0F4C69]/20 bg-[#0F4C69]/5">
+              <svg className="h-4 w-4 text-[#0F4C69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900">Product Details</h2>
-              <p className="text-xs text-gray-400">Read-only · saved data</p>
+              <h2 className="text-base font-semibold text-[#0F4C69]">Product Details</h2>
+              <p className="text-xs text-gray-500">Read-only catalogue view</p>
             </div>
           </div>
-          <button onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={exportLoading !== null}
+              className={exportBtnClass}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              {exportLoading === 'print' ? 'Opening…' : 'Print'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={exportLoading !== null}
+              className={exportBtnClass}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {exportLoading === 'pdf' ? 'Generating…' : 'PDF'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Close"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* ── Body ── */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="relative z-10 flex-1 overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px]">
 
             {/* ── LEFT COLUMN ── */}
@@ -191,7 +287,7 @@ const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ pro
               {/* Image Gallery */}
               <div>
                 {/* Primary image */}
-                <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-white border border-gray-200">
                   {imgs[activeImg] ? (
                     <img
                       src={imgs[activeImg]}
@@ -484,9 +580,12 @@ const ProductViewModal: React.FC<{ product: any; onClose: () => void }> = ({ pro
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex justify-end px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-white">
-          <button onClick={onClose}
-            className="px-5 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+        <div className="relative z-10 flex flex-shrink-0 justify-end border-t border-gray-100 bg-white px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
             Close
           </button>
         </div>
