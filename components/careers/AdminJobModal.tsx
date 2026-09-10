@@ -22,7 +22,6 @@ export type AdminJobForm = {
   description: string;
   responsibilities: string;
   requirements: string;
-  status: 'active' | 'inactive';
 };
 
 export const emptyJobForm = (): AdminJobForm => ({
@@ -38,7 +37,6 @@ export const emptyJobForm = (): AdminJobForm => ({
   description: '',
   responsibilities: '',
   requirements: '',
-  status: 'active',
 });
 
 export function jobToForm(job: CareerJob): AdminJobForm {
@@ -55,7 +53,6 @@ export function jobToForm(job: CareerJob): AdminJobForm {
     description: job.description,
     responsibilities: job.responsibilities.join('\n'),
     requirements: job.requirements.join('\n'),
-    status: job.status === 'inactive' ? 'inactive' : 'active',
   };
 }
 
@@ -68,7 +65,6 @@ interface AdminJobModalProps {
   form: AdminJobForm;
   formError: string | null;
   submitting: boolean;
-  canChangeStatus: boolean;
   onClose: () => void;
   onChange: (patch: Partial<AdminJobForm>) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -80,7 +76,6 @@ const AdminJobModal = ({
   form,
   formError,
   submitting,
-  canChangeStatus,
   onClose,
   onChange,
   onSubmit,
@@ -232,21 +227,6 @@ const AdminJobModal = ({
                   placeholder="Bachelor's Degree"
                 />
               </div>
-
-              {canChangeStatus ? (
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase text-gray-500">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={(e) => onChange({ status: e.target.value as 'active' | 'inactive' })}
-                    disabled={readOnly}
-                    className={inputClass}
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-              ) : null}
 
               <div className="flex items-center gap-2 sm:col-span-2">
                 <input

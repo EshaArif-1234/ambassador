@@ -1,51 +1,48 @@
 'use client';
 
 const benefits = [
-  'Competitive salary packages',
-  'Medical support & wellness',
-  'Paid time off & public holidays',
-  'Performance bonuses',
-  'Training & skill development',
-  'Career growth opportunities',
-  'Showroom & field team support',
-  'Employee referral rewards',
-  'Safe working environment',
-  'Team events & recognition',
-  'Equipment industry exposure',
-  'Nationwide brand reputation',
+  {
+    title: 'Collaborative Teams',
+    description: 'Work with experienced sales, service, and operations professionals who share knowledge and support your success.',
+  },
+  {
+    title: 'Support & Leave',
+    description: 'Medical support, paid time off, and public holidays.',
+  },
+  {
+    title: 'Growth & Training',
+    description: 'Skill development and clear paths across teams and showrooms.',
+  },
+  {
+    title: 'Trusted Brand',
+    description: 'Work with a nationwide leader in commercial kitchen equipment.',
+  },
 ];
 
 const BenefitsSection = () => {
   return (
-    <section className="bg-[#E3E6E6] py-16 md:py-20">
+    <section className="bg-white py-10 md:py-12">
       <div className="container mx-auto px-4">
-        <div className="mx-auto mb-12 max-w-3xl text-center">
-          <span className="mb-4 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-[#0F4C69]">
-            <span className="h-px w-8 bg-[#0F4C69]" />
-            Why Join Us
-            <span className="h-px w-8 bg-[#0F4C69]" />
-          </span>
-          <h2 className="text-3xl font-bold text-gray-900 md:text-4xl">
-            Reap the Rewards of Our{' '}
-            <span className="text-[#E36630]">Benefits Package</span>
+        <div className="mx-auto mb-8 max-w-2xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0F4C69]">Why Join Us</p>
+          <h2 className="mt-2 text-2xl font-bold text-gray-900 md:text-3xl">
+            A workplace built on{' '}
+            <span className="text-[#E36630]">expertise & integrity</span>
           </h2>
-          <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-[#E36630]" />
-          <p className="mt-6 text-base leading-relaxed text-gray-600">
-            We believe in supporting our people with meaningful benefits, learning opportunities, and a
-            culture that values hard work and customer excellence.
-          </p>
         </div>
 
-        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-2">
-          {benefits.map((benefit) => (
-            <div key={benefit} className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0F4C69] text-white">
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {benefits.map((benefit, index) => (
+            <article
+              key={benefit.title}
+              className="group rounded-2xl border border-gray-100 bg-[#FAFAFA] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#0F4C69]/15 hover:shadow-md"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0F4C69] text-sm font-bold text-white">
+                {String(index + 1).padStart(2, '0')}
               </span>
-              <span className="text-sm font-medium text-gray-800 md:text-base">{benefit}</span>
-            </div>
+              <h3 className="mt-4 text-base font-bold text-gray-900">{benefit.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">{benefit.description}</p>
+            </article>
           ))}
         </div>
       </div>

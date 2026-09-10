@@ -24,12 +24,18 @@ export const JOB_TYPES: JobType[] = ['Full Time', 'Part Time', 'Contract'];
 export const WORK_ENVIRONMENTS: WorkEnvironment[] = ['On-site', 'Field', 'Hybrid'];
 
 export const JOB_DEPARTMENT_OPTIONS = [
-  'Sales',
-  'Service',
-  'Operations',
-  'Marketing',
-  'Finance',
-  'Logistics',
-  'HR',
-  'Other',
+  'Sales & Marketing',
+  'Accounts',
+  'Store and Inventory',
+  'Customer Service',
+  'IT & Software',
+  'Human Resources',
+  'Front Desk',
+  'Designing',
+  'Social Media',
+  'Technology',
+  'Fabrication',
+  'Production',
+  'Supply Chain',
+  'Others',
 ];

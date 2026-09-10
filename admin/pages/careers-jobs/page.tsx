@@ -88,7 +88,7 @@ const CareersJobsAdminPage = () => {
 
     const payload = {
       ...form,
-      ...(canChangeStatus ? { status: form.status } : modalMode === 'add' ? { status: 'active' } : {}),
+      ...(modalMode === 'add' ? { status: 'active' as const } : {}),
     };
 
     try {
@@ -213,20 +213,19 @@ const CareersJobsAdminPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">City</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Toggle</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
                       Loading jobs…
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
                       No jobs yet. Click <strong>Add Job</strong> to create your first opening.
                     </td>
                   </tr>
@@ -245,35 +244,34 @@ const CareersJobsAdminPage = () => {
                       <td className="px-6 py-4 text-sm text-gray-600">{job.city}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{job.type}</td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            job.status !== 'inactive'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          {job.status !== 'inactive' ? 'active' : 'inactive'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {canChangeStatus ? (
-                          <button
-                            type="button"
-                            disabled={togglingId === job.id}
-                            onClick={() => handleToggleStatus(job)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                              job.status !== 'inactive' ? 'bg-green-600' : 'bg-gray-200'
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                              job.status !== 'inactive'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-600'
                             }`}
                           >
-                            <span
-                              className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-                                job.status !== 'inactive' ? 'translate-x-6' : 'translate-x-1'
-                              }`}
-                            />
-                          </button>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
+                            {job.status !== 'inactive' ? 'Active' : 'Inactive'}
+                          </span>
+                          {canChangeStatus ? (
+                            <button
+                              type="button"
+                              disabled={togglingId === job.id}
+                              onClick={() => handleToggleStatus(job)}
+                              aria-label={job.status !== 'inactive' ? 'Set inactive' : 'Set active'}
+                              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                                job.status !== 'inactive' ? 'bg-green-600' : 'bg-gray-300'
+                              } disabled:opacity-60`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                                  job.status !== 'inactive' ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-1">
@@ -320,7 +318,6 @@ const CareersJobsAdminPage = () => {
           form={form}
           formError={formError}
           submitting={submitting}
-          canChangeStatus={canChangeStatus}
           onClose={closeModal}
           onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
           onSubmit={handleSubmit}
