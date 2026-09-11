@@ -40,7 +40,6 @@ export const MANAGER_ALLOWED_PATHS = [
   '/category-management',
   '/spare-parts-management',
   '/gallery-management',
-  '/careers-management',
 ] as const;
 
 export function isManagerAllowedPath(pathname: string): boolean {
