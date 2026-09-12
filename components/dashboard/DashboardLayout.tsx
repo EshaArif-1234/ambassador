@@ -28,7 +28,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: 'Reviews', href: '/reviews-management', icon: 'reviews', managerAccess: false },
     { name: 'Gallery', href: '/gallery-management', icon: 'gallery', managerAccess: true },
     { name: 'Careers', href: '/careers-management', icon: 'careers', managerAccess: false },
-    { name: 'Blog', href: '/blog-management', icon: 'blog', managerAccess: false },
+    { name: 'Blog', href: '/blog-management', icon: 'blog', managerAccess: true },
     { name: 'Settings', href: '/admin-settings', icon: 'settings', managerAccess: false },
   ];
 
