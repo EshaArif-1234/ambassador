@@ -28,6 +28,7 @@ const primaryMenuItems = [
 
 const moreMenuItems = [
   { name: 'About',      href: '/about' },
+  { name: 'Blog',       href: '/blog' },
   { name: 'Gallery',    href: '/gallery' },
   { name: 'Showrooms',  href: '/branches' },
   { name: 'Contact Us', href: '/contact-us' },

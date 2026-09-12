@@ -2,16 +2,15 @@
 
 import Image from 'next/image';
 
-/** Source dimensions — keeps full banner visible (no top crop). */
-const BANNER_WIDTH = 5715;
-const BANNER_HEIGHT = 1800;
+const BANNER_WIDTH = 2752;
+const BANNER_HEIGHT = 1536;
 
-const HeroSection = () => {
+const BlogHeroSection = () => {
   return (
     <section className="w-full overflow-hidden bg-white">
       <Image
-        src="/Images/career-page1.png"
-        alt="Ambassador careers team"
+        src="/Images/blog-image.png"
+        alt="Ambassador blog"
         width={BANNER_WIDTH}
         height={BANNER_HEIGHT}
         className="h-auto w-full"
@@ -22,4 +21,4 @@ const HeroSection = () => {
   );
 };
 
-export default HeroSection;
+export default BlogHeroSection;

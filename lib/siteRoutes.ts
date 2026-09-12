@@ -10,6 +10,14 @@ export const CAREERS_PATH = '/careers';
 /** Current job openings listing. */
 export const CAREERS_JOBS_PATH = '/careers/jobs';
 
+/** Public blog listing. */
+export const BLOG_PATH = '/blog';
+
+export function blogDetailPath(slug: string): string {
+  const clean = slug.trim().toLowerCase();
+  return `${BLOG_PATH}/${encodeURIComponent(clean)}`;
+}
+
 /** @deprecated Use PRODUCTS_PATH */
 export const COLLECTION_PATH = PRODUCTS_PATH;
 /** @deprecated Use PRODUCTS_PATH */
