@@ -6,6 +6,14 @@ import Link from 'next/link';
 import { compressImage, uploadMedia } from '@/utils/uploadMedia';
 import { SPARE_PARTS_PATH } from '@/lib/siteRoutes';
 import type { SparePartVariant } from '@/lib/sparePartVariants.util';
+import {
+  downloadSparePartDetailPdf,
+  printSparePartDetail,
+  sparePartToDetailExport,
+} from '@/utils/generateSparePartDetailPdf';
+
+const exportBtnClass =
+  'inline-flex items-center justify-center gap-2 rounded-lg border border-[#0F4C69]/25 bg-white px-3 py-2 text-sm font-medium text-[#0F4C69] transition-colors hover:bg-[#0F4C69]/5 disabled:cursor-not-allowed disabled:opacity-50';
 
 export interface SparePartFormData {
   name: string;
@@ -71,6 +79,7 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [variants, setVariants] = useState<SparePartVariant[]>([]);
+  const [exportLoading, setExportLoading] = useState<'print' | 'pdf' | null>(null);
 
   useEffect(() => {
     if (!isOpen || mode === 'view') return;
@@ -205,111 +214,169 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
   if (!isOpen) return null;
 
   if (mode === 'view' && sparePart) {
-    const displayPrice =
-      sparePart.price != null && sparePart.price > 0 ? sparePart.price : sparePart.originalPrice ?? 0;
-    const image = sparePart.images?.[0];
-    const description = sparePart.description?.trim();
+    const exportData = sparePartToDetailExport(sparePart);
+    const image = exportData.image;
+    const description = exportData.description;
+
+    const handlePrint = () => {
+      setExportLoading('print');
+      try {
+        printSparePartDetail(exportData);
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Unable to print this spare part.');
+      } finally {
+        setExportLoading(null);
+      }
+    };
+
+    const handleDownloadPdf = async () => {
+      setExportLoading('pdf');
+      try {
+        await downloadSparePartDetailPdf(exportData);
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Unable to generate PDF.');
+      } finally {
+        setExportLoading(null);
+      }
+    };
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-        <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">View Spare Part</h2>
-              <p className="mt-0.5 text-xs text-gray-400">Read-only details</p>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="relative z-10 flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-white px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-[#0F4C69]/20 bg-[#0F4C69]/5">
+                <svg className="h-4 w-4 text-[#0F4C69]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-[#0F4C69]">Spare Part Details</h2>
+                <p className="text-xs text-gray-500">Preview matches PDF &amp; print layout</p>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-xl leading-none text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-            >
-              ✕
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={handlePrint} disabled={exportLoading !== null} className={exportBtnClass}>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                {exportLoading === 'print' ? 'Opening…' : 'Print'}
+              </button>
+              <button type="button" onClick={handleDownloadPdf} disabled={exportLoading !== null} className={exportBtnClass}>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {exportLoading === 'pdf' ? 'Generating…' : 'Download PDF'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-5 p-6">
-            <div className="rounded-xl bg-gray-50 p-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700">Image</h3>
-              {image ? (
-                <div className="relative mx-auto h-40 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white">
-                  <Image src={image} alt={sparePart.name ?? ''} fill className="object-contain p-2" sizes="160px" />
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px]">
+              <div className="space-y-6 border-r border-gray-100 p-6">
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-gray-200 bg-white">
+                  {image ? (
+                    <Image
+                      src={image}
+                      alt={exportData.name}
+                      fill
+                      className="object-contain p-2"
+                      sizes="(max-width: 1024px) 100vw, 640px"
+                      priority
+                    />
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
+                      <span className="text-sm">No image</span>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-sm italic text-gray-400">No image</p>
-              )}
-            </div>
 
-            <dl className="space-y-3 text-sm">
-              <div>
-                <dt className="text-xs font-medium text-gray-500">Title</dt>
-                <dd className="mt-0.5 font-medium text-gray-900">{sparePart.name ?? '—'}</dd>
-              </div>
-              {sparePart.slug ? (
                 <div>
-                  <dt className="text-xs font-medium text-gray-500">Slug</dt>
-                  <dd className="mt-0.5 text-gray-600">{sparePart.slug}</dd>
+                  <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                    <span className="inline-block h-4 w-1 rounded-full bg-[#0F4C69]" />
+                    Description
+                  </h3>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
+                    {description || <span className="italic text-gray-400">No description provided.</span>}
+                  </p>
                 </div>
-              ) : null}
-              <div>
-                <dt className="text-xs font-medium text-gray-500">Price</dt>
-                <dd className="mt-0.5 font-medium text-[#E36630]">PKR {Number(displayPrice).toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-gray-500">Stock</dt>
-                <dd className="mt-0.5 text-gray-900">{sparePart.stock ?? 0}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-gray-500">Status</dt>
-                <dd className="mt-1">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                      sparePart.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {sparePart.status ?? 'active'}
-                  </span>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-gray-500">Description</dt>
-                <dd className="mt-1 whitespace-pre-wrap text-gray-600">
-                  {description || <span className="italic text-gray-400">No description provided.</span>}
-                </dd>
-              </div>
-              {Array.isArray(sparePart.variants) && sparePart.variants.length > 0 ? (
-                <div>
-                  <dt className="text-xs font-medium text-gray-500 mb-2">Variants</dt>
-                  <dd className="overflow-x-auto rounded-lg border border-gray-200">
-                    <table className="min-w-full text-xs">
-                      <thead className="bg-gray-50 text-left text-gray-500">
-                        <tr>
-                          <th className="px-3 py-2 font-medium">Name</th>
-                          <th className="px-3 py-2 font-medium">Price</th>
-                          <th className="px-3 py-2 font-medium">Stock</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sparePart.variants.map((variant) => (
-                          <tr key={variant.id} className="border-t border-gray-100">
-                            <td className="px-3 py-2 text-gray-900">{variant.name}</td>
-                            <td className="px-3 py-2 text-gray-700">
-                              PKR{' '}
-                              {Number(
-                                variant.price ?? variant.originalPrice ?? displayPrice,
-                              ).toLocaleString()}
-                            </td>
-                            <td className="px-3 py-2 text-gray-700">{variant.stock}</td>
+
+                {exportData.variants.length > 0 ? (
+                  <div>
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                      <span className="inline-block h-4 w-1 rounded-full bg-[#0F4C69]" />
+                      Variants
+                    </h3>
+                    <div className="overflow-x-auto rounded-lg border border-gray-200">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-gray-50 text-left text-xs text-gray-500">
+                          <tr>
+                            <th className="px-3 py-2 font-medium">Name</th>
+                            <th className="px-3 py-2 font-medium">Price</th>
+                            <th className="px-3 py-2 font-medium">Stock</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </dd>
+                        </thead>
+                        <tbody>
+                          {exportData.variants.map((variant, index) => (
+                            <tr key={`${variant.name}-${index}`} className="border-t border-gray-100">
+                              <td className="px-3 py-2 text-gray-900">{variant.name}</td>
+                              <td className="px-3 py-2 text-gray-700">PKR {variant.price.toLocaleString()}</td>
+                              <td className="px-3 py-2 text-gray-700">{variant.stock}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="bg-[#fafafa] p-6">
+                <h3 className="text-lg font-bold text-gray-900">{exportData.name}</h3>
+                {exportData.slug ? (
+                  <p className="mt-1 break-all font-mono text-xs text-gray-400">{exportData.slug}</p>
+                ) : null}
+                <span
+                  className={`mt-3 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    exportData.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'
+                  }`}
+                >
+                  {exportData.status}
+                </span>
+
+                <div className="mt-4 overflow-hidden rounded-xl border border-gray-200">
+                  <div className="bg-[#0F4C69] px-4 py-3 text-white">
+                    <p className="text-[11px] uppercase tracking-wide opacity-75">Price</p>
+                    <p className="text-2xl font-bold">PKR {exportData.price.toLocaleString()}</p>
+                  </div>
                 </div>
-              ) : null}
-            </dl>
+
+                <div className="mt-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Stock</span>
+                    <span className="font-medium text-gray-900">{exportData.stock}</span>
+                  </div>
+                  {exportData.weightKg != null ? (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Weight</span>
+                      <span className="font-medium text-gray-900">{exportData.weightKg} kg</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 bg-white px-6 py-4">
+          <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-100 bg-white px-6 py-4">
             <Link
               href={SPARE_PARTS_PATH}
               target="_blank"
