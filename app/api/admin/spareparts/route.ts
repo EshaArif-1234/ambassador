@@ -8,6 +8,8 @@ import { requireAdmin, requireFullAdmin } from '@/backend/lib/adminAuth';
 import { parseWeightKg } from '@/lib/shippingQuote';
 import {
   normalizeSparePartVariants,
+  syncSparePartFieldsFromVariants,
+  validateSparePartVariationForm,
   validateSparePartVariants,
 } from '@/lib/sparePartVariants.util';
 
@@ -151,7 +153,20 @@ export async function POST(req: NextRequest) {
     if (!name) {
       return NextResponse.json({ success: false, message: 'Spare part title is required.' }, { status: 400 });
     }
-    if (!images.length) {
+
+    const formVariantError = validateSparePartVariationForm(variants);
+    if (formVariantError) {
+      return NextResponse.json({ success: false, message: formVariantError }, { status: 400 });
+    }
+
+    if (variants.length > 0) {
+      const synced = syncSparePartFieldsFromVariants(variants);
+      originalPrice = synced.originalPrice;
+      price = synced.price;
+      stock = synced.stock;
+      images = synced.images;
+      imagePublicIds = synced.imagePublicIds;
+    } else if (!images.length) {
       return NextResponse.json({ success: false, message: 'Spare part image is required.' }, { status: 400 });
     }
 
@@ -162,6 +177,10 @@ export async function POST(req: NextRequest) {
     });
     if (variantError) {
       return NextResponse.json({ success: false, message: variantError }, { status: 400 });
+    }
+
+    if (originalPrice <= 0) {
+      return NextResponse.json({ success: false, message: 'A valid variation price is required.' }, { status: 400 });
     }
 
     if (status === 'inactive') {

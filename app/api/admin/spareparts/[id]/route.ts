@@ -5,6 +5,9 @@ import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/bac
 import { parseWeightKg } from '@/lib/shippingQuote';
 import {
   normalizeSparePartVariants,
+  syncSparePartFieldsFromVariants,
+  sparePartHasVariants,
+  validateSparePartVariationForm,
   validateSparePartVariants,
 } from '@/lib/sparePartVariants.util';
 
@@ -109,21 +112,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (body.variants !== undefined) {
       const variants = normalizeSparePartVariants(body.variants);
+      const formVariantError = validateSparePartVariationForm(variants);
+      if (formVariantError) {
+        return NextResponse.json({ success: false, message: formVariantError }, { status: 400 });
+      }
+
+      const synced = syncSparePartFieldsFromVariants(variants);
       const variantError = validateSparePartVariants(variants, {
-        originalPrice: sparePart.originalPrice,
-        price: sparePart.price,
-        stock: sparePart.stock,
+        originalPrice: synced.originalPrice,
+        price: synced.price,
+        stock: synced.stock,
       });
       if (variantError) {
         return NextResponse.json({ success: false, message: variantError }, { status: 400 });
       }
-      sparePart.variants = variants;
-    }
 
-    if (body.images !== undefined) {
+      sparePart.variants = variants;
+      sparePart.originalPrice = synced.originalPrice;
+      sparePart.price = synced.price;
+      sparePart.stock = synced.stock;
+
+      const oldIds = sparePart.imagePublicIds ?? [];
+      const removed = oldIds.filter((pid) => pid && !synced.imagePublicIds.includes(pid));
+      await Promise.allSettled(removed.map((pid) => destroyCloudinaryAsset(pid)));
+      sparePart.images = synced.images;
+      sparePart.imagePublicIds = synced.imagePublicIds;
+    } else if (body.images !== undefined) {
       const images = Array.isArray(body.images) ? body.images.filter(Boolean) : [];
       const imagePublicIds = Array.isArray(body.imagePublicIds) ? body.imagePublicIds.filter(Boolean) : [];
-      if (!images.length) {
+      if (!images.length && !sparePartHasVariants({ variants: sparePart.variants })) {
         return NextResponse.json({ success: false, message: 'Image is required.' }, { status: 400 });
       }
       const oldIds = sparePart.imagePublicIds ?? [];

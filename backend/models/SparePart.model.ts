@@ -7,6 +7,9 @@ export interface ISparePartVariant {
   price?: number;
   stock: number;
   sku?: string;
+  /** Optional image for this variation (storefront shows when variant is selected). */
+  image?: string;
+  imagePublicId?: string;
 }
 
 export interface ISparePart extends Document {
@@ -66,6 +69,8 @@ const sparePartSchema = new Schema<ISparePart>(
           price: { type: Number, min: [0, 'Price cannot be negative'] },
           stock: { type: Number, default: 0, min: [0, 'Stock cannot be negative'] },
           sku: { type: String, trim: true, maxlength: 80 },
+          image: { type: String, trim: true, default: '' },
+          imagePublicId: { type: String, trim: true, default: '' },
         },
       ],
       default: [],

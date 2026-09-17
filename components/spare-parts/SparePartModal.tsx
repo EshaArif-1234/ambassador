@@ -54,6 +54,60 @@ const inputCls = (hasError: boolean) =>
     hasError ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'
   }`;
 
+type VariantRow = {
+  id: string;
+  name: string;
+  price: string;
+  stock: string;
+  imagePreview: string;
+  imageUrl: string;
+  imagePublicId: string;
+  imageFile: File | null;
+};
+
+function emptyVariantRow(): VariantRow {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    price: '',
+    stock: '0',
+    imagePreview: '',
+    imageUrl: '',
+    imagePublicId: '',
+    imageFile: null,
+  };
+}
+
+function sparePartToVariantRows(sp: SparePartModalProps['sparePart']): VariantRow[] {
+  if (Array.isArray(sp?.variants) && sp!.variants!.length > 0) {
+    return sp!.variants!.map((v) => ({
+      id: v.id,
+      name: v.name,
+      price: String(v.price ?? v.originalPrice ?? ''),
+      stock: String(v.stock ?? 0),
+      imagePreview: v.image ?? '',
+      imageUrl: v.image ?? '',
+      imagePublicId: v.imagePublicId ?? '',
+      imageFile: null,
+    }));
+  }
+  if (sp?.name || sp?.originalPrice) {
+    return [
+      {
+        id: crypto.randomUUID(),
+        name: 'Standard',
+        price: String(sp.originalPrice ?? sp.price ?? ''),
+        stock: String(sp.stock ?? 0),
+        imagePreview: sp.images?.[0] ?? '',
+        imageUrl: sp.images?.[0] ?? '',
+        imagePublicId: sp.imagePublicIds?.[0] ?? '',
+        imageFile: null,
+      },
+    ];
+  }
+  return [emptyVariantRow()];
+}
+
 const SparePartModal: React.FC<SparePartModalProps> = ({
   isOpen,
   onClose,
@@ -64,21 +118,15 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
   const [form, setForm] = useState({
     name: '',
     description: '',
-    price: '',
-    stock: '0',
     weightKg: '',
   });
 
-  const [imagePreview, setImagePreview] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [imagePublicId, setImagePublicId] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [variantRows, setVariantRows] = useState<VariantRow[]>([emptyVariantRow()]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [variants, setVariants] = useState<SparePartVariant[]>([]);
   const [exportLoading, setExportLoading] = useState<'print' | 'pdf' | null>(null);
 
   useEffect(() => {
@@ -87,61 +135,56 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
     setForm({
       name: sp?.name ?? '',
       description: sp?.description ?? '',
-      price: String(sp?.originalPrice ?? sp?.price ?? ''),
-      stock: String(sp?.stock ?? 0),
       weightKg: sp?.weightKg != null ? String(sp.weightKg) : '',
     });
-    setVariants(Array.isArray(sp?.variants) ? sp!.variants!.map((v) => ({ ...v })) : []);
-    setImagePreview(sp?.images?.[0] ?? '');
-    setImageUrl(sp?.images?.[0] ?? '');
-    setImagePublicId(sp?.imagePublicIds?.[0] ?? '');
-    setImageFile(null);
+    setVariantRows(mode === 'add' && !sp?._id ? [emptyVariantRow()] : sparePartToVariantRows(sp));
     setErrors({});
     setUploadStatus('');
     setUploadProgress(null);
     setSaving(false);
   }, [isOpen, mode, sparePart?._id]);
 
-  const handleImageChange = (file: File | undefined) => {
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-  };
-
-  const clearImage = () => {
-    setImageFile(null);
-    setImagePreview('');
-    setImageUrl('');
-    setImagePublicId('');
-  };
-
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Spare part title is required';
-    if (!form.price.trim() || Number(form.price) <= 0) e.price = 'Valid price is required';
     if (!form.weightKg.trim() || Number(form.weightKg) <= 0) e.weightKg = 'Weight (kg) is required';
-    if (!imageFile && !imageUrl && !imagePreview) e.image = 'Image is required';
+    if (variantRows.length === 0) e.variants = 'Add at least one variation.';
+    variantRows.forEach((row) => {
+      if (!row.name.trim()) e[`variant-${row.id}-name`] = 'Name is required';
+      if (!row.price.trim() || Number(row.price) <= 0) e[`variant-${row.id}-price`] = 'Valid price required';
+      if (Number(row.stock) < 0) e[`variant-${row.id}-stock`] = 'Invalid stock';
+    });
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const addVariantRow = () => {
-    setVariants((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        name: '',
-        stock: 0,
-      },
-    ]);
+    setVariantRows((prev) => [...prev, emptyVariantRow()]);
   };
 
-  const updateVariantRow = (id: string, patch: Partial<SparePartVariant>) => {
-    setVariants((prev) => prev.map((v) => (v.id === id ? { ...v, ...patch } : v)));
+  const updateVariantRow = (id: string, patch: Partial<VariantRow>) => {
+    setVariantRows((prev) => prev.map((v) => (v.id === id ? { ...v, ...patch } : v)));
   };
 
   const removeVariantRow = (id: string) => {
-    setVariants((prev) => prev.filter((v) => v.id !== id));
+    setVariantRows((prev) => (prev.length <= 1 ? prev : prev.filter((v) => v.id !== id)));
+  };
+
+  const setVariantImage = (id: string, file: File | undefined) => {
+    if (!file) return;
+    updateVariantRow(id, {
+      imageFile: file,
+      imagePreview: URL.createObjectURL(file),
+    });
+  };
+
+  const clearVariantImage = (id: string) => {
+    updateVariantRow(id, {
+      imageFile: null,
+      imagePreview: '',
+      imageUrl: '',
+      imagePublicId: '',
+    });
   };
 
   const handleSubmit = async () => {
@@ -150,55 +193,41 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
     setSaving(true);
     setErrors({});
     try {
-      if (mode === 'add' && imageFile) {
-        setUploadStatus('Creating spare part…');
-        const prepared = await compressImage(imageFile, 1200, 0.85);
-        const fd = new FormData();
-        fd.append('file', prepared);
-        fd.append('name', form.name.trim());
-        fd.append('originalPrice', form.price);
-        fd.append('stock', form.stock || '0');
-        fd.append('weightKg', form.weightKg);
-        fd.append('description', form.description.trim());
-        fd.append('variants', JSON.stringify(variants.filter((v) => v.name.trim())));
-        await onSave(fd);
-        onClose();
-        return;
+      setUploadStatus('Uploading variation images…');
+      const variantsPayload: SparePartVariant[] = [];
+
+      for (let i = 0; i < variantRows.length; i++) {
+        const row = variantRows[i];
+        let image = row.imageUrl.trim();
+        let imagePublicId = row.imagePublicId.trim();
+
+        if (row.imageFile) {
+          setUploadStatus(`Uploading image ${i + 1} of ${variantRows.length}…`);
+          const prepared = await compressImage(row.imageFile, 1200, 0.85);
+          const up = await uploadMedia(prepared, undefined, { preferServer: true });
+          image = up.url;
+          imagePublicId = up.publicId;
+        }
+
+        variantsPayload.push({
+          id: row.id,
+          name: row.name.trim(),
+          price: Number(row.price),
+          stock: Math.max(0, Number(row.stock) || 0),
+          ...(image ? { image, ...(imagePublicId ? { imagePublicId } : {}) } : {}),
+        });
       }
 
-      let finalUrl = imageUrl;
-      let finalPublicId = imagePublicId;
-      const imageChanged =
-        mode === 'add' ||
-        Boolean(imageFile) ||
-        imageUrl !== (sparePart?.images?.[0] ?? '');
-
-      if (imageFile) {
-        setUploadStatus('Uploading image…');
-        const up = await uploadMedia(imageFile, undefined, { preferServer: true });
-        finalUrl = up.url;
-        finalPublicId = up.publicId;
-        setUploadStatus('Saving…');
-      } else {
-        setUploadStatus('Saving…');
-      }
+      setUploadStatus('Saving…');
 
       const payload: SparePartFormData = {
         name: form.name.trim(),
-        originalPrice: Number(form.price),
-        stock: Number(form.stock || 0),
+        originalPrice: Math.min(...variantsPayload.map((v) => v.price ?? v.originalPrice ?? 0)),
+        stock: variantsPayload.reduce((sum, v) => sum + v.stock, 0),
         weightKg: Number(form.weightKg),
         description: form.description.trim(),
-        variants: variants.filter((v) => v.name.trim()),
+        variants: variantsPayload,
       };
-
-      if (imageChanged) {
-        if (!finalUrl) {
-          throw new Error('Image is required.');
-        }
-        payload.images = [finalUrl];
-        payload.imagePublicIds = finalPublicId ? [finalPublicId] : [];
-      }
 
       await onSave(payload);
       onClose();
@@ -399,80 +428,164 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-100 bg-white px-6 py-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              {mode === 'add' ? 'Add New Spare Part' : 'Edit Spare Part'}
+              {mode === 'add' ? 'Create Spare Part' : 'Edit Spare Part'}
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Listed on the public spare parts page — not linked to products or categories.
+            <p className="mt-0.5 text-xs text-gray-500">
+              Each variation has its own name, price, stock, and optional image.
             </p>
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors text-xl leading-none"
+            onClick={addVariantRow}
+            className="shrink-0 rounded-lg bg-[#0F4C69] px-3 py-2 text-xs font-semibold text-white hover:bg-[#0d3f59]"
           >
-            ✕
+            + Add variation
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
-          {errors.submit && (
-            <div className="px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+        <div className="flex-1 space-y-5 overflow-y-auto p-6">
+          {errors.submit ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {errors.submit}
             </div>
-          )}
+          ) : null}
+          {errors.variants ? <p className="text-sm text-red-600">{errors.variants}</p> : null}
 
-          <div className="bg-gray-50 p-4 rounded-xl">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Image</h3>
-            {!imagePreview ? (
-              <div className="relative flex items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0F4C69] hover:bg-[#0F4C69]/5 transition-colors bg-white">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onChange={(e) => {
-                    handleImageChange(e.target.files?.[0]);
-                    e.target.value = '';
-                  }}
-                />
-                <span className="text-xs text-gray-500 font-medium">+ Add image</span>
-              </div>
-            ) : (
-              <div className="flex items-start gap-3">
-                <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={clearImage}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs"
-                  >
-                    ✕
-                  </button>
+          <div className="space-y-4">
+            {variantRows.map((row, index) => (
+              <div
+                key={row.id}
+                className="rounded-xl border border-gray-200 bg-gray-50/80 p-4 shadow-sm"
+              >
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#0F4C69]">
+                    Variation {index + 1}
+                  </p>
+                  {variantRows.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => removeVariantRow(row.id)}
+                      className="text-xs font-medium text-red-600 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  ) : null}
                 </div>
-                <label className="flex flex-1 h-20 items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0F4C69] bg-white text-xs text-gray-500">
-                  Replace
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      handleImageChange(e.target.files?.[0]);
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
+
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="shrink-0 sm:w-32">
+                    <p className="mb-1.5 text-[11px] font-medium text-gray-600">Image (optional)</p>
+                    {!row.imagePreview ? (
+                      <label className="relative flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white text-center hover:border-[#0F4C69] hover:bg-[#0F4C69]/5">
+                        <span className="px-2 text-[11px] font-medium text-gray-500">+ Add image</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          onChange={(e) => {
+                            setVariantImage(row.id, e.target.files?.[0]);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    ) : (
+                      <div className="relative h-32 w-full overflow-hidden rounded-lg border border-gray-200 bg-white">
+                        <img src={row.imagePreview} alt="" className="h-full w-full object-contain p-1" />
+                        <button
+                          type="button"
+                          onClick={() => clearVariantImage(row.id)}
+                          className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+                          aria-label="Remove image"
+                        >
+                          ✕
+                        </button>
+                        <label className="absolute bottom-1 left-1 right-1 cursor-pointer rounded bg-black/50 py-0.5 text-center text-[10px] text-white">
+                          Replace
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              setVariantImage(row.id, e.target.files?.[0]);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-1 block text-[11px] font-medium text-gray-600">
+                          Variation name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={row.name}
+                          onChange={(e) => updateVariantRow(row.id, { name: e.target.value })}
+                          placeholder="e.g. 220V / Model A"
+                          className={inputCls(!!errors[`variant-${row.id}-name`])}
+                        />
+                        {errors[`variant-${row.id}-name`] ? (
+                          <p className="mt-1 text-xs text-red-500">{errors[`variant-${row.id}-name`]}</p>
+                        ) : null}
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[11px] font-medium text-gray-600">
+                          Price (PKR) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={row.price}
+                          onChange={(e) => updateVariantRow(row.id, { price: e.target.value })}
+                          className={inputCls(!!errors[`variant-${row.id}-price`])}
+                        />
+                        {errors[`variant-${row.id}-price`] ? (
+                          <p className="mt-1 text-xs text-red-500">{errors[`variant-${row.id}-price`]}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-gray-600">
+                        Stock <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={row.stock}
+                        onChange={(e) => updateVariantRow(row.id, { stock: e.target.value })}
+                        className={inputCls(!!errors[`variant-${row.id}-stock`])}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-            {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image}</p>}
+            ))}
           </div>
 
-          <div className="space-y-3">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-700">General description</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="Shared details for this spare part (fits all variations)…"
+              rows={5}
+              maxLength={5000}
+              className={`${inputCls(false)} min-h-[7rem] resize-y`}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
                 Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -482,162 +595,34 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
                 placeholder="e.g. Heating Element for Pressure Fryer"
                 className={inputCls(!!errors.name)}
               />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+              {errors.name ? <p className="mt-1 text-xs text-red-500">{errors.name}</p> : null}
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Brief details about this spare part…"
-                rows={4}
-                maxLength={5000}
-                className={`${inputCls(false)} resize-y min-h-[5rem]`}
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Weight (kg) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                min={0.001}
+                step={0.001}
+                value={form.weightKg}
+                onChange={(e) => setForm((f) => ({ ...f, weightKg: e.target.value }))}
+                className={inputCls(!!errors.weightKg)}
               />
-            </div>
-
-            <div className="rounded-xl border-2 border-dashed border-[#0F4C69]/25 bg-[#0F4C69]/5 p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-semibold text-[#0F4C69]">Variants (optional)</h3>
-                  <p className="text-[11px] text-gray-600 mt-0.5">
-                    Add different models, sizes, or voltages — each with its own price and stock. Variant prices can be higher or lower than the base price.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={addVariantRow}
-                  className="shrink-0 rounded-lg bg-[#0F4C69] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0d3f59]"
-                >
-                  + Add variant
-                </button>
-              </div>
-
-              {variants.length === 0 ? (
-                <p className="text-xs text-gray-600">
-                  No variants yet. Click <strong>+ Add variant</strong> to let customers choose options on the website.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {variants.map((variant, index) => (
-                    <div
-                      key={variant.id}
-                      className="rounded-lg border border-gray-200 bg-white p-3 space-y-2"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-semibold text-gray-700">Variant {index + 1}</p>
-                        <button
-                          type="button"
-                          onClick={() => removeVariantRow(variant.id)}
-                          className="text-xs font-medium text-red-600 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        <div className="sm:col-span-1">
-                          <label className="block text-[11px] font-medium text-gray-600 mb-1">Name *</label>
-                          <input
-                            type="text"
-                            value={variant.name}
-                            onChange={(e) => updateVariantRow(variant.id, { name: e.target.value })}
-                            placeholder="e.g. 220V"
-                            className={inputCls(false)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-medium text-gray-600 mb-1">Price (PKR)</label>
-                          <input
-                            type="number"
-                            min={0}
-                            value={variant.price ?? ''}
-                            onChange={(e) =>
-                              updateVariantRow(variant.id, {
-                                price: e.target.value === '' ? undefined : Number(e.target.value),
-                              })
-                            }
-                            placeholder="Leave blank for base price"
-                            className={inputCls(false)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-medium text-gray-600 mb-1">Stock *</label>
-                          <input
-                            type="number"
-                            min={0}
-                            value={variant.stock}
-                            onChange={(e) =>
-                              updateVariantRow(variant.id, { stock: Math.max(0, Number(e.target.value) || 0) })
-                            }
-                            className={inputCls(false)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  {variants.length > 0 ? 'Base price (PKR)' : 'Price (PKR)'}{' '}
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.price}
-                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                  className={inputCls(!!errors.price)}
-                />
-                {variants.length > 0 ? (
-                  <p className="mt-1 text-[11px] text-gray-500">Used when a variant has no own price.</p>
-                ) : null}
-                {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Stock</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.stock}
-                  onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
-                  className={inputCls(false)}
-                  disabled={variants.length > 0}
-                />
-                {variants.length > 0 ? (
-                  <p className="mt-1 text-[11px] text-gray-500">Stock is set per variant above.</p>
-                ) : null}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Weight (kg) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min={0.001}
-                  step={0.001}
-                  value={form.weightKg}
-                  onChange={(e) => setForm((f) => ({ ...f, weightKg: e.target.value }))}
-                  className={inputCls(!!errors.weightKg)}
-                />
-                {errors.weightKg && <p className="text-red-500 text-xs mt-1">{errors.weightKg}</p>}
-              </div>
+              <p className="mt-1 text-[11px] text-gray-500">Used for shipping quotes (not shown on storefront).</p>
+              {errors.weightKg ? <p className="mt-1 text-xs text-red-500">{errors.weightKg}</p> : null}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 sticky bottom-0 bg-white">
+        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-gray-100 bg-white px-6 py-4">
           <div className="text-xs text-gray-400">{uploadStatus}</div>
           <div className="flex gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
               Cancel
             </button>
@@ -645,9 +630,9 @@ const SparePartModal: React.FC<SparePartModalProps> = ({
               type="button"
               onClick={handleSubmit}
               disabled={saving}
-              className="px-5 py-2 text-sm bg-[#0F4C69] text-white rounded-lg hover:bg-[#0d3f59] disabled:opacity-60 min-w-[140px]"
+              className="min-w-[120px] rounded-lg bg-[#0F4C69] px-5 py-2 text-sm font-semibold text-white hover:bg-[#0d3f59] disabled:opacity-60"
             >
-              {saving ? uploadStatus || 'Saving…' : mode === 'add' ? 'Add Spare Part' : 'Update'}
+              {saving ? uploadStatus || 'Saving…' : mode === 'add' ? 'Create' : 'Update'}
             </button>
           </div>
         </div>

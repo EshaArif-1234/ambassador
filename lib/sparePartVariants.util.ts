@@ -5,6 +5,8 @@ export type SparePartVariant = {
   price?: number;
   stock: number;
   sku?: string;
+  image?: string;
+  imagePublicId?: string;
 };
 
 export type SparePartPricing = {
@@ -41,6 +43,9 @@ export function normalizeSparePartVariants(raw: unknown): SparePartVariant[] {
     const price =
       priceRaw === '' || priceRaw == null ? undefined : Number(priceRaw);
 
+    const image = String(record.image ?? '').trim();
+    const imagePublicId = String(record.imagePublicId ?? '').trim();
+
     variants.push({
       id,
       name,
@@ -52,10 +57,47 @@ export function normalizeSparePartVariants(raw: unknown): SparePartVariant[] {
       ...(String(record.sku ?? '').trim()
         ? { sku: String(record.sku).trim() }
         : {}),
+      ...(image ? { image, ...(imagePublicId ? { imagePublicId } : {}) } : {}),
     });
   }
 
   return variants;
+}
+
+/** Create/edit form: every variation must have name, price, and stock. Images optional. */
+export function validateSparePartVariationForm(variants: SparePartVariant[]): string | null {
+  if (!variants.length) return 'Add at least one variation.';
+  for (const variant of variants) {
+    if (!variant.name.trim()) return 'Each variation needs a name.';
+    if (variant.stock < 0) return 'Variation stock cannot be negative.';
+    const price = variant.price ?? variant.originalPrice;
+    if (price == null || price <= 0) {
+      return `Variation "${variant.name.trim()}" needs a valid price.`;
+    }
+  }
+  return null;
+}
+
+/** Derive listing price, stock, and gallery from variations. */
+export function syncSparePartFieldsFromVariants(variants: SparePartVariant[]): {
+  originalPrice: number;
+  price?: number;
+  stock: number;
+  images: string[];
+  imagePublicIds: string[];
+} {
+  const prices = variants.map((v) => v.price ?? v.originalPrice ?? 0).filter((p) => p > 0);
+  const originalPrice = prices.length ? Math.min(...prices) : 0;
+  const stock = variants.reduce((sum, v) => sum + Math.max(0, v.stock), 0);
+  const images: string[] = [];
+  const imagePublicIds: string[] = [];
+  for (const v of variants) {
+    const url = v.image?.trim();
+    if (!url) continue;
+    images.push(url);
+    imagePublicIds.push(v.imagePublicId?.trim() ?? '');
+  }
+  return { originalPrice, stock, images, imagePublicIds };
 }
 
 export function validateSparePartVariants(

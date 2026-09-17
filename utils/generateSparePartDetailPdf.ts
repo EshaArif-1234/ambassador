@@ -314,7 +314,15 @@ export function sparePartToDetailExport(sparePart: {
   description?: string;
   images?: string[];
   imagePublicIds?: string[];
-  variants?: { id: string; name: string; price?: number; originalPrice?: number; stock: number }[];
+  variants?: {
+    id: string;
+    name: string;
+    price?: number;
+    originalPrice?: number;
+    stock: number;
+    image?: string;
+    imagePublicId?: string;
+  }[];
 }): SparePartDetailExport {
   const displayPrice =
     sparePart.price != null && sparePart.price > 0
@@ -324,6 +332,7 @@ export function sparePartToDetailExport(sparePart: {
     images: sparePart.images,
     imagePublicIds: sparePart.imagePublicIds,
   });
+  const firstVariantImage = (sparePart.variants ?? []).map((v) => v.image?.trim()).find(Boolean);
   const variants = (sparePart.variants ?? []).map((v) => ({
     name: v.name,
     price: Number(v.price ?? v.originalPrice ?? displayPrice),
@@ -338,7 +347,7 @@ export function sparePartToDetailExport(sparePart: {
     stock: sparePart.stock ?? 0,
     weightKg: sparePart.weightKg != null ? Number(sparePart.weightKg) : undefined,
     description: sparePart.description?.trim() ?? '',
-    image: urls[0],
+    image: firstVariantImage || urls[0],
     variants,
   };
 }

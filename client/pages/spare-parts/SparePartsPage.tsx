@@ -42,7 +42,10 @@ function SparePartCard({
   const price = pricing.price;
   const showStrike = pricing.originalPrice > price && price > 0;
   const hasVariants = sparePartHasVariants(part);
-  const image = part.images[0] ?? PRODUCT_PLACEHOLDER;
+  const image =
+    part.variants?.find((v) => v.image?.trim())?.image?.trim() ||
+    part.images[0] ||
+    PRODUCT_PLACEHOLDER;
 
   return (
     <article
