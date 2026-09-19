@@ -64,7 +64,7 @@ export async function requireFullAdmin(req: NextRequest): Promise<NextResponse |
 export async function rejectManagerStatusChange(
   req: NextRequest,
   body: Record<string, unknown>,
-  options?: { isCreate?: boolean },
+  options?: { isCreate?: boolean; currentStatus?: string },
 ): Promise<NextResponse | null> {
   if (!isManagerStatusChangeBlocked(body, options)) return null;
   return requireFullAdmin(req);

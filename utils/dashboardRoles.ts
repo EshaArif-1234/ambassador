@@ -56,11 +56,22 @@ export function isManagerBlockedPath(pathname: string): boolean {
 /** Managers cannot change active/inactive status (create as active is allowed). */
 export function isManagerStatusChangeBlocked(
   body: Record<string, unknown>,
-  options?: { isCreate?: boolean },
+  options?: { isCreate?: boolean; currentStatus?: string },
 ): boolean {
   if (body.isDisabled === true) return true;
   if (body.status === undefined) return false;
-  if (options?.isCreate && body.status === 'active') return false;
+
+  const nextStatus = body.status === 'inactive' ? 'inactive' : 'active';
+
+  if (options?.isCreate) {
+    return nextStatus !== 'active';
+  }
+
+  const currentStatus = options?.currentStatus === 'inactive' ? 'inactive' : 'active';
+
+  // Allow edits that keep or set active; block deactivation and inactive→inactive is fine
+  if (nextStatus === 'active') return false;
+  if (currentStatus === 'inactive' && nextStatus === 'inactive') return false;
   return true;
 }
 

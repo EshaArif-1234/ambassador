@@ -3,7 +3,12 @@ import mongoose from 'mongoose';
 import connectDB from '@/backend/config/db';
 import BlogPost from '@/backend/models/BlogPost.model';
 import { toBlogPost } from '@/backend/lib/blogPosts';
-import { requireAdmin, requireFullAdmin, rejectManagerStatusChange } from '@/backend/lib/adminAuth';
+import {
+  getAuthUser,
+  requireAdmin,
+  requireFullAdmin,
+  rejectManagerStatusChange,
+} from '@/backend/lib/adminAuth';
 import {
   BLOG_CATEGORY_MAX,
   BLOG_CONTENT_MAX,
@@ -59,14 +64,16 @@ export async function PATCH(
       return NextResponse.json({ success: false, message: 'Invalid id.' }, { status: 400 });
     }
 
-    const body = await req.json();
-    const deactivateError = await rejectManagerStatusChange(req, body);
-    if (deactivateError) return deactivateError;
-
     const doc = await BlogPost.findById(id);
     if (!doc) {
       return NextResponse.json({ success: false, message: 'Not found.' }, { status: 404 });
     }
+
+    const body = await req.json();
+    const deactivateError = await rejectManagerStatusChange(req, body, {
+      currentStatus: doc.status,
+    });
+    if (deactivateError) return deactivateError;
 
     if (body.title !== undefined) {
       const title = String(body.title).trim();
@@ -119,7 +126,17 @@ export async function PATCH(
       }
       doc.category = category;
     }
-    if (body.status !== undefined) doc.status = body.status === 'inactive' ? 'inactive' : 'active';
+    if (body.status !== undefined) {
+      const user = await getAuthUser(req);
+      const nextStatus = body.status === 'inactive' ? 'inactive' : 'active';
+      if (user?.role === 'manager' && nextStatus !== doc.status) {
+        return NextResponse.json(
+          { success: false, message: 'Managers cannot change publish status.' },
+          { status: 403 },
+        );
+      }
+      doc.status = nextStatus;
+    }
     if (body.publishedAt !== undefined) {
       const parsed = new Date(String(body.publishedAt));
       if (!Number.isNaN(parsed.getTime())) doc.publishedAt = parsed;
